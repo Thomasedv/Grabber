@@ -430,7 +430,7 @@ class GUI(QProcess):
         self.main_tab.setStyleSheet(self.Style)
 
         # Set window title.
-        self.main_tab.setWindowTitle('Youtube-dl')
+        self.main_tab.setWindowTitle('GUI')
         self.main_tab.setMinimumWidth(340)
         self.main_tab.setMinimumHeight(200)
 
