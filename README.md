@@ -29,4 +29,5 @@ Current to do list:
 * Remove or specify try/except statements where they are too broad.
 * Add general error handling when stuff goes wrong, especially read/write errors if there are some. 
 * Upload first release executable. (Built with PyInstaller)
+* Learn to do testing...
 
