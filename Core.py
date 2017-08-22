@@ -27,12 +27,14 @@ class GUI(QProcess):
         self.readyReadStandardOutput.connect(self.read_stdoutput)
 
     def initial_checks(self):
-        self.Settings = self.write_default_settings(All=False)
+        self.settings = self.write_default_settings(All=False)
+
         self.youtube_dl_path = self.locate_program_path('youtube-dl.exe')
         self.ffmpeg_path = self.locate_program_path('ffmpeg.exe')
-        print(self.ffmpeg_path)
-        self.program_workdir = self.setProgramWorkDir()
+        self.program_workdir = self.set_program_working_directory().replace('\\', '/')
         self.workDir = os.getcwd().replace('\\', '/')
+
+        self.local_dl_path = ''.join([self.workDir, '/DL/'])
 
 
         self.check_settings_integrity()
@@ -54,12 +56,12 @@ class GUI(QProcess):
         self.iconlist.append(self.window_icon)
 
         # Creating icon objects for use in message windows.
-        self.Alerticon = QIcon()
-        self.Windicon = QIcon()
+        self.alertIcon = QIcon()
+        self.windowIcon = QIcon()
 
         # Setting the icons image, using found paths.
-        self.Alerticon.addFile(self.alert_icon)
-        self.Windicon.addFile(self.window_icon)
+        self.alertIcon.addFile(self.alert_icon)
+        self.windowIcon.addFile(self.window_icon)
 
     def build_gui(self):
         # Find resources.
@@ -142,10 +144,10 @@ class GUI(QProcess):
         # LineEdit for download location.
         self.tab2_download_lineedit = QLineEdit()
         self.tab2_download_lineedit.setReadOnly(True)
-        if self.Settings['Settings']['Download location']['options']:
+        if self.settings['Settings']['Download location']['options']:
             self.tab2_download_lineedit.setText('')
-            self.tab2_download_lineedit.setToolTip(self.Settings['Settings']['Download location']['options'][
-                                                       self.Settings['Settings']['Download location'][
+            self.tab2_download_lineedit.setToolTip(self.settings['Settings']['Download location']['options'][
+                                                       self.settings['Settings']['Download location'][
                                                            'Active option']].replace('%(title)s.%(ext)s', ''))
         else:
             self.tab2_download_lineedit.setText('DL')
@@ -166,8 +168,8 @@ class GUI(QProcess):
         self.tab2_grid_layout = QGridLayout()
         self.tab2_grid_layout.expandingDirections()
 
-        self.tab2_options = paramTree(self.Settings['Settings'])
-        self.tab2_options.itemChanged.connect(self.paramchanger)
+        self.tab2_options = paramTree(self.settings['Settings'])
+        self.tab2_options.itemChanged.connect(self.parameter_updater)
         self.tab2_grid_layout.addWidget(self.tab2_options)
 
         self.tab2_QV.addLayout(self.tab2_grid_layout)
@@ -235,7 +237,7 @@ class GUI(QProcess):
         # Lineedit to show path to text file. (Can be changed later to use same path naming as other elements.)
         self.tab4_txt_lineedit = QLineEdit()
         self.tab4_txt_lineedit.setReadOnly(True) # Read only
-        self.tab4_txt_lineedit.setText(self.Settings['Other stuff']['multidl_txt']) # Path from settings.
+        self.tab4_txt_lineedit.setText(self.settings['Other stuff']['multidl_txt']) # Path from settings.
         self.tab4_txt_label = QLabel('Textfile:')
 
         # Textbrowser to adds some info about Grabber.
@@ -432,16 +434,12 @@ class GUI(QProcess):
 
         # Set window title.
         self.main_tab.setWindowTitle('GUI')
+        # Set base size.
         self.main_tab.setMinimumWidth(340)
         self.main_tab.setMinimumHeight(200)
 
-        self.main_tab.setWindowIcon(self.Windicon)
+        self.main_tab.setWindowIcon(self.windowIcon) # Window icon
 
-        # Shows the main window.
-        self.main_tab.show()
-
-        # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
-        self.tab1_lineedit.setFocus()
 
         # Adds actions to the btt
         # Start buttons starts download
@@ -450,13 +448,13 @@ class GUI(QProcess):
         self.tab1_stop_btn.clicked.connect(self.kill)
         # Close button closes the window/process.
         self.tab1_close_btn.clicked.connect(self.main_tab.close)
-        # Starts self.update, locate_program_path checks for updates.
-        self.tab4_update_btn.clicked.connect(self.update)
-        self.tab4_dirinfo_btn.clicked.connect(self.dirinfo)
+        # Starts self.update_youtube_dl, locate_program_path checks for updates.
+        self.tab4_update_btn.clicked.connect(self.update_youtube_dl)
+        self.tab4_dirinfo_btn.clicked.connect(self.dir_info)
         self.tab4_test_btn.clicked.connect(self.reset_settings)
 
         # When statechanged, then the slotcahnge fuction is called. Checks if the process is running and enables/disables buttons.
-        self.stateChanged.connect(self.slot_changed)
+        self.stateChanged.connect(self.program_state_changed)
         # When the check button is checked or unchecked, calls function checked.
         # self.multiDL=self.Wid2.findChild(QCheckBox,'dl from textfile')
         self.tab1_checkbox.stateChanged.connect(self.is_batch_dl_checked)
@@ -469,7 +467,7 @@ class GUI(QProcess):
 
         self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.YTW_TextEdit)
 
-        self.shortcut.activated.connect(self.slot)
+        self.shortcut.activated.connect(self.tab3_saveButton.click)
 
         # Color specific text elements in textedit! More for future references or oppurtunities.
         # redText = """<span style=\"color:#ff0000;\" >"""
@@ -485,121 +483,119 @@ class GUI(QProcess):
             self.tab4_update_btn.setDisabled(True)
 
         # for i in range(self.tab2_options.topLevelItemCount()):
-        #    self.paramchanger(self.tab2_options.topLevelItem(i))
-        self.dl_naming_changer()
+        #    self.parameter_updater(self.tab2_options.topLevelItem(i))
+        self.download_name_handler()
 
+        # Denotes if the process(youtube-dl) is running.
         self.RUNNING = False
+
         self.enable_start()
+        # Denotes if the textfile is saved.
         self.SAVED = True
 
+        # Shows the main window.
+        self.main_tab.show()
 
+        # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
+        self.tab1_lineedit.setFocus()
 
-    def dl_naming_changer(self):
-        def namer(location):
-            location = location.replace('%(title)s.%(ext)s', '')
-            if len(location) > 15:
-                shortlocation = 0
-                times = 0
-                for number, letter in enumerate(reversed(location)):
-                    if letter == '/':
-                        shortlocation = -number - 1
-                        times += 1
-                        if times == 3:
-                            break
+    @staticmethod
+    def path_shortener(full_path):
+        full_path = full_path.replace('%(title)s.%(ext)s', '')
+        if full_path[-1] != '/':
+            full_path = ''.join([full_path,'/'])
 
-                location = location[0:3] + '...' + location[shortlocation:]
-            if not location[-1] == '/':
-                location += '/'
-            return location
+        if len(full_path) > 15:
+            times = 0
+            for integer, letter in enumerate(reversed(full_path)):
+                if letter == '/':
+                    split = -integer - 1
+                    times += 1
+                    if times == 3:
+                        break
+            else:
+                raise Exception(''.join(['Something went wrong with path shortening! Path:',full_path]))
 
-        self.tab2_options.blockSignals(True)
+            short_path = ''.join([full_path[0:3], '...', full_path[split:]])
+        else:
+            short_path = full_path
 
-        for i in range(self.tab2_options.topLevelItemCount()):
-            item = self.tab2_options.topLevelItem(i)
+        if not short_path[-1] == '/':
+            short_path += '/'
+
+        return short_path
+
+    def download_name_handler(self):
+        for item in self.tab2_options.topLevelItems():
+            self.tab2_options.blockSignals(True)
+
             if item.data(0, 32) == 'Download location':
                 for number in range(item.childCount()):
                     item.child(number).setData(0, 0,
-                                               namer(item.child(number).data(0, 0)).replace('%(title)s.%(ext)s', ''))
+                                               self.path_shortener(item.child(number).data(0, 0)))
                     item.child(number).setToolTip(0,item.child(number).data(0,32).replace('%(title)s.%(ext)s', ''))
+
                 if item.checkState(0) == Qt.Checked:
                     for number in range(item.childCount()):
                         if item.child(number).checkState(0) == Qt.Checked:
                             self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
+                            break
                 else:
-                    self.tab2_download_lineedit.setText('DL')
-                    self.tab2_download_lineedit.setToolTip('DL')
-        self.tab2_options.blockSignals(False)
+                    self.tab2_download_lineedit.setText(self.path_shortener(self.local_dl_path))
+                    self.tab2_download_lineedit.setToolTip(self.local_dl_path)
 
-    def testfunction(self, location):
-        for i in range(self.tab2_options.topLevelItemCount()):
+            self.tab2_options.blockSignals(False)
+
+    def download_option_handler(self, full_path):
+        # Adds new dl location to the tree and settings. Removes oldest one, if there is more than 3.
+        for item in self.tab2_options.topLevelItems():
             try:
-                if self.tab2_options.topLevelItem(i).data(0, 32) == 'Download location':
-                    if len(location) > 15:
-                        tooltip = location
-                        times = 0
-                        for number, letter in enumerate(reversed(location)):
-                            if letter == '/':
-                                shortlocation = -number - 1
-                                times += 1
-                                if times == 2:
-                                    break
-                        location = location[0:3] + '...' + location[shortlocation:]
-
-                    else:
-                        tooltip = location
-                    if not location[-1] == '/':
-                        location += '/'
+                if item.data(0, 32) == 'Download location':
+                    short_path = self.path_shortener(full_path)
 
                     self.tab2_options.blockSignals(True)
 
-                    print('location:', location)
-                    print('tooltip:', tooltip)
-                    sub = self.tab2_options.makeOption(name=tooltip,
-                                                       parent=self.tab2_options.topLevelItem(i),
+                    sub = self.tab2_options.makeOption(name=full_path,
+                                                       parent=item,
                                                        checkstate=False,
                                                        level=1,
-                                                       tooltip=tooltip,
+                                                       tooltip=full_path,
                                                        dependency=None,
                                                        subindex=None)
-                    sub.setData(0, 0, location)
+                    sub.setData(0, 0, short_path)
 
-                    A = sub.parent().takeChild(sub.parent().indexOfChild(sub))
+                    moving_sub = item.takeChild(item.indexOfChild(sub))
 
-                    self.tab2_options.topLevelItem(i).insertChild(0, A)
+                    item.insertChild(0, moving_sub)
 
-                    # self.tab2_options.topLevelItem(i).
-                    # self.tab1_textbrowser.append('Adding option.'+str(self.tab2_options.topLevelItem(i).childCount()))
+                    for number in range(item.childCount()):
+                        item.child(number).setData(0, 35, number)
 
-                    for number in range(sub.parent().childCount()):
-                        sub.parent().child(number).setData(0, 35, number)
-
-                    if self.Settings['Settings']['Download location']['options'] is None:
-                        self.Settings['Settings']['Download location']['options'] = [tooltip + '/%(title)s.%(ext)s']
+                    if self.settings['Settings']['Download location']['options'] is None:
+                        self.settings['Settings']['Download location']['options'] = [full_path + '/%(title)s.%(ext)s']
                     else:
-                        if self.tab2_options.topLevelItem(i).childCount() >= 4:
-                            self.Settings['Settings']['Download location']['options']: list
-                            self.Settings['Settings']['Download location']['options'].insert(0,
-                                                                                             tooltip + '/%(title)s.%(ext)s')
+                        if item.childCount() >= 4:
+                            self.settings['Settings']['Download location']['options']: list
+                            self.settings['Settings']['Download location']['options'].insert(0,
+                                                                                             full_path + '/%(title)s.%(ext)s')
 
-                            del self.Settings['Settings']['Download location']['options'][3:]
-                            print('DL, options', self.Settings['Settings']['Download location']['options'])
+                            del self.settings['Settings']['Download location']['options'][3:]
                         else:
-                            print('Not 4 subs')
-                            self.Settings['Settings']['Download location']['options'].insert(0,
-                                                                                             tooltip + '/%(title)s.%(ext)s')
+                            self.settings['Settings']['Download location']['options'].insert(0,
+                                                                                             full_path + '/%(title)s.%(ext)s')
 
-                    if self.tab2_options.topLevelItemCount() >= 3:
-                        self.tab2_options.topLevelItem(i).removeChild(self.tab2_options.topLevelItem(i).child(3))
+                    if item.childCount() >= 3:
+                        item.removeChild(item.child(3))
 
                     self.tab2_options.blockSignals(False)
 
                     # self.tab2_download_lineedit.setText(location)
                     # self.tab2_download_lineedit.setToolTip(tooltip)
 
-                    sub.parent().setCheckState(0, Qt.Checked)
+                    item.setCheckState(0, Qt.Checked)
                     sub.setCheckState(0, Qt.Checked)
 
-                    self.write_setting(self.Settings)
+                    self.write_setting(self.settings)
 
             except Exception as  e:
                 # print(e)
@@ -610,7 +606,7 @@ class GUI(QProcess):
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
             base_path = sys._MEIPASS
-        except Exception:
+        except AttributeError:
             base_path = os.path.abspath(".")
 
         return os.path.join(base_path, relative_path)
@@ -682,40 +678,38 @@ class GUI(QProcess):
                 return GUI.write_default_settings(All=True)
     def check_settings_integrity(self):
         # Base info.
-        BaseSettings = ['Convert to audio',
+        base_settings = ['Convert to audio',
                         'Add thumbnail',
                         'Ignore errors',
                         'Download location',
                         'Strict file names',
                         'Keep archive']
 
-        if not self.Settings:
+        if not self.settings:
             raise SettingsError('Empty settings file!')
 
-        MissingSettings = []
-        for option in BaseSettings:
-            if not option in self.Settings['Settings']:
-                MissingSettings.append(option)
-        if MissingSettings:
-            raise SettingsError('\n'.join(['Settingfile is corrupt/missing:','-'*20,*MissingSettings,'-'*20]))
+        missing_settings = []
+        for option in base_settings:
+            if not option in self.settings['Settings']:
+                missing_settings.append(option)
+        if missing_settings:
+            raise SettingsError('\n'.join(['Settingfile is corrupt/missing:','-'*20,*missing_settings,'-'*20]))
 
-        if not self.Settings['Settings']['Download location']['options']:
-            self.Settings['Settings']['Download location']['options'] = [self.workDir+'/DL/%(title)s.%(ext)s']
+        if not self.settings['Settings']['Download location']['options']:
+            self.settings['Settings']['Download location']['options'] = [self.workDir + '/DL/%(title)s.%(ext)s']
 
-        for option in self.Settings['Settings'].keys():
-            if self.Settings['Settings'][option]['options'] is not None:
-                if self.Settings['Settings'][option]['Active option'] >= len(self.Settings['Settings'][option]['options']):
-                    self.Settings['Settings'][option]['Active option'] = 0
+        for option in self.settings['Settings'].keys():
+            if self.settings['Settings'][option]['options'] is not None:
+                if self.settings['Settings'][option]['Active option'] >= len(self.settings['Settings'][option]['options']):
+                    self.settings['Settings'][option]['Active option'] = 0
 
-        self.write_setting(self.Settings)
-
-
+        self.write_setting(self.settings)
 
     def update_setting(self, diction: dict, section: str, key: str, value):
         diction[section][key] = value
         self.write_setting(diction)
 
-    def update_paramters(self, diction, setting, state):
+    def update_parameters(self, diction, setting, state):
         diction['Settings'][setting]['state'] = state
         self.write_setting(diction)
 
@@ -728,7 +722,7 @@ class GUI(QProcess):
         # confirm1.setStyleSheet(self.Style)
         warning_window.setWindowTitle('Warning!')
         warning_window.setText('Restart required!')
-        warning_window.setWindowIcon(self.Alerticon)
+        warning_window.setWindowIcon(self.alertIcon)
         warning_window.setInformativeText(
             'To reset the settings, the program has to be restarted. Do you want to reset and exit?')
         warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
@@ -743,27 +737,27 @@ class GUI(QProcess):
         with open('Settings.json', 'w') as f:
             json.dump(diction, f, indent=4, sort_keys=True)
 
-    def paramchanger(self, item: QTreeWidgetItem):
+    def parameter_updater(self, item: QTreeWidgetItem):
         if item.data(0, 33) == 0:
             if item.checkState(0) == Qt.Checked:
-                self.update_paramters(self.Settings, item.data(0, 32), True)
+                self.update_parameters(self.settings, item.data(0, 32), True)
                 if item.data(0, 32) == 'Download location':
                     for i in range(item.childCount()):
-                        self.paramchanger(item.child(i))
+                        self.parameter_updater(item.child(i))
             else:
-                self.update_paramters(self.Settings, item.data(0, 32), False)
+                self.update_parameters(self.settings, item.data(0, 32), False)
                 if item.data(0, 32) == 'Download location':
                     self.tab2_download_lineedit.setText('DL')
                     self.tab2_download_lineedit.setToolTip('DL')
         elif item.data(0, 33) == 1:
-            self.update_options(self.Settings, item.parent().data(0, 32), item.data(0, 35))
+            self.update_options(self.settings, item.parent().data(0, 32), item.data(0, 35))
             if item.parent().data(0, 32) == 'Download location':
                 if item.checkState(0) == Qt.Checked:
                     self.tab2_download_lineedit.setText(item.data(0, 0))
                     print('item data 32', item.data(0, 32))
                     self.tab2_download_lineedit.setToolTip(item.data(0, 32).replace('%(title)s.%(ext)s', ''))
-
-    def locate_program_path(self, program):
+    @staticmethod
+    def locate_program_path(program):
         def is_exe(fpath):
             return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -776,8 +770,9 @@ class GUI(QProcess):
             return program
         return None
 
-    def color_text(self, text, color='darkorange', extra='bold', sections=None):
-        text=text.replace('\n', '<br>')
+    @staticmethod
+    def color_text(text, color='darkorange', extra='bold', sections=None):
+        text = text.replace('\n', '<br>')
 
         if not sections:
 
@@ -786,65 +781,63 @@ class GUI(QProcess):
                             "</span>"]
                             )
         else:
-            worktext = text[sections[0]:sections[1]]
+            work_text = text[sections[0]:sections[1]]
             string = ''.join([text[:sections[0]],
                         """<span style=\"color:""" + str(color) + '; font-weight:' + extra + """;\" >""",
-                        worktext,
+                        work_text,
                         "</span>",
                         text[sections[1]:]]
                         )
         return string
 
-    def dirinfo(self):
+    def dir_info(self):
 
-        Filedir = os.path.dirname(os.path.abspath(__file__))
+        file_dir = os.path.dirname(os.path.abspath(__file__))
 
-        Debug = [self.color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
-                 self.color_text('Filedir:'), Filedir,
+        debug = [self.color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
+                 self.color_text('Filedir:'), file_dir,
                  self.color_text('Workdir:'), self.workDir,
                  self.color_text('Youtube-dl working directory:'), self.program_workdir,
                  self.color_text('\nIcon paths:'),
                  self.checked_icon, self.unchecked_icon, self.alert_icon,
                  self.window_icon]
 
-        for i in Debug:
+        for i in debug:
             self.tab1_textbrowser.append(str(i))
 
         self.tab1_textbrowser.append(self.color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
-        # Rich text uses <br> instead of \n
-        # Color fuction takes care of it.
 
         for i in self.iconlist:
             if i is not None:
                 try:
                     if os.path.isfile(str(i)):
-                        self.tab1_textbrowser.append('Found: ' + os.path.split(i)[1])
+                        self.tab1_textbrowser.append(''.join(['Found:', os.path.split(i)[1]]))
                     else:
-                        self.tab1_textbrowser.append('Missing in: ' + i)
+                        self.tab1_textbrowser.append(''.join(['Missing in:', i]))
                 except IndexError:
                     if os.path.isfile(str(i)):
-                        self.tab1_textbrowser.append('Found: ' + i)
+                        self.tab1_textbrowser.append(''.join(['Found: ', i]))
                     else:
-                        self.tab1_textbrowser.append('Missing in: ' + i)
+                        self.tab1_textbrowser.append(''.join(['Missing in:', i]))
 
-    def setProgramWorkDir(self):
+    def set_program_working_directory(self):
         try:
             work_dir = sys._MEIPASS
-        except Exception:
+        except AttributeError:
             work_dir = os.path.abspath('.')
-            print(work_dir)
         self.setWorkingDirectory(work_dir)
+
         return work_dir
 
-    def update(self):
+    def update_youtube_dl(self):
         self.tab1_textbrowser.clear()
         self.main_tab.setCurrentIndex(0)
         self.start(self.youtube_dl_path, ['-U'])
 
     # When the process is started/stopped then this runs.
-    def slot_changed(self, newState):
+    def program_state_changed(self, new_state):
         # If it's not running, start button is enabled, and stop button disabled.
-        if newState == QProcess.NotRunning:
+        if new_state == QProcess.NotRunning:
             self.tab1_start_btn.setDisabled(False)
             self.tab1_stop_btn.setDisabled(True)
             self.RUNNING = False
@@ -855,17 +848,18 @@ class GUI(QProcess):
             self.Errors = 0
 
         # Vise versa of the above.
-        elif newState == QProcess.Running:
+        elif new_state == QProcess.Running:
             self.tab1_start_btn.setDisabled(True)
             self.tab1_stop_btn.setDisabled(False)
             self.RUNNING = True
 
     def savefile_dialog(self):
         Location = QFileDialog.getExistingDirectory(parent=self.main_tab)
+        print('Savefile dialog',Location)
         if Location == '':
             pass
         elif os.path.exists(Location):
-            self.testfunction(Location)
+            self.download_option_handler(Location)
 
     def textfile_dialog(self):
         Location = \
@@ -877,25 +871,25 @@ class GUI(QProcess):
             if not self.SAVED:
                 confirmchange = QMessageBox()
                 confirmchange.setText('Selecting new textfile, this will load over the text in the download list tab!')
-                confirmchange.setWindowIcon(self.Alerticon)
+                confirmchange.setWindowIcon(self.alertIcon)
                 confirmchange.setWindowTitle('Warning!')
                 confirmchange.setInformativeText('Do you want to load over the unsaved changes?')
                 confirmchange.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
                 result = confirmchange.exec()
                 if result == QMessageBox.Yes:
-                    self.update_setting(self.Settings, 'Other stuff', 'multidl_txt', Location)
+                    self.update_setting(self.settings, 'Other stuff', 'multidl_txt', Location)
                     self.tab4_txt_lineedit.setText(Location)
                     self.SAVED = True
                     self.load_text_from_file()
 
             else:
-                self.update_setting(self.Settings, 'Other stuff', 'multidl_txt', Location)
+                self.update_setting(self.settings, 'Other stuff', 'multidl_txt', Location)
                 self.tab4_txt_lineedit.setText(Location)
                 self.SAVED = True
                 self.load_text_from_file()
         else:
             Message = QMessageBox()
-            Message.setWindowIcon(self.Alerticon)
+            Message.setWindowIcon(self.alertIcon)
             Message.setWindowTitle('Error!')
             Message.setText('Could not find the file!')
 
@@ -908,8 +902,6 @@ class GUI(QProcess):
         self.tab1_start_btn.setDisabled(
             (not (self.tab1_checkbox.checkState() == 2 or (self.tab1_lineedit.text() != '')) == True) or self.RUNNING)
 
-    def slot(self):
-        self.save_text_to_file()
 
     # The process for starting the download. Clears text edit.
 
@@ -927,20 +919,15 @@ class GUI(QProcess):
 
         if self.tab1_checkbox.isChecked():
             Command += (' -a {txt}'.split())
-            txt = self.Settings['Other stuff']['multidl_txt']
+            txt = self.settings['Other stuff']['multidl_txt']
         else:
             Command.append('{txt}')
             txt = self.tab1_lineedit.text()
 
-        print(txt)
-        print(Command)
-
         for i in range(len(Command)):
             Command[i] = Command[i].format(txt=txt)
-        print(Command)
-        # print('1')
 
-        for parameter, options in self.Settings['Settings'].items():
+        for parameter, options in self.settings['Settings'].items():
             # print(options['Command'])
             if parameter == 'Download location':
                 if options['state']:
@@ -948,7 +935,7 @@ class GUI(QProcess):
                                               options['options'][options['Active option']])
                     Command += add
                 else:
-                    Command += ['-o', self.workDir + '/DL/%(title)s.%(ext)s']
+                    Command += ['-o',self.local_dl_path,'%(title)s.%(ext)s']
             else:
                 if options['state']:
                     add = self.format_in_list(options['Command'],
@@ -967,46 +954,6 @@ class GUI(QProcess):
         self.start(self.youtube_dl_path, Command)
         self.tab1_textbrowser.append('Starting...\n')
 
-    def start_download(self):
-        """
-        Remove later, doesn't work anymore.
-        """
-
-        self.tab1_textbrowser.clear()
-        Command = ''
-        A = self.read_settings()
-        if A.getboolean('multidl', 'state'):
-            Command += ' -a {DL}'
-        else:
-            Command += ' {DL}'
-        for k in A['Default values']:
-            try:
-                if A.getboolean('Default values', k):
-                    Command += '  ' + A.get('Parameters', k)
-            except:
-                self.tab1_textbrowser.append((
-                    '<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>: Parameter \'' + str(
-                        k).capitalize() + '\' Skipped due to lacking or invalid entry in Paramters, in Settings.ini.\n'))
-        if A.getboolean('multidl', 'state'):
-            DL = (A.get('User Defined', 'txt_location').replace(' ', '[Space_Position]'))
-        else:
-            DL = self.tab1_lineedit.text()
-        if A.getboolean('Default values', 'output'):
-            DLto = str(A.get('User Defined', 'dl_location')).replace(' ', '[Space_Position]') + '%(title)s.%(ext)s'
-        else:
-            DLto = ''
-            Command += ' -o "%(title)s.%(ext)s"'
-
-        # print(Command)
-        Command = Command.format(DL=DL, DLto=DLto)
-        # print(Command)#DeBUG
-        # print(Command.split()) #debUG
-        Command = Command.split()
-        for number, item in enumerate(Command):
-            Command[number] = Command[number].replace('[Space_Position]', ' ')
-        # self.edit.append(Command) #DebugGing
-        # print(Command) # dEBUG
-        self.start(self.youtube_dl_path, Command)
 
     def cmdoutput(self, info):
         if info.startswith('ERROR'):
@@ -1096,7 +1043,7 @@ class GUI(QProcess):
                 else:
                     warning = 'Could not find file!'
                 warning_window = QMessageBox(parent=self.main_tab)
-                warning_window.setWindowIcon(self.Alerticon)
+                warning_window.setWindowIcon(self.alertIcon)
                 warning_window.setWindowTitle('Error!')
                 warning_window.setText(warning)
 
@@ -1108,7 +1055,7 @@ class GUI(QProcess):
             else:
                 warning_window = QMessageBox(parent=self.main_tab)
                 warning_window.setText('Overwrite?')
-                warning_window.setWindowIcon(self.Alerticon)
+                warning_window.setWindowIcon(self.alertIcon)
                 warning_window.setInformativeText('Do you want to load over the unsaved changes?')
                 warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
                 result = warning_window.exec()
@@ -1128,7 +1075,7 @@ class GUI(QProcess):
             warning_window.setText('No textfile selected!')
             warning_window.setWindowTitle('Warning!')
             warning_window.setInformativeText('Do you want to create one?')
-            warning_window.setWindowIcon(self.Alerticon)
+            warning_window.setWindowIcon(self.alertIcon)
             warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
             result = warning_window.exec()
             if result == QMessageBox.Yes:
@@ -1138,7 +1085,7 @@ class GUI(QProcess):
                     with open(Save[0], 'w') as f:
                         for line in self.YTW_TextEdit.toPlainText():
                             f.write(line)
-                            self.update_setting(self.Settings, 'Other stuff', 'multidl_txt', Save[0])
+                            self.update_setting(self.settings, 'Other stuff', 'multidl_txt', Save[0])
                     print('1')
                     self.tab4_txt_lineedit.setText(Save[0])
                     self.tab3_saveButton.setDisabled(True)
@@ -1154,7 +1101,7 @@ class GUI(QProcess):
             # confirm1.setStyleSheet(self.Style)
             warning_window.setWindowTitle('Still downloading!')
             warning_window.setText('Want to quit?')
-            warning_window.setWindowIcon(self.Alerticon)
+            warning_window.setWindowIcon(self.alertIcon)
             warning_window.setInformativeText(
                 'Do you want to close without letting youtube-dl finish? Will likely leave unwanted/incomplete files in the download location.')
             warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
@@ -1169,7 +1116,7 @@ class GUI(QProcess):
             # confirm.setParent(self.main_tab)
             # confirm.setStyleSheet(self.Style)
             warning_window.setWindowTitle('Unsaved changes in list!')
-            warning_window.setWindowIcon(self.Alerticon)
+            warning_window.setWindowIcon(self.alertIcon)
             warning_window.setText('Save?')
             warning_window.setInformativeText('Do you want to save before exiting?')
             warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
