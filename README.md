@@ -8,5 +8,5 @@ If you want to convert the videos, or otherwise use features of youtube-dl that 
 that also has to be in the same folder as Grabber. 
 
 You can get those programs here:
-* Youtube-dl <a ref="https://rg3.github.io/youtube-dl/">Here</a>
-* ffmpeg  <a ref="https://www.ffmpeg.org/">Here</a>
+* Youtube-dl here: https://rg3.github.io/youtube-dl/
+* ffmpeg here: https://www.ffmpeg.org/
