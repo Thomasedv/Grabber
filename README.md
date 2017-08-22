@@ -16,3 +16,17 @@ Requirements to use source:
 * PyQt5 5.9 (Earlier version might work too, worked fine with 5.8 before i upgraded.) 
 
 Made with PyQt5 https://www.riverbankcomputing.com/software/pyqt/intro
+
+
+Current to do list: 
+
+* Make code consistent in style.
+* Add lots of comments, strings an other stuff to ensure code readability and actually make it possible form someone else to understand the code.
+* Rename really badly made functions. 
+* Add a bit of explanation to naming conventions and other guidelines that should be followed.
+* Docstrings to modules.
+* Replace code that has been given simplifications. 
+* Remove or specify try/except statements where they are too broad.
+* Add general error handling when stuff goes wrong, especially read/write errors if there are some. 
+* Upload first release executable. (Built with PyInstaller)
+
