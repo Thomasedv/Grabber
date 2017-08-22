@@ -179,9 +179,9 @@ class GUI(QProcess):
         self.sendclose.connect(self.main_tab.closeE)
 
         # Create Qwidget for the layout for tab 2.
-        self.tab_2 = QWidget()
+        self.tab2 = QWidget()
         # Adds the tab2 layout to the widget.
-        self.tab_2.setLayout(self.tab2_QV)
+        self.tab2.setLayout(self.tab2_QV)
 
         # Tab 3. YTW.txt file changes.
         # Tab creation.
@@ -221,18 +221,24 @@ class GUI(QProcess):
         self.tab4_QH = QHBoxLayout()
         self.tab4_QV = QVBoxLayout()
 
-        # Checks for youtube-dl updates.
+        # Button to browse for .txt file to download files.
         self.tab4_txt_location_btn = QPushButton('Browse')
+        # Button to check for youtube-dl updates.
         self.tab4_update_btn = QPushButton('Update')
+        # Debugging
         self.tab4_dirinfo_btn = QPushButton('Dirinfo')
+        # Reset settings, (requires restart!)
         self.tab4_test_btn = QPushButton('Reset\n settings')
+        # Adjust button size to match naming. (Possibly change later in some form)
         self.tab4_test_btn.setMinimumHeight(30)
 
+        # Lineedit to show path to text file. (Can be changed later to use same path naming as other elements.)
         self.tab4_txt_lineedit = QLineEdit()
-        self.tab4_txt_lineedit.setReadOnly(True)
-        self.tab4_txt_lineedit.setText(self.Settings['Other stuff']['multidl_txt'])
+        self.tab4_txt_lineedit.setReadOnly(True) # Read only
+        self.tab4_txt_lineedit.setText(self.Settings['Other stuff']['multidl_txt']) # Path from settings.
         self.tab4_txt_label = QLabel('Textfile:')
 
+        # Textbrowser to adds some info about Grabber.
         self.tab4_abouttext_textedit = QTextBrowser()
         self.tab4_abouttext_textedit.setObjectName('AboutText')
         self.tab4_abouttext_textedit.setOpenExternalLinks(True)
@@ -244,12 +250,8 @@ class GUI(QProcess):
                                             'Website'
                                             '</a>')
 
-        # self.tab4_checkbox_test = paramTree(self.Settings['Settings'])
-
-
+        # Adding the widgets into layouts.
         self.tab4_QH.addWidget(self.tab4_abouttext_textedit)
-        # self.tab4_QH.addWidget(self.tab4_checkbox_test)
-
 
         self.tab4_QV.addWidget(self.tab4_update_btn)
         self.tab4_QV.addWidget(self.tab4_dirinfo_btn)
@@ -275,159 +277,158 @@ class GUI(QProcess):
 
         # Adds tabs to the tab widget, and names the tabs.
         self.main_tab.addTab(self.tab1, 'Main')
-        self.main_tab.addTab(self.tab_2, 'Param')
+        self.main_tab.addTab(self.tab2, 'Param')
         self.main_tab.addTab(self.tab3, 'List')
         self.main_tab.addTab(self.tab4, 'About')
 
         ## Sets the styling for the GUI, everything from buttons to anything. ##
-        self.Style = ("""
-        QWidget {
-            background-color: #484848;
-            color: white;
-        }
+        self.style = f"""
+                QWidget {{
+                    background-color: #484848;
+                    color: white;
+                }}
 
-        QTabWidget::pane {
-            border: none;
-        }
+                QTabWidget::pane {{
+                    border: none;
+                }}
 
-        QTabWidget {
-        background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                          stop: 0 #303030, stop: 0.9 #484848);
-        }
+                QTabWidget {{
+                background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                                  stop: 0 #303030, stop: 0.9 #484848);
+                }}
 
-        QTabBar {
-            background-color: #313131;
-        }
+                QTabBar {{
+                    background-color: #313131;
+                }}
 
-        QTabBar::tab {
-            color: rgb(186,186,186);
-            background-color: #606060;
-            border: 2px solid #404040;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-            border-bottom: none;
-            min-width: 15ex;
-            min-height: 7ex;
-        }
+                QTabBar::tab {{
+                    color: rgb(186,186,186);
+                    background-color: #606060;
+                    border: 2px solid #404040;
+                    border-top-left-radius: 5px;
+                    border-top-right-radius: 5px;
+                    border-bottom: none;
+                    min-width: 15ex;
+                    min-height: 7ex;
+                }}
 
-        QTabBar::tab:selected {
-            color: rgb(186,186,186);
-            background-color: #484848;
-        }
-        QTabBar::tab:!selected {
-            margin-top: 6px;
-        }
+                QTabBar::tab:selected {{
+                    color: rgb(186,186,186);
+                    background-color: #484848;
+                }}
+                QTabBar::tab:!selected {{
+                    margin-top: 6px;
+                }}
 
-        QTabWidget::tab-bar {
-            border-top: 1px solid #505050;
-        }
+                QTabWidget::tab-bar {{
+                    border-top: 1px solid #505050;
+                }}
 
-        QLineEdit {
-            background-color: #303030;
-            color: rgb(186,186,186);
-            border-radius: 5px;
-            padding: 0 3px;
+                QLineEdit {{
+                    background-color: #303030;
+                    color: rgb(186,186,186);
+                    border-radius: 5px;
+                    padding: 0 3px;
 
-        }
-        QLineEdit:disabled {
-            background-color: #303030;
-            color: #505050;
-            border-radius: 5px;
-        }
+                }}
+                QLineEdit:disabled {{
+                    background-color: #303030;
+                    color: #505050;
+                    border-radius: 5px;
+                }}
 
-        QTextEdit {
-            background-color: #484848;
-            color: rgb(186,186,186);
-            border: none;
-        }
+                QTextEdit {{
+                    background-color: #484848;
+                    color: rgb(186,186,186);
+                    border: none;
+                }}
 
-        QTextEdit#TextFileEdit {
-            background-color: #303030;
-            color: rgb(186,186,186);
-            border-radius: 5px;
-        }
+                QTextEdit#TextFileEdit {{
+                    background-color: #303030;
+                    color: rgb(186,186,186);
+                    border-radius: 5px;
+                }}
 
-        QScrollBar:vertical {
-            border: none;
-            background-color: rgba(255,255,255,0);
-            width: 10px;
-            margin: 0px 0px 1px 0px;
-        }
+                QScrollBar:vertical {{
+                    border: none;
+                    background-color: rgba(255,255,255,0);
+                    width: 10px;
+                    margin: 0px 0px 1px 0px;
+                }}
 
-        QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {
-            border: none;
-            background: none;
-        }
+                QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
+                    border: none;
+                    background: none;
+                }}
 
-        QScrollBar::handle:vertical {
-            background: #303030;
-            color: red;
-            min-height: 20px;
-            border-radius: 5px;
-        }
+                QScrollBar::handle:vertical {{
+                    background: #303030;
+                    color: red;
+                    min-height: 20px;
+                    border-radius: 5px;
+                }}
 
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {
-            background: none;
-        }
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
+                    background: none;
+                }}
 
-        QPushButton {
-            background-color: #303030;
-            color: white;
-            border: 1px grey;
-            border-radius: 5px;
-            border-style: solid;
-            width: 60px;
-            height: 20px;
-        }
+                QPushButton {{
+                    background-color: #303030;
+                    color: white;
+                    border: 1px grey;
+                    border-radius: 5px;
+                    border-style: solid;
+                    width: 60px;
+                    height: 20px;
+                }}
 
-        QPushButton:disabled {
-            background-color: #484848;
-            color: grey;
-        }
-        QPushButton:pressed {
-            background-color: #101010;
-            color: white;
-        }
+                QPushButton:disabled {{
+                    background-color: #484848;
+                    color: grey;
+                }}
+                QPushButton:pressed {{
+                    background-color: #101010;
+                    color: white;
+                }}
 
-        QCheckBox::indicator:unchecked {
-            image: url(""" + self.unchecked_icon + """);
-        }
+                QCheckBox::indicator:unchecked {{
+                    image: url({self.unchecked_icon});
+                }}
 
-        QCheckBox::indicator:checked {
-            image: url(""" + self.checked_icon + """);
-        }
+                QCheckBox::indicator:checked {{
+                    image: url({self.checked_icon});
+                }}
 
-        QTreeWidget {
-            selection-color: red;
-            border: none;
-            outline: none;
-            outline-width: 0px;
-            selection-background-color: blue;
-        }       
+                QTreeWidget {{
+                    selection-color: red;
+                    border: none;
+                    outline: none;
+                    outline-width: 0px;
+                    selection-background-color: blue;
+                }}      
 
-        QTreeWidget::item {
-            height: 16px;
-        }
+                QTreeWidget::item {{
+                    height: 16px;
+                }}
 
-        QTreeWidget::item:disabled {
-            color: grey;
-        }
+                QTreeWidget::item:disabled {{
+                    color: grey;
+                }}
 
-        QTreeWidget::item:hover, QTreeWidget::item:selected {
-            background-color: transparent;
-            color: white;
-        }
+                QTreeWidget::item:hover, QTreeWidget::item:selected {{
+                    background-color: transparent;
+                    color: white;
+                }}
 
-        QTreeWidget::indicator:checked {
-            image: url(""" + self.checked_icon + """);
-        }
-        QTreeWidget::indicator:unchecked {
-            image: url(""" + self.unchecked_icon + """);
-        }
+                QTreeWidget::indicator:checked {{
+                    image: url({self.checked_icon});
+                }}
+                QTreeWidget::indicator:unchecked {{
+                    image: url({self.unchecked_icon});
+                }}
 
-        """)
-
-        self.main_tab.setStyleSheet(self.Style)
+                """
+        self.main_tab.setStyleSheet(self.style)
 
         # Set window title.
         self.main_tab.setWindowTitle('GUI')
