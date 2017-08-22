@@ -2,7 +2,7 @@ import sys
 import json
 from Core import GUI, SettingsError, QMessageBox
 from PyQt5.QtWidgets import QApplication
-import time
+
 
 def main():
     EXIT_CODE = GUI.EXIT_CODE_REBOOT
