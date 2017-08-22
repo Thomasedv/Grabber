@@ -240,7 +240,7 @@ class GUI(QProcess):
                                              'I\'m just a developer for fun.\n')
         self.tab4_abouttext_textedit.append('PyQt5 use for making this: '
                                             '<a style="color: darkorange" '
-                                            'ref="https://www.riverbankcomputing.com/software/pyqt/intro">'
+                                            'href="https://www.riverbankcomputing.com/software/pyqt/intro">'
                                             'Website'
                                             '</a>')
 
@@ -491,10 +491,7 @@ class GUI(QProcess):
         self.enable_start()
         self.SAVED = True
 
-        self.aboutToClose.connect(self.printerw)
 
-    def printerw(self):
-        print('121')
 
     def dl_naming_changer(self):
         def namer(location):
