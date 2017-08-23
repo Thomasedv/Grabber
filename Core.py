@@ -548,6 +548,7 @@ class GUI(QProcess):
 
     def download_option_handler(self, full_path):
         # Adds new dl location to the tree and settings. Removes oldest one, if there is more than 3.
+        # Remove try/except later.
         for item in self.tab2_options.topLevelItems():
             try:
                 if item.data(0, 32) == 'Download location':
@@ -676,6 +677,7 @@ class GUI(QProcess):
                     return json.load(f)
             else:
                 return GUI.write_default_settings(All=True)
+
     def check_settings_integrity(self):
         # Base info.
         base_settings = ['Convert to audio',
@@ -756,6 +758,7 @@ class GUI(QProcess):
                     self.tab2_download_lineedit.setText(item.data(0, 0))
                     print('item data 32', item.data(0, 32))
                     self.tab2_download_lineedit.setToolTip(item.data(0, 32).replace('%(title)s.%(ext)s', ''))
+
     @staticmethod
     def locate_program_path(program):
         def is_exe(fpath):
@@ -854,20 +857,20 @@ class GUI(QProcess):
             self.RUNNING = True
 
     def savefile_dialog(self):
-        Location = QFileDialog.getExistingDirectory(parent=self.main_tab)
-        print('Savefile dialog',Location)
-        if Location == '':
+        location = QFileDialog.getExistingDirectory(parent=self.main_tab)
+
+        if location == '':
             pass
-        elif os.path.exists(Location):
-            self.download_option_handler(Location)
+        elif os.path.exists(location):
+            self.download_option_handler(location)
 
     def textfile_dialog(self):
-        Location = \
+        location = \
             QFileDialog.getOpenFileName(parent=self.main_tab, filter='*.txt',
                                         caption='Select textfile with video links')[0]
-        if Location == '':
+        if location == '':
             pass
-        elif os.path.isfile(Location):
+        elif os.path.isfile(location):
             if not self.SAVED:
                 confirmchange = QMessageBox()
                 confirmchange.setText('Selecting new textfile, this will load over the text in the download list tab!')
@@ -877,14 +880,14 @@ class GUI(QProcess):
                 confirmchange.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
                 result = confirmchange.exec()
                 if result == QMessageBox.Yes:
-                    self.update_setting(self.settings, 'Other stuff', 'multidl_txt', Location)
-                    self.tab4_txt_lineedit.setText(Location)
+                    self.update_setting(self.settings, 'Other stuff', 'multidl_txt', location)
+                    self.tab4_txt_lineedit.setText(location)
                     self.SAVED = True
                     self.load_text_from_file()
 
             else:
-                self.update_setting(self.settings, 'Other stuff', 'multidl_txt', Location)
-                self.tab4_txt_lineedit.setText(Location)
+                self.update_setting(self.settings, 'Other stuff', 'multidl_txt', location)
+                self.tab4_txt_lineedit.setText(location)
                 self.SAVED = True
                 self.load_text_from_file()
         else:
@@ -906,26 +909,26 @@ class GUI(QProcess):
     # The process for starting the download. Clears text edit.
 
     def format_in_list(self, command, option):
-        splitcommand = command.split()
-        for index, item in enumerate(splitcommand):
+        split_command = command.split()
+        for index, item in enumerate(split_command):
             if item == '{}':
-                splitcommand[index] = item.format(option)
-                return splitcommand
-        return splitcommand
+                split_command[index] = item.format(option)
+                return split_command
+        return split_command
 
     def start_DL(self):
         self.tab1_textbrowser.clear()
-        Command = []
+        command = []
 
         if self.tab1_checkbox.isChecked():
-            Command += (' -a {txt}'.split())
+            command += (' -a {txt}'.split())
             txt = self.settings['Other stuff']['multidl_txt']
         else:
-            Command.append('{txt}')
+            command.append('{txt}')
             txt = self.tab1_lineedit.text()
 
-        for i in range(len(Command)):
-            Command[i] = Command[i].format(txt=txt)
+        for i in range(len(command)):
+            command[i] = command[i].format(txt=txt)
 
         for parameter, options in self.settings['Settings'].items():
             # print(options['Command'])
@@ -933,27 +936,25 @@ class GUI(QProcess):
                 if options['state']:
                     add = self.format_in_list(options['Command'],
                                               options['options'][options['Active option']])
-                    Command += add
+                    command += add
                 else:
-                    Command += ['-o',self.local_dl_path,'%(title)s.%(ext)s']
+                    command += ['-o',self.local_dl_path,'%(title)s.%(ext)s']
             else:
                 if options['state']:
                     add = self.format_in_list(options['Command'],
-                                              options['options'][options['Active option']] if options[
-                                                                                                  'options'] is not None or
-                                                                                              options[
-                                                                                                  'options'] else '')
-                    Command += add
+                                              options['options'][
+                                                  options['Active option']] if options['options'] is not None
+                                                                               or options['options'] else '')
+                    command += add
         try:
             if self.ffmpeg_path:
-                Command += ['--ffmpeg-location',self.ffmpeg_path]
+                command += ['--ffmpeg-location',self.ffmpeg_path]
         except Exception as e:
             print(e)
         self.Errors = 0
-        print(Command)
-        self.start(self.youtube_dl_path, Command)
+        print(command)
+        self.start(self.youtube_dl_path, command)
         self.tab1_textbrowser.append('Starting...\n')
-
 
     def cmdoutput(self, info):
         if info.startswith('ERROR'):
