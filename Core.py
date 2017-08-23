@@ -1018,7 +1018,8 @@ class GUI(QProcess):
         except:
             traceback.print_exc()
 
-    # Startup function, sets the startbutton to disabled, if lineEdit is empty, and disables the lineEdit if the textbox is checked.
+    # Startup function, sets the startbutton to disabled, if lineEdit is empty,
+    # And disables the lineEdit if the textbox is checked.
     # Stop button is set to disabled, since no process is running.
     def enable_start(self):
         self.tab1_start_btn.setDisabled((self.tab1_lineedit.text() == "") or (self.RUNNING is True))
@@ -1143,6 +1144,7 @@ if __name__ == '__main__':
 
             EXIT_CODE = app.exec_()
             app= None
+
         except (SettingsError,json.decoder.JSONDecodeError) as e :
             A = QMessageBox.warning(None, 'Corrupt settings', ''.join([str(e),'\nRestore default settings?']), buttons=QMessageBox.Yes | QMessageBox.No)
             if A == QMessageBox.Yes:
