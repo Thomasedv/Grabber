@@ -14,11 +14,13 @@ def main():
 
             EXIT_CODE = app.exec_()
             app= None
+
         except (SettingsError,json.decoder.JSONDecodeError) as e :
             A = QMessageBox.warning(None, 'Corrupt settings', ''.join([str(e),'\nRestore default settings?']), buttons=QMessageBox.Yes | QMessageBox.No)
             if A == QMessageBox.Yes:
                 GUI.write_default_settings(True)
                 EXIT_CODE = -123456789
+
             app = None
 
 if __name__ == '__main__':
