@@ -36,12 +36,10 @@ class GUI(QProcess):
 
         self.local_dl_path = ''.join([self.workDir, '/DL/'])
 
-
         self.check_settings_integrity()
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
         # Use replace('\\', '/') on path.
         self.iconlist = []
-
 
         # Find icon paths
         self.unchecked_icon = self.resource_path('GUI\\Icon_unchecked.ico').replace('\\', '/')
@@ -236,8 +234,8 @@ class GUI(QProcess):
 
         # Lineedit to show path to text file. (Can be changed later to use same path naming as other elements.)
         self.tab4_txt_lineedit = QLineEdit()
-        self.tab4_txt_lineedit.setReadOnly(True) # Read only
-        self.tab4_txt_lineedit.setText(self.settings['Other stuff']['multidl_txt']) # Path from settings.
+        self.tab4_txt_lineedit.setReadOnly(True)  # Read only
+        self.tab4_txt_lineedit.setText(self.settings['Other stuff']['multidl_txt'])  # Path from settings.
         self.tab4_txt_label = QLabel('Textfile:')
 
         # Textbrowser to adds some info about Grabber.
@@ -438,8 +436,7 @@ class GUI(QProcess):
         self.main_tab.setMinimumWidth(340)
         self.main_tab.setMinimumHeight(200)
 
-        self.main_tab.setWindowIcon(self.windowIcon) # Window icon
-
+        self.main_tab.setWindowIcon(self.windowIcon)  # Window icon
 
         # Adds actions to the btt
         # Start buttons starts download
@@ -503,7 +500,7 @@ class GUI(QProcess):
     def path_shortener(full_path):
         full_path = full_path.replace('%(title)s.%(ext)s', '')
         if full_path[-1] != '/':
-            full_path = ''.join([full_path,'/'])
+            full_path = ''.join([full_path, '/'])
 
         if len(full_path) > 15:
             times = 0
@@ -514,7 +511,7 @@ class GUI(QProcess):
                     if times == 3:
                         break
             else:
-                raise Exception(''.join(['Something went wrong with path shortening! Path:',full_path]))
+                raise Exception(''.join(['Something went wrong with path shortening! Path:', full_path]))
 
             short_path = ''.join([full_path[0:3], '...', full_path[split:]])
         else:
@@ -533,7 +530,7 @@ class GUI(QProcess):
                 for number in range(item.childCount()):
                     item.child(number).setData(0, 0,
                                                self.path_shortener(item.child(number).data(0, 0)))
-                    item.child(number).setToolTip(0,item.child(number).data(0,32).replace('%(title)s.%(ext)s', ''))
+                    item.child(number).setToolTip(0, item.child(number).data(0, 32).replace('%(title)s.%(ext)s', ''))
 
                 if item.checkState(0) == Qt.Checked:
                     for number in range(item.childCount()):
@@ -681,11 +678,11 @@ class GUI(QProcess):
     def check_settings_integrity(self):
         # Base info.
         base_settings = ['Convert to audio',
-                        'Add thumbnail',
-                        'Ignore errors',
-                        'Download location',
-                        'Strict file names',
-                        'Keep archive']
+                         'Add thumbnail',
+                         'Ignore errors',
+                         'Download location',
+                         'Strict file names',
+                         'Keep archive']
 
         if not self.settings:
             raise SettingsError('Empty settings file!')
@@ -695,14 +692,15 @@ class GUI(QProcess):
             if not option in self.settings['Settings']:
                 missing_settings.append(option)
         if missing_settings:
-            raise SettingsError('\n'.join(['Settingfile is corrupt/missing:','-'*20,*missing_settings,'-'*20]))
+            raise SettingsError('\n'.join(['Settingfile is corrupt/missing:', '-' * 20, *missing_settings, '-' * 20]))
 
         if not self.settings['Settings']['Download location']['options']:
             self.settings['Settings']['Download location']['options'] = [self.workDir + '/DL/%(title)s.%(ext)s']
 
         for option in self.settings['Settings'].keys():
             if self.settings['Settings'][option]['options'] is not None:
-                if self.settings['Settings'][option]['Active option'] >= len(self.settings['Settings'][option]['options']):
+                if self.settings['Settings'][option]['Active option'] >= len(
+                        self.settings['Settings'][option]['options']):
                     self.settings['Settings'][option]['Active option'] = 0
 
         self.write_setting(self.settings)
@@ -732,7 +730,6 @@ class GUI(QProcess):
         if result1 == QMessageBox.Yes:
             self.write_default_settings(All=True)
             qApp.exit(GUI.EXIT_CODE_REBOOT)
-
 
     @staticmethod
     def write_setting(diction):
@@ -780,17 +777,17 @@ class GUI(QProcess):
         if not sections:
 
             string = ''.join(["""<span style=\"color:""" + str(color) + '; font-weight:' + extra + """;\" >""",
-                            text,
-                            "</span>"]
-                            )
+                              text,
+                              "</span>"]
+                             )
         else:
             work_text = text[sections[0]:sections[1]]
             string = ''.join([text[:sections[0]],
-                        """<span style=\"color:""" + str(color) + '; font-weight:' + extra + """;\" >""",
-                        work_text,
-                        "</span>",
-                        text[sections[1]:]]
-                        )
+                              """<span style=\"color:""" + str(color) + '; font-weight:' + extra + """;\" >""",
+                              work_text,
+                              "</span>",
+                              text[sections[1]:]]
+                             )
         return string
 
     def dir_info(self):
@@ -905,10 +902,10 @@ class GUI(QProcess):
         self.tab1_start_btn.setDisabled(
             (not (self.tab1_checkbox.checkState() == 2 or (self.tab1_lineedit.text() != '')) == True) or self.RUNNING)
 
-
     # The process for starting the download. Clears text edit.
 
-    def format_in_list(self, command, option):
+    @staticmethod
+    def format_in_list(command, option):
         split_command = command.split()
         for index, item in enumerate(split_command):
             if item == '{}':
@@ -938,7 +935,7 @@ class GUI(QProcess):
                                               options['options'][options['Active option']])
                     command += add
                 else:
-                    command += ['-o',self.local_dl_path,'%(title)s.%(ext)s']
+                    command += ['-o', self.local_dl_path, '%(title)s.%(ext)s']
             else:
                 if options['state']:
                     add = self.format_in_list(options['Command'],
@@ -948,7 +945,7 @@ class GUI(QProcess):
                     command += add
         try:
             if self.ffmpeg_path:
-                command += ['--ffmpeg-location',self.ffmpeg_path]
+                command += ['--ffmpeg-location', self.ffmpeg_path]
         except Exception as e:
             print(e)
         self.Errors = 0
@@ -972,52 +969,50 @@ class GUI(QProcess):
         text = data.decode('utf-8', 'ignore').strip()
         text = self.cmdoutput(text)
 
-        try:
-            scrollbar = self.tab1_textbrowser.verticalScrollBar()
-            place = scrollbar.sliderPosition()
 
-            if place == scrollbar.maximum():
-                keepPos = False
-            else:
-                keepPos = True
+        scrollbar = self.tab1_textbrowser.verticalScrollBar()
+        place = scrollbar.sliderPosition()
 
-            # get the last line of QTextEdit
-            self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
-            self.tab1_textbrowser.moveCursor(QTextCursor.StartOfLine, QTextCursor.MoveAnchor)
-            self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.KeepAnchor)
-            lastLine = self.tab1_textbrowser.textCursor().selectedText()
+        if place == scrollbar.maximum():
+            keepPos = False
+        else:
+            keepPos = True
 
-            # Check if a percentage has already been placed.
-            if "%" in lastLine and 'ETA' in lastLine:
-                self.tab1_textbrowser.textCursor().removeSelectedText()
-                self.tab1_textbrowser.textCursor().deletePreviousChar()
+        # get the last line of QTextEdit
+        self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
+        self.tab1_textbrowser.moveCursor(QTextCursor.StartOfLine, QTextCursor.MoveAnchor)
+        self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.KeepAnchor)
+        lastLine = self.tab1_textbrowser.textCursor().selectedText()
+
+        # Check if a percentage has already been placed.
+        if "%" in lastLine and 'ETA' in lastLine:
+            self.tab1_textbrowser.textCursor().removeSelectedText()
+            self.tab1_textbrowser.textCursor().deletePreviousChar()
+            # Last line of text
+            self.tab1_textbrowser.append(self.color_text(text.split("[download]")[-1][1:],
+                                                         color='lawngreen',
+                                                         extra='bold',
+                                                         sections=[0, 5]))
+            if '100%' in text:
+                self.tab1_textbrowser.append('')
+
+        else:
+            if "%" in text and 'ETA' in text:
                 # Last line of text
                 self.tab1_textbrowser.append(self.color_text(text.split("[download]")[-1][1:],
-                                                             color='lawngreen',
+                                                             color='lightgreen',
                                                              extra='bold',
-                                                             sections=[0,5]))
-                if '100%' in text:
-                    self.tab1_textbrowser.append('')
-
+                                                             sections=[0, 5]))
+            elif '[download]' in text:
+                self.tab1_textbrowser.append(''.join([text.replace('[download] ', ''), '\n']))
             else:
-                if "%" in text and 'ETA' in text:
-                    # Last line of text
-                    self.tab1_textbrowser.append(self.color_text(text.split("[download]")[-1][1:],
-                                                                 color='lightgreen',
-                                                                 extra='bold',
-                                                                 sections=[0,5]))
-                elif '[download]' in text:
-                    self.tab1_textbrowser.append(''.join([text.replace('[download] ',''), '\n']))
-                else:
-                    self.tab1_textbrowser.append(''.join([text,'\n']))
+                self.tab1_textbrowser.append(''.join([text, '\n']))
 
-            if keepPos:
-                scrollbar.setSliderPosition(place)
-            else:
-                scrollbar.setSliderPosition(scrollbar.maximum())
+        if keepPos:
+            scrollbar.setSliderPosition(place)
+        else:
+            scrollbar.setSliderPosition(scrollbar.maximum())
 
-        except:
-            traceback.print_exc()
 
     # Startup function, sets the startbutton to disabled, if lineEdit is empty,
     # And disables the lineEdit if the textbox is checked.
@@ -1083,12 +1078,12 @@ class GUI(QProcess):
             if result == QMessageBox.Yes:
                 Save = QFileDialog.getSaveFileName(parent=self.main_tab, caption='Save as', filter='*.txt')
                 if not Save[0] == '':
-                    print(Save[0])
+
                     with open(Save[0], 'w') as f:
                         for line in self.YTW_TextEdit.toPlainText():
                             f.write(line)
                             self.update_setting(self.settings, 'Other stuff', 'multidl_txt', Save[0])
-                    print('1')
+
                     self.tab4_txt_lineedit.setText(Save[0])
                     self.tab3_saveButton.setDisabled(True)
                     self.SAVED = True
@@ -1135,8 +1130,10 @@ class GUI(QProcess):
 class SettingsError(Exception):
     pass
 
+
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication, QMessageBox
+
     EXIT_CODE = GUI.EXIT_CODE_REBOOT
     while EXIT_CODE == -123456789:
         try:
@@ -1144,12 +1141,12 @@ if __name__ == '__main__':
             qProcess = GUI()
 
             EXIT_CODE = app.exec_()
-            app= None
+            app = None
 
-        except (SettingsError,json.decoder.JSONDecodeError) as e :
-            A = QMessageBox.warning(None, 'Corrupt settings', ''.join([str(e),'\nRestore default settings?']), buttons=QMessageBox.Yes | QMessageBox.No)
+        except (SettingsError, json.decoder.JSONDecodeError) as e:
+            A = QMessageBox.warning(None, 'Corrupt settings', ''.join([str(e), '\nRestore default settings?']),
+                                    buttons=QMessageBox.Yes | QMessageBox.No)
             if A == QMessageBox.Yes:
                 GUI.write_default_settings(True)
                 EXIT_CODE = -123456789
             app = None
-
