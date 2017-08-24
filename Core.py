@@ -1149,4 +1149,6 @@ if __name__ == '__main__':
             if A == QMessageBox.Yes:
                 GUI.write_default_settings(True)
                 EXIT_CODE = -123456789
+            else:
+                EXIT_CODE= 1
             app = None
