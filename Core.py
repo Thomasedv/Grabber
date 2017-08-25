@@ -946,8 +946,8 @@ class GUI(QProcess):
         try:
             if self.ffmpeg_path:
                 command += ['--ffmpeg-location', self.ffmpeg_path]
-        except Exception as e:
-            print(e)
+        except Exception as error:
+            print(error)
         self.Errors = 0
         print(command)
         self.start(self.youtube_dl_path, command)
