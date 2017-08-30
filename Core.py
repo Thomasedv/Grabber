@@ -944,10 +944,7 @@ class GUI(QProcess):
 
         for parameter, options in self.settings['Settings'].items():
             # print(options['Command'])
-            if parameter == 'Keep archive':
-                options['options'][options['Active option']] = os.path.join(
-                    self.workDir,
-                    options['options'][options['Active option']])
+
 
             if parameter == 'Download location':
                 if options['state']:
@@ -956,6 +953,10 @@ class GUI(QProcess):
                     command += add
                 else:
                     command += ['-o', self.local_dl_path, '%(title)s.%(ext)s']
+            elif parameter == 'Keep archive':
+                add = self.format_in_list(options['Command'],
+                                          os.path.join(self.workDir, options['options'][options['Active option']]))
+                command+= add
             else:
                 if options['state']:
                     add = self.format_in_list(options['Command'],
@@ -968,6 +969,7 @@ class GUI(QProcess):
                 command += ['--ffmpeg-location', self.ffmpeg_path]
         except Exception as error:
             print(error)
+
         self.Errors = 0
         print(command)
         self.start(self.youtube_dl_path, command)
