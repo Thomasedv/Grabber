@@ -33,6 +33,8 @@ class GUI(QProcess):
         self.ffmpeg_path = self.locate_program_path('ffmpeg.exe')
         self.program_workdir = self.set_program_working_directory().replace('\\', '/')
         self.workDir = os.getcwd().replace('\\', '/')
+        self.lincense_path = self.resource_path('LICENSE')
+
 
         self.local_dl_path = ''.join([self.workDir, '/DL/'])
 
@@ -1143,7 +1145,7 @@ class GUI(QProcess):
 
         if not self.license_shown:
                 self.tab4_abouttext_textedit.clear()
-                with open('LICENSE','r') as f:
+                with open(self.lincense_path,'r') as f:
                     for line in f.readlines():
                         self.tab4_abouttext_textedit.append(line.strip())
                 self.license_shown = True
