@@ -242,9 +242,14 @@ class GUI(QProcess):
         self.tab4_abouttext_textedit = QTextBrowser()
         self.tab4_abouttext_textedit.setObjectName('AboutText')
         self.tab4_abouttext_textedit.setOpenExternalLinks(True)
-        self.tab4_abouttext_textedit.setText('In-development version of a Youtube-dl GUI. \n'
-                                             'I\'m just a developer for fun.\n')
-        self.tab4_abouttext_textedit.append('PyQt5 use for making this: '
+        self.tab4_abouttext_textedit.setText('In-development (on my free time) version of a Youtube-dl GUI. \n'
+                                             'I\'m just a developer for fun.\nThis is licensed under GPL 3.\n')
+        self.tab4_abouttext_textedit.append('Source on Github: '
+                                            '<a style="color: darkorange" '
+                                            'href="https://github.com/Thomasedv/Grabber">'
+                                            'Website'
+                                            '</a>')
+        self.tab4_abouttext_textedit.append('<br>PyQt5 use for making this: '
                                             '<a style="color: darkorange" '
                                             'href="https://www.riverbankcomputing.com/software/pyqt/intro">'
                                             'Website'
