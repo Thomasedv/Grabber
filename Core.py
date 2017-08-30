@@ -225,6 +225,8 @@ class GUI(QProcess):
         self.tab4_txt_location_btn = QPushButton('Browse')
         # Button to check for youtube-dl updates.
         self.tab4_update_btn = QPushButton('Update')
+        # License
+        self.tab4_license_btn = QPushButton('License')
         # Debugging
         self.tab4_dirinfo_btn = QPushButton('Dirinfo')
         # Reset settings, (requires restart!)
@@ -260,7 +262,9 @@ class GUI(QProcess):
 
         self.tab4_QV.addWidget(self.tab4_update_btn)
         self.tab4_QV.addWidget(self.tab4_dirinfo_btn)
+        self.tab4_QV.addWidget(self.tab4_license_btn)
         self.tab4_QV.addWidget(self.tab4_test_btn)
+
         self.tab4_QV.addStretch(1)
 
         self.tab4_QH.addLayout(self.tab4_QV)
@@ -454,6 +458,7 @@ class GUI(QProcess):
         self.tab4_update_btn.clicked.connect(self.update_youtube_dl)
         self.tab4_dirinfo_btn.clicked.connect(self.dir_info)
         self.tab4_test_btn.clicked.connect(self.reset_settings)
+        self.tab4_license_btn.clicked.connect(self.read_license)
 
         # When statechanged, then the slotcahnge fuction is called. Checks if the process is running and enables/disables buttons.
         self.stateChanged.connect(self.program_state_changed)
@@ -494,6 +499,9 @@ class GUI(QProcess):
         self.enable_start()
         # Denotes if the textfile is saved.
         self.SAVED = True
+
+        # Indicates if license is shown.
+        self.license_shown = False
 
         # Shows the main window.
         self.main_tab.show()
@@ -1130,6 +1138,29 @@ class GUI(QProcess):
                 pass
             else:
                 self.sendclose.emit()
+
+    def read_license(self):
+
+        if not self.license_shown:
+                self.tab4_abouttext_textedit.clear()
+                with open('LICENSE','r') as f:
+                    for line in f.readlines():
+                        self.tab4_abouttext_textedit.append(line.strip())
+                self.license_shown = True
+        else:
+            self.tab4_abouttext_textedit.setText('In-development (on my free time) version of a Youtube-dl GUI. \n'
+                                                 'I\'m just a developer for fun.\nThis is licensed under GPL 3.\n')
+            self.tab4_abouttext_textedit.append('Source on Github: '
+                                                '<a style="color: darkorange" '
+                                                'href="https://github.com/Thomasedv/Grabber">'
+                                                'Website'
+                                                '</a>')
+            self.tab4_abouttext_textedit.append('<br>PyQt5 use for making this: '
+                                                '<a style="color: darkorange" '
+                                                'href="https://www.riverbankcomputing.com/software/pyqt/intro">'
+                                                'Website'
+                                                '</a>')
+            self.license_shown = False
 
 
 class SettingsError(Exception):
