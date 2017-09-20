@@ -29,6 +29,6 @@ Current to do list:
 * Replace code that has been given simplifications. 
 * Remove or specify try/except statements where they are too broad.
 * Add general error handling when stuff goes wrong, especially read/write errors if there are some. 
-* Upload first release executable. (Built with PyInstaller)
+* ~~Upload first release executable. (Built with PyInstaller)~~
 * Learn to do testing...
 
