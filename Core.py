@@ -69,8 +69,7 @@ class GUI(QProcess):
 
         self.replace_dict = {
             '[ffmpeg] ': '',
-            '[youtube] ': '',
-            'ERROR': '<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>'
+            '[youtube] ': ''
         }
         self.substrs = sorted(self.replace_dict, key=len, reverse=True)
 
@@ -954,9 +953,10 @@ class GUI(QProcess):
                 else:
                     command += ['-o', self.local_dl_path, '%(title)s.%(ext)s']
             elif parameter == 'Keep archive':
-                add = self.format_in_list(options['Command'],
-                                          os.path.join(self.workDir, options['options'][options['Active option']]))
-                command+= add
+                if options['state']:
+                    add = self.format_in_list(options['Command'],
+                                              os.path.join(self.workDir, options['options'][options['Active option']]))
+                    command += add
             else:
                 if options['state']:
                     add = self.format_in_list(options['Command'],
@@ -978,9 +978,10 @@ class GUI(QProcess):
     def cmdoutput(self, info):
         if info.startswith('ERROR'):
             self.Errors += 1
+            info = info.replace('ERROR','<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>')
         while info.startswith(' '):
             info = info[1:]
-
+        info = re.sub(' +', ' ', info)
         regexp = re.compile('|'.join(map(re.escape, self.substrs)))
 
         return regexp.sub(lambda match: self.replace_dict[match.group(0)], info)
