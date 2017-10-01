@@ -128,12 +128,14 @@ class ParameterTree(QTreeWidget):
         return widget_item
 
     def start_size(self):
+        """Sets widget size. Required to keep consistent."""
         size = sum([1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
         # Unhandled lengths when the program exceeds the window size. Might implement a max factor, and allow scrolling.
         # Future cases might implement two ParameterTrees side by side, for better use of space and usability.
         self.setFixedHeight(20 * self.topLevelItemCount() + 15 * size)
 
     def exclusive(self, item: QTreeWidgetItem):
+        """Handles if the options should show, depends on checkstate."""
         if item.checkState(0) == Qt.Checked:
             item.setExpanded(True)
         else:
