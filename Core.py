@@ -4,7 +4,7 @@ import json
 import re
 import traceback
 
-from Modules.paramTree import paramTree
+from Modules.ParameterTree import ParameterTree
 from Modules.TabWidget import Tabwidget
 
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
@@ -167,7 +167,7 @@ class GUI(QProcess):
         self.tab2_grid_layout = QGridLayout()
         self.tab2_grid_layout.expandingDirections()
 
-        self.tab2_options = paramTree(self.settings['Settings'])
+        self.tab2_options = ParameterTree(self.settings['Settings'])
         self.tab2_options.itemChanged.connect(self.parameter_updater)
         self.tab2_grid_layout.addWidget(self.tab2_options)
 
