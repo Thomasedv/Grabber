@@ -979,8 +979,7 @@ class GUI(QProcess):
         if info.startswith('ERROR'):
             self.Errors += 1
             info = info.replace('ERROR','<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>')
-        while info.startswith(' '):
-            info = info[1:]
+        info = re.sub(r'\s+$', '', info, 0, re.M)
         info = re.sub(' +', ' ', info)
         regexp = re.compile('|'.join(map(re.escape, self.substrs)))
 
