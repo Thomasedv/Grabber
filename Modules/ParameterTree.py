@@ -6,12 +6,11 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 class ParameterTree(QTreeWidget):
     def __init__(self, dicts: dict):
-        super().__init__()
         """
         Data table:
-        All data is in column 0. 
+        All data is in column 0.
         --
-        0  - Visual name. 
+        0  - Visual name.
         32 - main data entry, name of parents, full data for children
         33 - 0 for parent, 1 for children
         34 - Name of item that needs to be checked
@@ -19,6 +18,8 @@ class ParameterTree(QTreeWidget):
         37 - List of QModelIndex to items that this depends on.
 
         """
+        super().__init__()
+
         self.setExpandsOnDoubleClick(False)
         # self.setHeaderHidden(True)
         self.setRootIsDecorated(False)
