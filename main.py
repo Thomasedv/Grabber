@@ -21,7 +21,7 @@ def main():
             else:
                 break
 
-        except (SettingsError,json.decoder.JSONDecodeError) as e :
+        except (SettingsError,json.decoder.JSONDecodeError) as e:
             warning = QMessageBox.warning(None,
                                           'Corrupt settings',
                                           ''.join([str(e),'\nRestore default settings?']),

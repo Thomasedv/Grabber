@@ -4,8 +4,8 @@ import json
 import re
 import traceback
 
-from Modules.ParameterTree import ParameterTree
-from Modules.TabWidget import Tabwidget
+from Modules.parameterTree import ParameterTree
+from Modules.tabWidget import Tabwidget
 
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
     QCheckBox, QMessageBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp
