@@ -1,6 +1,6 @@
 import sys
 import json
-from Core import GUI, SettingsError, QMessageBox
+from core import GUI, SettingsError, QMessageBox
 from PyQt5.QtWidgets import QApplication
 
 
