@@ -12,7 +12,7 @@ class ParameterTree(QTreeWidget):
         --
         0  - Visual name.
         32 - main data entry, name of parents, full data for children
-        33 - 0 for parent, 1 for children
+        33 - 0 for parent, 1 for children, 3 for custom option.
         34 - Name of item that needs to be checked
         35 - index for children used for active option
         37 - List of QModelIndex to items that this depends on.
@@ -29,14 +29,14 @@ class ParameterTree(QTreeWidget):
 
         # self.setItemWidget()
         for name, settings in dicts.items():
-            parent = self.makeOption(name, self, settings['state'], 0, settings['tooltip'], settings['dependency'])
+            parent = self.make_option(name, self, settings['state'], 0, settings['tooltip'], settings['dependency'])
             if settings['options'] is not None:
                 for number, choice in enumerate(settings['options']):
                     if settings['Active option'] == number:
-                        option = self.makeOption(choice, parent, True, 1, subindex=number)
+                        option = self.make_option(choice, parent, True, 1, subindex=number)
                         option.setFlags(option.flags() ^ Qt.ItemIsUserCheckable)
                     else:
-                        option = self.makeOption(choice, parent, False, 1, subindex=number)
+                        option = self.make_option(choice, parent, False, 1, subindex=number)
             self.make_exclusive(parent)
 
         self.hock_dependency()
@@ -98,13 +98,13 @@ class ParameterTree(QTreeWidget):
             yield self.topLevelItem(i)
 
     @staticmethod
-    def makeOption(name: str,
-                   parent: Union[QTreeWidget, QTreeWidgetItem],
-                   checkstate: bool,
-                   level: int = 0,
-                   tooltip: Optional[str] = None,
-                   dependency: Optional[list] = None,
-                   subindex: Optional[int] = None)\
+    def make_option(name: str,
+                    parent: Union[QTreeWidget, QTreeWidgetItem],
+                    checkstate: bool,
+                    level: int = 0,
+                    tooltip: Optional[str] = None,
+                    dependency: Optional[list] = None,
+                    subindex: Optional[int] = None)\
             -> QTreeWidgetItem:
         """
         Makes a QWidgetItem and returns it.
@@ -135,7 +135,7 @@ class ParameterTree(QTreeWidget):
         # Future cases might implement two ParameterTrees side by side, for better use of space and usability.
         self.setFixedHeight(20 * self.topLevelItemCount() + 15 * size)
 
-    def exclusive(self, item: QTreeWidgetItem):
+    def expand_options(self, item: QTreeWidgetItem):
         """Handles if the options should show, depends on checkstate."""
         if item.checkState(0) == Qt.Checked:
             item.setExpanded(True)
@@ -153,10 +153,10 @@ class ParameterTree(QTreeWidget):
 
     def make_exclusive(self, item: QTreeWidgetItem):
         """
-        Handles changes to self. Ensure options are exclusive, and resizes self when needed.
+        Handles changes to self. Ensure options are expand_options, and resizes self when needed.
         """
         if item.data(0, 33) == 0:
-            self.exclusive(item)
+            self.expand_options(item)
             self.resizer(item)
             # print('item is parent box')
         elif item.data(0, 33) == 1:
@@ -174,8 +174,10 @@ class ParameterTree(QTreeWidget):
                         TWI.setFlags(TWI.flags() | Qt.ItemIsUserCheckable)
                 except Exception as e:
                     print(e)
+        elif item.data(0, 33) == 2:
+            pass  # Custom options should not have options, not now at least.
         else:
-            print('Parent/child state not set.')
+            print('Parent/child state not set.' + str(item.data(0, 32)))
         self.blockSignals(False)
 
 

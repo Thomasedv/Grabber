@@ -509,6 +509,8 @@ class GUI(QProcess):
 
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
         self.tab1_lineedit.setFocus()
+        self.custom_options()
+
 
     @staticmethod
     def path_shortener(full_path):
@@ -535,6 +537,18 @@ class GUI(QProcess):
             short_path += '/'
 
         return short_path
+
+    def custom_options(self):
+        self.tab2_options.blockSignals(True)
+
+
+        parent = self.tab2_options.make_option(self.settings['Other stuff']['custom']['Command'],
+                                               self.tab2_options,
+                                               self.settings['Other stuff']['custom']['state'],
+                                               2,
+                                               self.settings['Other stuff']['custom']['tooltip'])
+        parent.setFlags(parent.flags() | Qt.ItemIsEditable)
+        self.tab2_options.blockSignals(False)
 
     def download_name_handler(self):
         for item in self.tab2_options.topLevelItems():
@@ -567,13 +581,13 @@ class GUI(QProcess):
 
                     self.tab2_options.blockSignals(True)
 
-                    sub = self.tab2_options.makeOption(name=full_path,
-                                                       parent=item,
-                                                       checkstate=False,
-                                                       level=1,
-                                                       tooltip=full_path,
-                                                       dependency=None,
-                                                       subindex=None)
+                    sub = self.tab2_options.make_option(name=full_path,
+                                                        parent=item,
+                                                        checkstate=False,
+                                                        level=1,
+                                                        tooltip=full_path,
+                                                        dependency=None,
+                                                        subindex=None)
                     sub.setData(0, 0, short_path)
 
                     moving_sub = item.takeChild(item.indexOfChild(sub))
@@ -609,7 +623,7 @@ class GUI(QProcess):
 
                     self.write_setting(self.settings)
 
-            except Exception as  e:
+            except Exception as e:
                 # print(e)
                 traceback.print_exc()
 
@@ -629,7 +643,12 @@ class GUI(QProcess):
             Settings = {}
             Settings['Settings'] = {}
             Settings['Other stuff'] = {
-                'multidl_txt': ''
+                'multidl_txt': '',
+                'custom':{
+                    "Command": "Custom",
+                    "state": False,
+                    "tooltip": "Custom option, double click to edit."
+                }
             }
             Settings['Settings']['Convert to audio'] = {
                 "Active option": 0,
@@ -762,6 +781,7 @@ class GUI(QProcess):
                 if item.data(0, 32) == 'Download location':
                     self.tab2_download_lineedit.setText('DL')
                     self.tab2_download_lineedit.setToolTip('DL')
+
         elif item.data(0, 33) == 1:
             self.update_options(self.settings, item.parent().data(0, 32), item.data(0, 35))
             if item.parent().data(0, 32) == 'Download location':
@@ -769,6 +789,21 @@ class GUI(QProcess):
                     self.tab2_download_lineedit.setText(item.data(0, 0))
                     print('item data 32', item.data(0, 32))
                     self.tab2_download_lineedit.setToolTip(item.data(0, 32).replace('%(title)s.%(ext)s', ''))
+
+        elif item.data(0, 33) == 2:
+            # Handles custom options.
+            # print('item is custom')
+            # print(str(item.data(0,0)))
+            # print(str(item.checkState(0) == Qt.Checked))
+            if item.data(0, 0) in ('', ' '):
+                item.setData(0,0, 'Custom command double click to change')
+                item.setCheckState(0, Qt.Unchecked)
+            self.settings['Other stuff']['custom']['Command'] = item.data(0, 0)
+            self.settings['Other stuff']['custom']['state'] = item.checkState(0) == Qt.Checked
+            self.write_setting(self.settings)
+
+
+
 
     @staticmethod
     def locate_program_path(program):
@@ -964,6 +999,10 @@ class GUI(QProcess):
                                                   options['Active option']] if options['options'] is not None
                                                                                or options['options'] else '')
                     command += add
+        if self.settings['Other stuff']['custom']['state']:
+            if self.settings['Other stuff']['custom']['Command'] != 'Custom command double click to change':
+                command += self.settings['Other stuff']['custom']['Command'].split()
+
         try:
             if self.ffmpeg_path:
                 command += ['--ffmpeg-location', self.ffmpeg_path]
@@ -1030,6 +1069,10 @@ class GUI(QProcess):
             else:
                 self.tab1_textbrowser.append(''.join([text, '\n']))
 
+        # Prevents some leftover highlighted text on errors and such.
+        self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
+
+        # Ensures slider position is kept when not at bottom, and stays at bottom with new text where there.
         if keepPos:
             scrollbar.setSliderPosition(place)
         else:
