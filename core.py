@@ -6,11 +6,14 @@ import traceback
 
 from Modules.parameterTree import ParameterTree
 from Modules.tabWidget import Tabwidget
+from Modules.lineEdit import LineEdit
 
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
     QCheckBox, QMessageBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor
+
+
 
 
 class GUI(QProcess):
@@ -91,12 +94,13 @@ class GUI(QProcess):
 
         # Label and lineedit creation. Line edit for acception youtube links as well as paramters.
         self.tab1_label = QLabel("Url: ")
-        self.tab1_lineedit = QLineEdit()
+        self.tab1_lineedit = LineEdit()
 
         # Connects actions to text changes and adds action to when you press Enter.
         self.tab1_lineedit.textChanged.connect(self.enable_start)
         # Starts downloading
         self.tab1_lineedit.returnPressed.connect(self.tab1_start_btn.click)
+
 
         # Horizontal layout 2, contains label and LineEdit. LineEdit stretches horizontally by default.
         self.tab1_QH2 = QHBoxLayout()
@@ -1214,6 +1218,8 @@ class GUI(QProcess):
                                                 '</a>')
             self.license_shown = False
 
+    def selector(self):
+        self.tab1_lineedit.selectAll()
 
 class SettingsError(Exception):
     pass
