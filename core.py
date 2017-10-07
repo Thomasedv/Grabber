@@ -771,7 +771,7 @@ class GUI(QProcess):
         warning_window.setText('Restart required!')
         warning_window.setWindowIcon(self.alertIcon)
         warning_window.setInformativeText(
-            'To reset the settings, the program has to be restarted. Do you want to reset and exit?')
+            'To reset the settings, the program has to be restarted. Do you want to reset and restart?')
         warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         result1 = warning_window.exec()
         if result1 == QMessageBox.Yes:
