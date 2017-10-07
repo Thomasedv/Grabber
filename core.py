@@ -22,8 +22,12 @@ class GUI(QProcess):
 
     def __init__(self):
         super(GUI, self).__init__()
+        # starts checks
         self.initial_checks()
+
+        # Builds GUI and everything.
         self.build_gui()
+
         # Set the channel to merged.
         self.setProcessChannelMode(QProcess.MergedChannels)
         # connects output to the GUI part.
@@ -32,12 +36,13 @@ class GUI(QProcess):
     def initial_checks(self):
         self.settings = self.write_default_settings(All=False)
 
+        # Find resources.
+        # Find youtube-dl
         self.youtube_dl_path = self.locate_program_path('youtube-dl.exe')
         self.ffmpeg_path = self.locate_program_path('ffmpeg.exe')
         self.program_workdir = self.set_program_working_directory().replace('\\', '/')
         self.workDir = os.getcwd().replace('\\', '/')
         self.lincense_path = self.resource_path('LICENSE')
-
 
         self.local_dl_path = ''.join([self.workDir, '/DL/'])
 
@@ -67,9 +72,7 @@ class GUI(QProcess):
         self.windowIcon.addFile(self.window_icon)
 
     def build_gui(self):
-        # Find resources.
-        # Find youtube-dl
-
+        # Used later for checking the text feed from youtuibne-dl.
         self.replace_dict = {
             '[ffmpeg] ': '',
             '[youtube] ': ''
@@ -111,6 +114,7 @@ class GUI(QProcess):
         self.tab1_textbrowser = QTextBrowser()
         self.tab1_textbrowser.setAcceptRichText(True)
         self.tab1_textbrowser.setOpenExternalLinks(True)
+        self.tab1_textbrowser.setContextMenuPolicy(Qt.NoContextMenu)
 
         # Adds weclome message on startup.
         self.tab1_textbrowser.append('Welcome!\n\nAdd video url, or load from text file.')
@@ -305,7 +309,15 @@ class GUI(QProcess):
                 QTabWidget::pane {{
                     border: none;
                 }}
-
+                
+                QMenu::item:selected {{
+                    background-color: #303030;
+                }}
+                
+                QMenu::item:disabled {{
+                    color: #505050;
+                }}
+                
                 QTabWidget {{
                 background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
                                                   stop: 0 #303030, stop: 0.9 #484848);
@@ -967,10 +979,23 @@ class GUI(QProcess):
         return split_command
 
     def start_DL(self):
+        self.tab1_lineedit.clearFocus()
+
         self.tab1_textbrowser.clear()
         command = []
 
         if self.tab1_checkbox.isChecked():
+            if self.tab4_txt_lineedit.text() == '':
+                warning_window = QMessageBox(parent=self.main_tab)
+                warning_window.setWindowIcon(self.alertIcon)
+                warning_window.setWindowTitle('Error!')
+                warning_window.setText('No textfile selected!')
+
+                warning_window.exec()
+
+                self.tab1_textbrowser.append('No textfile selected...\n\nNo download started!')
+                return
+
             command += (' -a {txt}'.split())
             txt = self.settings['Other stuff']['multidl_txt']
         else:
@@ -1034,7 +1059,6 @@ class GUI(QProcess):
         text = data.decode('utf-8', 'ignore').strip()
         text = self.cmdoutput(text)
 
-
         scrollbar = self.tab1_textbrowser.verticalScrollBar()
         place = scrollbar.sliderPosition()
 
@@ -1047,10 +1071,10 @@ class GUI(QProcess):
         self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
         self.tab1_textbrowser.moveCursor(QTextCursor.StartOfLine, QTextCursor.MoveAnchor)
         self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.KeepAnchor)
-        lastLine = self.tab1_textbrowser.textCursor().selectedText()
+        last_line = self.tab1_textbrowser.textCursor().selectedText()
 
         # Check if a percentage has already been placed.
-        if "%" in lastLine and 'ETA' in lastLine:
+        if "%" in last_line and 'ETA' in last_line:
             self.tab1_textbrowser.textCursor().removeSelectedText()
             self.tab1_textbrowser.textCursor().deletePreviousChar()
             # Last line of text
