@@ -319,18 +319,16 @@ class GUI(QProcess):
                 }}
                 
                 QTabWidget {{
-                background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                                  stop: 0 #303030, stop: 0.9 #484848);
+                    background-color: #303030;
                 }}
 
                 QTabBar {{
                     background-color: #313131;
                 }}
-
+                
                 QTabBar::tab {{
                     color: rgb(186,186,186);
                     background-color: #606060;
-                    border: 2px solid #404040;
                     border-top-left-radius: 5px;
                     border-top-right-radius: 5px;
                     border-bottom: none;
@@ -339,7 +337,7 @@ class GUI(QProcess):
                 }}
 
                 QTabBar::tab:selected {{
-                    color: rgb(186,186,186);
+                    color: white;
                     background-color: #484848;
                 }}
                 QTabBar::tab:!selected {{
