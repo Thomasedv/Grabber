@@ -72,6 +72,13 @@ class GUI(QProcess):
         self.windowIcon.addFile(self.window_icon)
 
     def build_gui(self):
+        # Denotes if the process(youtube-dl) is running.
+        self.RUNNING = False
+        # Denotes if the textfile is saved.
+        self.SAVED = True
+        # Indicates if license is shown.
+        self.license_shown = False
+
         # Used later for checking the text feed from youtuibne-dl.
         self.replace_dict = {
             '[ffmpeg] ': '',
@@ -79,7 +86,176 @@ class GUI(QProcess):
         }
         self.substrs = sorted(self.replace_dict, key=len, reverse=True)
 
-        # Building tab 1. Core tab.
+        ## Stylesheet of widget!
+        self.style = f"""
+                        QWidget {{
+                            background-color: #484848;
+                            color: white;
+                        }}
+
+                        QTabWidget::pane {{
+                            border: none;
+                        }}
+
+                        QMenu::item:selected {{
+                            background-color: #303030;
+                        }}
+
+                        QMenu::item:disabled {{
+                            color: #505050;
+                        }}
+
+                        QTabWidget {{
+                            background-color: #303030;
+                        }}
+
+                        QTabBar {{
+                            background-color: #313131;
+                        }}
+
+                        QTabBar::tab {{
+                            color: rgb(186,186,186);
+                            background-color: #606060;
+                            border-top-left-radius: 5px;
+                            border-top-right-radius: 5px;
+                            border-bottom: none;
+                            min-width: 15ex;
+                            min-height: 7ex;
+                        }}
+
+                        QTabBar::tab:selected {{
+                            color: white;
+                            background-color: #484848;
+                        }}
+                        QTabBar::tab:!selected {{
+                            margin-top: 6px;
+                        }}
+
+                        QTabWidget::tab-bar {{
+                            border-top: 1px solid #505050;
+                        }}
+
+                        QLineEdit {{
+                            background-color: #303030;
+                            color: rgb(186,186,186);
+                            border-radius: 5px;
+                            padding: 0 3px;
+
+                        }}
+                        QLineEdit:disabled {{
+                            background-color: #303030;
+                            color: #505050;
+                            border-radius: 5px;
+                        }}
+
+                        QTextEdit {{
+                            background-color: #484848;
+                            color: rgb(186,186,186);
+                            border: none;
+                        }}
+
+                        QTextEdit#TextFileEdit {{
+                            background-color: #303030;
+                            color: rgb(186,186,186);
+                            border-radius: 5px;
+                        }}
+
+                        QScrollBar:vertical {{
+                            border: none;
+                            background-color: rgba(255,255,255,0);
+                            width: 10px;
+                            margin: 0px 0px 1px 0px;
+                        }}
+
+                        QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
+                            border: none;
+                            background: none;
+                        }}
+
+                        QScrollBar::handle:vertical {{
+                            background: #303030;
+                            color: red;
+                            min-height: 20px;
+                            border-radius: 5px;
+                        }}
+
+                        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
+                            background: none;
+                        }}
+
+                        QPushButton {{
+                            background-color: #303030;
+                            color: white;
+                            border: 1px grey;
+                            border-radius: 5px;
+                            border-style: solid;
+                            width: 60px;
+                            height: 20px;
+                        }}
+
+                        QPushButton:disabled {{
+                            background-color: #484848;
+                            color: grey;
+                        }}
+                        QPushButton:pressed {{
+                            background-color: #101010;
+                            color: white;
+                        }}
+
+                        QCheckBox::indicator:unchecked {{
+                            image: url({self.unchecked_icon});
+                        }}
+
+                        QCheckBox::indicator:checked {{
+                            image: url({self.checked_icon});
+                        }}
+
+                        QTreeWidget {{
+                            selection-color: red;
+                            border: none;
+                            outline: none;
+                            outline-width: 0px;
+                            selection-background-color: blue;
+                        }}      
+
+                        QTreeWidget::item {{
+                            height: 16px;
+                        }}
+
+                        QTreeWidget::item:disabled {{
+                            color: grey;
+                        }}
+
+                        QTreeWidget::item:hover, QTreeWidget::item:selected {{
+                            background-color: transparent;
+                            color: white;
+                        }}
+
+                        QTreeWidget::indicator:checked {{
+                            image: url({self.checked_icon});
+                        }}
+                        QTreeWidget::indicator:unchecked {{
+                            image: url({self.unchecked_icon});
+                        }}
+
+                        """
+
+        ### Main widget. This will be the ones that holds everything.
+
+        ## Create top level tab widget system for the UI.
+        self.main_tab = Tabwidget()
+        self.main_tab.onclose.connect(self.confirm)
+        self.sendclose.connect(self.main_tab.closeE)
+
+        # When statechanged, then the program state changed function is called.
+        # Checks if the process is running and enables/disables buttons.
+        self.stateChanged.connect(self.program_state_changed)
+
+
+        ### TAB 1 ###
+
+        ## Widget creation tab 1. Core tab.
+
         # Starts the program (Youtube-dl)
         self.tab1_start_btn = QPushButton('Download')
         # stops the program
@@ -87,28 +263,9 @@ class GUI(QProcess):
         # Closes window (also stops the program)
         self.tab1_close_btn = QPushButton('Close')
 
-        # Horizontal layout, part of tab1.
-        # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
-        self.tab1_QH = QHBoxLayout()
-        self.tab1_QH.addStretch(1)
-        self.tab1_QH.addWidget(self.tab1_start_btn)
-        self.tab1_QH.addWidget(self.tab1_stop_btn)
-        self.tab1_QH.addWidget(self.tab1_close_btn)
-
         # Label and lineedit creation. Line edit for acception youtube links as well as paramters.
         self.tab1_label = QLabel("Url: ")
         self.tab1_lineedit = LineEdit()
-
-        # Connects actions to text changes and adds action to when you press Enter.
-        self.tab1_lineedit.textChanged.connect(self.enable_start)
-        # Starts downloading
-        self.tab1_lineedit.returnPressed.connect(self.tab1_start_btn.click)
-
-
-        # Horizontal layout 2, contains label and LineEdit. LineEdit stretches horizontally by default.
-        self.tab1_QH2 = QHBoxLayout()
-        self.tab1_QH2.addWidget(self.tab1_label)
-        self.tab1_QH2.addWidget(self.tab1_lineedit)
 
         # TextEdit creation, for showing status messages, and the youtube-dl output.
         self.tab1_textbrowser = QTextBrowser()
@@ -116,16 +273,31 @@ class GUI(QProcess):
         self.tab1_textbrowser.setOpenExternalLinks(True)
         self.tab1_textbrowser.setContextMenuPolicy(Qt.NoContextMenu)
 
-        # Adds weclome message on startup.
+        # Adds welcome message on startup.
         self.tab1_textbrowser.append('Welcome!\n\nAdd video url, or load from text file.')
-
         # self.edit.append('<a href="URL">Showtext</a>') Learning purposes.
-
-        # Creates vertical box for tab1.
-        self.tab1_QV = QVBoxLayout()
 
         # Start making checkbutton for selecting downloading from text file mode.
         self.tab1_checkbox = QCheckBox('Download from text file.')
+
+        ## Layout tab 1.
+
+        # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
+        self.tab1_QH = QHBoxLayout()
+
+        self.tab1_QH.addStretch(1)
+        self.tab1_QH.addWidget(self.tab1_start_btn)
+        self.tab1_QH.addWidget(self.tab1_stop_btn)
+        self.tab1_QH.addWidget(self.tab1_close_btn)
+
+        # Horizontal layout 2, contains label and LineEdit. LineEdit stretches horizontally by default.
+        self.tab1_QH2 = QHBoxLayout()
+
+        self.tab1_QH2.addWidget(self.tab1_label)
+        self.tab1_QH2.addWidget(self.tab1_lineedit)
+
+        # Creates vertical box for tab1.
+        self.tab1_QV = QVBoxLayout()
 
         # Adds horizontal layouts, textbrowser and checkbox to create tab1.
         self.tab1_QV.addLayout(self.tab1_QH2)
@@ -137,30 +309,52 @@ class GUI(QProcess):
         self.tab1 = QWidget()
         self.tab1.setLayout(self.tab1_QV)
 
-        ###
-        # Tab 2
-        ###
+        ## Connecting stuff for tab 1.
 
+        # Start buttons starts download
+        self.tab1_start_btn.clicked.connect(self.start_DL)
+        # Stop button kills the process, aka youtube-dl.
+        self.tab1_stop_btn.clicked.connect(self.kill)
+        # Close button closes the window/process.
+        self.tab1_close_btn.clicked.connect(self.main_tab.close)
+        # When the check button is checked or unchecked, calls function checked.
+        self.tab1_checkbox.stateChanged.connect(self.is_batch_dl_checked)
+        # Connects actions to text changes and adds action to when you press Enter.
+        self.tab1_lineedit.textChanged.connect(self.enable_start)
+        # Starts downloading
+        self.tab1_lineedit.returnPressed.connect(self.tab1_start_btn.click)
 
-        # Horizontal layout for the download line.
-        self.tab2_QH = QHBoxLayout()
+        ### Tab 2
+        #  Building widget tab 2.
 
         # Button for browsing download location.
         self.tab2_browse_btn = QPushButton('Browse')
-        self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
+
+        # Label for the lineEdit.
+        self.tab2_download_label = QLabel('Download to:')
+
         # LineEdit for download location.
         self.tab2_download_lineedit = QLineEdit()
         self.tab2_download_lineedit.setReadOnly(True)
+
         if self.settings['Settings']['Download location']['options']:
             self.tab2_download_lineedit.setText('')
             self.tab2_download_lineedit.setToolTip(self.settings['Settings']['Download location']['options'][
                                                        self.settings['Settings']['Download location'][
                                                            'Active option']].replace('%(title)s.%(ext)s', ''))
         else:
+            # Should not be reachable anymore!
             self.tab2_download_lineedit.setText('DL')
             self.tab2_download_lineedit.setToolTip('Default download location.')
-        # Label for the lineEdit.
-        self.tab2_download_label = QLabel('Download to:')
+
+        # Sets up the parameter tree.
+        self.tab2_options = ParameterTree(self.settings['Settings'])
+        self.custom_options()
+
+        ## Layout tab 2.
+
+        # Horizontal layout for the download line.
+        self.tab2_QH = QHBoxLayout()
 
         # Adds widgets to the horizontal layout. label, lineedit and button. LineEdit stretches by deafult.
         self.tab2_QH.addWidget(self.tab2_download_label)
@@ -171,46 +365,47 @@ class GUI(QProcess):
         self.tab2_QV = QVBoxLayout()
         # Adds the dl layout to the vertical one.
         self.tab2_QV.addLayout(self.tab2_QH)
+
         # Adds stretch to the layout.
         self.tab2_grid_layout = QGridLayout()
         self.tab2_grid_layout.expandingDirections()
-
-        self.tab2_options = ParameterTree(self.settings['Settings'])
-        self.tab2_options.itemChanged.connect(self.parameter_updater)
         self.tab2_grid_layout.addWidget(self.tab2_options)
 
         self.tab2_QV.addLayout(self.tab2_grid_layout)
         self.tab2_QV.addStretch(1)
-
-        ## Create top level tab widget system for the UI.
-        self.main_tab = Tabwidget()
-        self.main_tab.onclose.connect(self.confirm)
-        self.sendclose.connect(self.main_tab.closeE)
 
         # Create Qwidget for the layout for tab 2.
         self.tab2 = QWidget()
         # Adds the tab2 layout to the widget.
         self.tab2.setLayout(self.tab2_QV)
 
-        # Tab 3. YTW.txt file changes.
-        # Tab creation.
-        self.tab3 = QWidget()
+        ## Connection stuff tab 2.
 
+        self.tab2_options.itemChanged.connect(self.parameter_updater)
+        self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
+
+        ### Tab 3.
+
+        ## Widget creation tab 3.
         # Create textedit
-        self.YTW_TextEdit = QTextEdit()
-        self.YTW_TextEdit.setObjectName('TextFileEdit')
+        self.tab3_textedit = QTextEdit()
+        self.tab3_textedit.setObjectName('TextFileEdit')
+
         self.font = QFont()
         self.font.setFamily('Consolas')
         self.font.setPixelSize(13)
-        self.YTW_TextEdit.setFont(self.font)
-        # Create horizontal layout.
-        self.tab3_QH = QHBoxLayout()
+        self.tab3_textedit.setFont(self.font)
 
         # Create load button and label.
         self.tab3_label = QLabel('Add videos to textfile:')
         self.tab3_loadButton = QPushButton('Load file')
         self.tab3_saveButton = QPushButton('Save file')
         self.tab3_saveButton.setDisabled(True)
+
+        ## Layout tab 3.
+
+        # Create horizontal layout.
+        self.tab3_QH = QHBoxLayout()
 
         # Filling horizontal layout
         self.tab3_QH.addWidget(self.tab3_label)
@@ -221,14 +416,21 @@ class GUI(QProcess):
         # Horizontal layout with a textedit and a button.
         self.tab3_VB = QVBoxLayout()
         self.tab3_VB.addLayout(self.tab3_QH)
-        self.tab3_VB.addWidget(self.YTW_TextEdit)
+        self.tab3_VB.addWidget(self.tab3_textedit)
 
+        # Tab creation.
+        self.tab3 = QWidget()
         self.tab3.setLayout(self.tab3_VB)
 
-        # Tab 4
-        self.tab4 = QWidget()
-        self.tab4_QH = QHBoxLayout()
-        self.tab4_QV = QVBoxLayout()
+        ## Connecting stuff tab 3.
+
+        # When loadbutton is clicked, launch load textfile.
+        self.tab3_loadButton.clicked.connect(self.load_text_from_file)
+        # When savebutton clicked, save text to document.
+        self.tab3_saveButton.clicked.connect(self.save_text_to_file)
+        self.tab3_textedit.textChanged.connect(self.enable_saving)
+
+        ### Tab 4
 
         # Button to browse for .txt file to download files.
         self.tab4_txt_location_btn = QPushButton('Browse')
@@ -247,6 +449,7 @@ class GUI(QProcess):
         self.tab4_txt_lineedit = QLineEdit()
         self.tab4_txt_lineedit.setReadOnly(True)  # Read only
         self.tab4_txt_lineedit.setText(self.settings['Other stuff']['multidl_txt'])  # Path from settings.
+
         self.tab4_txt_label = QLabel('Textfile:')
 
         # Textbrowser to adds some info about Grabber.
@@ -266,7 +469,11 @@ class GUI(QProcess):
                                             'Website'
                                             '</a>')
 
-        # Adding the widgets into layouts.
+        ## Layout tab 4.
+
+        self.tab4_QH = QHBoxLayout()
+        self.tab4_QV = QVBoxLayout()
+
         self.tab4_QH.addWidget(self.tab4_abouttext_textedit)
 
         self.tab4_QV.addWidget(self.tab4_update_btn)
@@ -287,243 +494,55 @@ class GUI(QProcess):
         self.tab4_topQV.addLayout(self.tab4_topQH)
         self.tab4_topQV.addLayout(self.tab4_QH)
 
+        self.tab4 = QWidget()
         self.tab4.setLayout(self.tab4_topQV)
 
-        #
-        ### Future tab creation here!### (Tabs 4 and up.)
-        #
+        ## Connecting stuff tab 4.
+
+        # Starts self.update_youtube_dl, locate_program_path checks for updates.
+        self.tab4_update_btn.clicked.connect(self.update_youtube_dl)
+        self.tab4_dirinfo_btn.clicked.connect(self.dir_info)
+        self.tab4_test_btn.clicked.connect(self.reset_settings)
+        self.tab4_license_btn.clicked.connect(self.read_license)
+        self.tab4_txt_location_btn.clicked.connect(self.textfile_dialog)
+
+        ### Future tab creation here! Currently 4 tabs already.
+
+        ### Configuration main widget.
 
         # Adds tabs to the tab widget, and names the tabs.
         self.main_tab.addTab(self.tab1, 'Main')
         self.main_tab.addTab(self.tab2, 'Param')
         self.main_tab.addTab(self.tab3, 'List')
         self.main_tab.addTab(self.tab4, 'About')
-
-        ## Sets the styling for the GUI, everything from buttons to anything. ##
-        self.style = f"""
-                QWidget {{
-                    background-color: #484848;
-                    color: white;
-                }}
-
-                QTabWidget::pane {{
-                    border: none;
-                }}
-                
-                QMenu::item:selected {{
-                    background-color: #303030;
-                }}
-                
-                QMenu::item:disabled {{
-                    color: #505050;
-                }}
-                
-                QTabWidget {{
-                    background-color: #303030;
-                }}
-
-                QTabBar {{
-                    background-color: #313131;
-                }}
-                
-                QTabBar::tab {{
-                    color: rgb(186,186,186);
-                    background-color: #606060;
-                    border-top-left-radius: 5px;
-                    border-top-right-radius: 5px;
-                    border-bottom: none;
-                    min-width: 15ex;
-                    min-height: 7ex;
-                }}
-
-                QTabBar::tab:selected {{
-                    color: white;
-                    background-color: #484848;
-                }}
-                QTabBar::tab:!selected {{
-                    margin-top: 6px;
-                }}
-
-                QTabWidget::tab-bar {{
-                    border-top: 1px solid #505050;
-                }}
-
-                QLineEdit {{
-                    background-color: #303030;
-                    color: rgb(186,186,186);
-                    border-radius: 5px;
-                    padding: 0 3px;
-
-                }}
-                QLineEdit:disabled {{
-                    background-color: #303030;
-                    color: #505050;
-                    border-radius: 5px;
-                }}
-
-                QTextEdit {{
-                    background-color: #484848;
-                    color: rgb(186,186,186);
-                    border: none;
-                }}
-
-                QTextEdit#TextFileEdit {{
-                    background-color: #303030;
-                    color: rgb(186,186,186);
-                    border-radius: 5px;
-                }}
-
-                QScrollBar:vertical {{
-                    border: none;
-                    background-color: rgba(255,255,255,0);
-                    width: 10px;
-                    margin: 0px 0px 1px 0px;
-                }}
-
-                QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
-                    border: none;
-                    background: none;
-                }}
-
-                QScrollBar::handle:vertical {{
-                    background: #303030;
-                    color: red;
-                    min-height: 20px;
-                    border-radius: 5px;
-                }}
-
-                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
-                    background: none;
-                }}
-
-                QPushButton {{
-                    background-color: #303030;
-                    color: white;
-                    border: 1px grey;
-                    border-radius: 5px;
-                    border-style: solid;
-                    width: 60px;
-                    height: 20px;
-                }}
-
-                QPushButton:disabled {{
-                    background-color: #484848;
-                    color: grey;
-                }}
-                QPushButton:pressed {{
-                    background-color: #101010;
-                    color: white;
-                }}
-
-                QCheckBox::indicator:unchecked {{
-                    image: url({self.unchecked_icon});
-                }}
-
-                QCheckBox::indicator:checked {{
-                    image: url({self.checked_icon});
-                }}
-
-                QTreeWidget {{
-                    selection-color: red;
-                    border: none;
-                    outline: none;
-                    outline-width: 0px;
-                    selection-background-color: blue;
-                }}      
-
-                QTreeWidget::item {{
-                    height: 16px;
-                }}
-
-                QTreeWidget::item:disabled {{
-                    color: grey;
-                }}
-
-                QTreeWidget::item:hover, QTreeWidget::item:selected {{
-                    background-color: transparent;
-                    color: white;
-                }}
-
-                QTreeWidget::indicator:checked {{
-                    image: url({self.checked_icon});
-                }}
-                QTreeWidget::indicator:unchecked {{
-                    image: url({self.unchecked_icon});
-                }}
-
-                """
+        # Sets the styling for the GUI, everything from buttons to anything. ##
         self.main_tab.setStyleSheet(self.style)
-
         # Set window title.
         self.main_tab.setWindowTitle('GUI')
         # Set base size.
         self.main_tab.setMinimumWidth(340)
         self.main_tab.setMinimumHeight(200)
-
         self.main_tab.setWindowIcon(self.windowIcon)  # Window icon
 
-        # Adds actions to the btt
-        # Start buttons starts download
-        self.tab1_start_btn.clicked.connect(self.start_DL)
-        # Stop button kills the process, aka youtube-dl.
-        self.tab1_stop_btn.clicked.connect(self.kill)
-        # Close button closes the window/process.
-        self.tab1_close_btn.clicked.connect(self.main_tab.close)
-        # Starts self.update_youtube_dl, locate_program_path checks for updates.
-        self.tab4_update_btn.clicked.connect(self.update_youtube_dl)
-        self.tab4_dirinfo_btn.clicked.connect(self.dir_info)
-        self.tab4_test_btn.clicked.connect(self.reset_settings)
-        self.tab4_license_btn.clicked.connect(self.read_license)
-
-        # When statechanged, then the slotcahnge fuction is called. Checks if the process is running and enables/disables buttons.
-        self.stateChanged.connect(self.program_state_changed)
-        # When the check button is checked or unchecked, calls function checked.
-        # self.multiDL=self.Wid2.findChild(QCheckBox,'dl from textfile')
-        self.tab1_checkbox.stateChanged.connect(self.is_batch_dl_checked)
-        # When loadbutton is clicked, launch load textfile.
-        self.tab3_loadButton.clicked.connect(self.load_text_from_file)
-        # When savebutton clicked, save text to document.
-        self.tab3_saveButton.clicked.connect(self.save_text_to_file)
-        self.YTW_TextEdit.textChanged.connect(self.enable_saving)
-        self.tab4_txt_location_btn.clicked.connect(self.textfile_dialog)
-
-        self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.YTW_TextEdit)
-
+        # Other functionality.
+        self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3_textedit)
         self.shortcut.activated.connect(self.tab3_saveButton.click)
 
-        # Color specific text elements in textedit! More for future references or oppurtunities.
-        # redText = """<span style=\"color:#ff0000;\" >"""
-        # redText+=("I want this text red")
-        # redText+=("</span>")
-        # self.edit.append(redText)
-
-        # Runs the startup function.
+        # Check for youtube
         if self.youtube_dl_path is None:
+            self.tab4_update_btn.setDisabled(True)
             self.tab1_textbrowser.append(self.color_text('\nNo youtube-dl.exe found! Add to path, '
                                                          'or make sure it\'s in the same folder as this program. '
                                                          'Then close and reopen this program.', 'darkorange', 'bold'))
-            self.tab4_update_btn.setDisabled(True)
 
-        # for i in range(self.tab2_options.topLevelItemCount()):
-        #    self.parameter_updater(self.tab2_options.topLevelItem(i))
+        # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
         self.download_name_handler()
-
-        # Denotes if the process(youtube-dl) is running.
-        self.RUNNING = False
-
+        # Ensures widets are in correct state at startup and when tab1_lineedit is changed.
         self.enable_start()
-        # Denotes if the textfile is saved.
-        self.SAVED = True
-
-        # Indicates if license is shown.
-        self.license_shown = False
-
         # Shows the main window.
         self.main_tab.show()
-
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
         self.tab1_lineedit.setFocus()
-        self.custom_options()
 
 
     @staticmethod
@@ -555,12 +574,12 @@ class GUI(QProcess):
     def custom_options(self):
         self.tab2_options.blockSignals(True)
 
-
         parent = self.tab2_options.make_option(self.settings['Other stuff']['custom']['Command'],
                                                self.tab2_options,
                                                self.settings['Other stuff']['custom']['state'],
                                                2,
                                                self.settings['Other stuff']['custom']['tooltip'])
+
         parent.setFlags(parent.flags() | Qt.ItemIsEditable)
         self.tab2_options.blockSignals(False)
 
@@ -1115,14 +1134,14 @@ class GUI(QProcess):
         self.is_batch_dl_checked()
 
     def load_text_from_file(self):
-        if ((self.YTW_TextEdit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
+        if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
             if os.path.isfile(self.tab4_txt_lineedit.text()):
-                self.YTW_TextEdit.clear()
+                self.tab3_textedit.clear()
                 with open(self.tab4_txt_lineedit.text(), 'r') as f:
                     for line in f.readlines():
-                        self.YTW_TextEdit.append(line.strip())
-                self.YTW_TextEdit.append('')
-                self.YTW_TextEdit.setFocus()
+                        self.tab3_textedit.append(line.strip())
+                self.tab3_textedit.append('')
+                self.tab3_textedit.setFocus()
                 self.tab3_saveButton.setDisabled(True)
                 self.SAVED = True
             else:
@@ -1154,7 +1173,7 @@ class GUI(QProcess):
     def save_text_to_file(self):
         if not self.tab4_txt_lineedit.text() == '':
             with open(self.tab4_txt_lineedit.text(), 'w') as f:
-                for line in self.YTW_TextEdit.toPlainText():
+                for line in self.tab3_textedit.toPlainText():
                     f.write(line)
             self.tab3_saveButton.setDisabled(True)
             self.SAVED = True
@@ -1171,7 +1190,7 @@ class GUI(QProcess):
                 if not Save[0] == '':
 
                     with open(Save[0], 'w') as f:
-                        for line in self.YTW_TextEdit.toPlainText():
+                        for line in self.tab3_textedit.toPlainText():
                             f.write(line)
                             self.update_setting(self.settings, 'Other stuff', 'multidl_txt', Save[0])
 
@@ -1197,7 +1216,7 @@ class GUI(QProcess):
             if result1 != QMessageBox.Yes:
                 return None
 
-        if ((self.YTW_TextEdit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
+        if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
             self.sendclose.emit()
         else:
             warning_window = QMessageBox(parent=self.main_tab)
