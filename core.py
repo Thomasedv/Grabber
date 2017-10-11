@@ -9,12 +9,15 @@ from Modules.tabWidget import Tabwidget
 from Modules.lineEdit import LineEdit
 
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
-    QCheckBox, QMessageBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp
-from PyQt5.QtCore import QProcess, pyqtSignal, Qt
-from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor
+    QCheckBox, QMessageBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu
+from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
+from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 
 
-
+class Menu(QMenu):
+    def __init__(self):
+        super(QMenu, self).__init__()
+        self.setWindowFlags(self.windowFlags() | Qt.NoDropShadowWindowHint)
 
 class GUI(QProcess):
     sendclose = pyqtSignal()
@@ -85,7 +88,6 @@ class GUI(QProcess):
             '[youtube] ': ''
         }
         self.substrs = sorted(self.replace_dict, key=len, reverse=True)
-
         ## Stylesheet of widget!
         self.style = f"""
                         QWidget {{
@@ -96,13 +98,17 @@ class GUI(QProcess):
                         QTabWidget::pane {{
                             border: none;
                         }}
-
+                        
+                        QMenu {{
+                            border: 1px solid #303030;
+                        }}
+                        
                         QMenu::item:selected {{
                             background-color: #303030;
                         }}
 
                         QMenu::item:disabled {{
-                            color: #505050;
+                            color: #808080;
                         }}
 
                         QTabWidget {{
@@ -351,6 +357,22 @@ class GUI(QProcess):
         self.tab2_options = ParameterTree(self.settings['Settings'])
         self.custom_options()
 
+        self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
+
+        menu = QMenu()
+
+
+        # Makes an action for the tab2_download_lineedit
+        open_folder_action = QAction('Open location', parent=self.tab2_download_lineedit)
+        #open_folder_action.setEnabled(True)
+        open_folder_action.triggered.connect(self.open_folder)
+
+        copy_action = QAction('Copy',parent=self.tab2_download_lineedit)
+        copy_action.triggered.connect(self.copy_to_cliboard)
+
+        menu.addAction(copy_action)
+
+
         ## Layout tab 2.
 
         # Horizontal layout for the download line.
@@ -380,6 +402,9 @@ class GUI(QProcess):
         self.tab2.setLayout(self.tab2_QV)
 
         ## Connection stuff tab 2.
+
+        self.tab2_download_lineedit.addAction(open_folder_action)
+        self.tab2_download_lineedit.addAction(copy_action)
 
         self.tab2_options.itemChanged.connect(self.parameter_updater)
         self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
@@ -544,6 +569,11 @@ class GUI(QProcess):
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
         self.tab1_lineedit.setFocus()
 
+    def copy_to_cliboard(self, text):
+        mime = QMimeData()
+        mime.setText(self.tab2_download_lineedit.text())
+        board = QGuiApplication.clipboard()
+        board.setMimeData(mime, mode=QClipboard.Clipboard)
 
     @staticmethod
     def path_shortener(full_path):
@@ -570,6 +600,9 @@ class GUI(QProcess):
             short_path += '/'
 
         return short_path
+
+    def open_folder(self):
+        QProcess.startDetached('explorer {}'.format(self.tab2_download_lineedit.toolTip().replace("/","\\")))
 
     def custom_options(self):
         self.tab2_options.blockSignals(True)
