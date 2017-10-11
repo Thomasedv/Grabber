@@ -14,11 +14,6 @@ from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 
 
-class Menu(QMenu):
-    def __init__(self):
-        super(QMenu, self).__init__()
-        self.setWindowFlags(self.windowFlags() | Qt.NoDropShadowWindowHint)
-
 class GUI(QProcess):
     sendclose = pyqtSignal()
     EXIT_CODE_REBOOT = -123456789
