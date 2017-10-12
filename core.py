@@ -979,13 +979,12 @@ class GUI(QProcess):
             pass
         elif os.path.isfile(location):
             if not self.SAVED:
-                confirmchange = QMessageBox()
-                confirmchange.setText('Selecting new textfile, this will load over the text in the download list tab!')
-                confirmchange.setWindowIcon(self.alertIcon)
-                confirmchange.setWindowTitle('Warning!')
-                confirmchange.setInformativeText('Do you want to load over the unsaved changes?')
-                confirmchange.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-                result = confirmchange.exec()
+                result = self.alert_message('Warning!',
+                                            'Selecting new textfile,'
+                                            ' this will load over the text in the download list tab!',
+                                            'Do you want to load over the unsaved changes?',
+                                            question=True)
+
                 if result == QMessageBox.Yes:
                     self.update_setting(self.settings, 'Other stuff', 'multidl_txt', location)
                     self.tab4_txt_lineedit.setText(location)
@@ -998,12 +997,7 @@ class GUI(QProcess):
                 self.SAVED = True
                 self.load_text_from_file()
         else:
-            Message = QMessageBox()
-            Message.setWindowIcon(self.alertIcon)
-            Message.setWindowTitle('Error!')
-            Message.setText('Could not find the file!')
-
-            Message.exec()
+            self.alert_message('Error!','Could not find file!','')
             # Check if the checkbox is toggled, and disables the line edit if it is.
             #  Also disables start button if lineEdit is empty and checkbox is not checked
 
@@ -1031,13 +1025,7 @@ class GUI(QProcess):
 
         if self.tab1_checkbox.isChecked():
             if self.tab4_txt_lineedit.text() == '':
-                warning_window = QMessageBox(parent=self.main_tab)
-                warning_window.setWindowIcon(self.alertIcon)
-                warning_window.setWindowTitle('Error!')
-                warning_window.setText('No textfile selected!')
-
-                warning_window.exec()
-
+                self.alert_message('Error!','No textfile selected!','')
                 self.tab1_textbrowser.append('No textfile selected...\n\nNo download started!')
                 return
 
@@ -1052,7 +1040,6 @@ class GUI(QProcess):
 
         for parameter, options in self.settings['Settings'].items():
             # print(options['Command'])
-
 
             if parameter == 'Download location':
                 if options['state']:
@@ -1177,23 +1164,16 @@ class GUI(QProcess):
                     warning = 'No textfile selected!'
                 else:
                     warning = 'Could not find file!'
-                warning_window = QMessageBox(parent=self.main_tab)
-                warning_window.setWindowIcon(self.alertIcon)
-                warning_window.setWindowTitle('Error!')
-                warning_window.setText(warning)
-
-                warning_window.exec()
+                self.alert_message('Error!', warning, '')
         else:
             if self.tab4_txt_lineedit.text() == '':
                 self.SAVED = True
                 self.load_text_from_file()
             else:
-                warning_window = QMessageBox(parent=self.main_tab)
-                warning_window.setText('Overwrite?')
-                warning_window.setWindowIcon(self.alertIcon)
-                warning_window.setInformativeText('Do you want to load over the unsaved changes?')
-                warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-                result = warning_window.exec()
+                result = self.alert_message('Warning',
+                                            'Overwrite?',
+                                            'Do you want to load over the unsaved changes?',
+                                            question=True)
                 if result == QMessageBox.Yes:
                     self.SAVED = True
                     self.load_text_from_file()
@@ -1206,25 +1186,37 @@ class GUI(QProcess):
             self.tab3_saveButton.setDisabled(True)
             self.SAVED = True
         else:
-            warning_window = QMessageBox(parent=self.main_tab)
-            warning_window.setText('No textfile selected!')
-            warning_window.setWindowTitle('Warning!')
-            warning_window.setInformativeText('Do you want to create one?')
-            warning_window.setWindowIcon(self.alertIcon)
-            warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            result = warning_window.exec()
-            if result == QMessageBox.Yes:
-                Save = QFileDialog.getSaveFileName(parent=self.main_tab, caption='Save as', filter='*.txt')
-                if not Save[0] == '':
+            result = self.alert_message('Warning!',
+                                        'No textfile selected!',
+                                        'Do you want to create one?',
+                                        question=True)
 
-                    with open(Save[0], 'w') as f:
+            if result == QMessageBox.Yes:
+                save_path = QFileDialog.getSaveFileName(parent=self.main_tab, caption='Save as', filter='*.txt')
+                if not save_path[0] == '':
+
+                    with open(save_path[0], 'w') as f:
                         for line in self.tab3_textedit.toPlainText():
                             f.write(line)
-                            self.update_setting(self.settings, 'Other stuff', 'multidl_txt', Save[0])
+                            self.update_setting(self.settings, 'Other stuff', 'multidl_txt', save_path[0])
 
-                    self.tab4_txt_lineedit.setText(Save[0])
+                    self.tab4_txt_lineedit.setText(save_path[0])
                     self.tab3_saveButton.setDisabled(True)
                     self.SAVED = True
+
+    def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
+        warning_window = QMessageBox(parent=self.main_tab)
+        warning_window.setText(text)
+        warning_window.setWindowTitle(title)
+        warning_window.setWindowIcon(self.alertIcon)
+        if info_text:
+            warning_window.setInformativeText(info_text)
+        if question and allow_cancel:
+            warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        elif question:
+            warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+
+        return warning_window.exec()
 
     def enable_saving(self):
         self.tab3_saveButton.setDisabled(False)
@@ -1232,30 +1224,22 @@ class GUI(QProcess):
 
     def confirm(self):
         if self.RUNNING:
-            warning_window = QMessageBox(parent=self.main_tab)
-            # confirm1.setStyleSheet(self.Style)
-            warning_window.setWindowTitle('Still downloading!')
-            warning_window.setText('Want to quit?')
-            warning_window.setWindowIcon(self.alertIcon)
-            warning_window.setInformativeText(
-                'Do you want to close without letting youtube-dl finish? Will likely leave unwanted/incomplete files in the download location.')
-            warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            result1 = warning_window.exec()
-            if result1 != QMessageBox.Yes:
+            result = self.alert_message('Want to quit?',
+                                        'Still downloading!',
+                                        'Do you want to close without letting youtube-dl finish? '
+                                        'Will likely leave unwanted/incomplete files in the download folder.',
+                                        question=True)
+            if result != QMessageBox.Yes:
                 return None
 
         if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
             self.sendclose.emit()
         else:
-            warning_window = QMessageBox(parent=self.main_tab)
-            # confirm.setParent(self.main_tab)
-            # confirm.setStyleSheet(self.Style)
-            warning_window.setWindowTitle('Unsaved changes in list!')
-            warning_window.setWindowIcon(self.alertIcon)
-            warning_window.setText('Save?')
-            warning_window.setInformativeText('Do you want to save before exiting?')
-            warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-            result = warning_window.exec()
+            result = self.alert_message('Unsaved changes in list!',
+                                        'Save?',
+                                        'Do you want to save before exiting?',
+                                        question=True,
+                                        allow_cancel=True)
             if result == QMessageBox.Yes:
                 self.save_text_to_file()
                 self.sendclose.emit()
@@ -1265,7 +1249,6 @@ class GUI(QProcess):
                 self.sendclose.emit()
 
     def read_license(self):
-
         if not self.license_shown:
                 self.tab4_abouttext_textedit.clear()
                 with open(self.lincense_path,'r') as f:
