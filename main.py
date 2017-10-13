@@ -25,8 +25,7 @@ def main():
                 GUI.write_default_settings(True)
                 app = None
                 continue
-            else:
-                break
+            break
 
 if __name__ == '__main__':
     main()

@@ -32,7 +32,7 @@ class GUI(QProcess):
         self.readyReadStandardOutput.connect(self.read_stdoutput)
 
     def initial_checks(self):
-        self.settings = self.write_default_settings(All=False)
+        self.settings = self.write_default_settings(reset=False)
 
         # Find resources.
         # Find youtube-dl
@@ -699,11 +699,11 @@ class GUI(QProcess):
         return os.path.join(base_path, relative_path)
 
     @staticmethod
-    def write_default_settings(All=False):
-        if All == True:
-            Settings = {}
-            Settings['Settings'] = {}
-            Settings['Other stuff'] = {
+    def write_default_settings(reset=False):
+        if reset:
+            settings = {}
+            settings['Settings'] = {}
+            settings['Other stuff'] = {
                 'multidl_txt': '',
                 'custom':{
                     "Command": "Custom",
@@ -711,7 +711,7 @@ class GUI(QProcess):
                     "tooltip": "Custom option, double click to edit."
                 }
             }
-            Settings['Settings']['Convert to audio'] = {
+            settings['Settings']['Convert to audio'] = {
                 "Active option": 0,
                 "Command": "-x --audio-format {} --audio-quality 0",
                 "dependency": None,
@@ -719,7 +719,7 @@ class GUI(QProcess):
                 "state": True,
                 "tooltip": "Convert to selected audio format."
             }
-            Settings['Settings']["Add thumbnail"] = {
+            settings['Settings']["Add thumbnail"] = {
                 "Active option": 0,
                 "Command": "--embed-thumbnail",
                 "dependency": 'Convert to audio',
@@ -727,7 +727,7 @@ class GUI(QProcess):
                 "state": True,
                 "tooltip": "Include thumbnail on audio files."
             }
-            Settings['Settings']['Ignore errors'] = {
+            settings['Settings']['Ignore errors'] = {
                 "Active option": 0,
                 "Command": "-i",
                 "dependency": None,
@@ -735,7 +735,7 @@ class GUI(QProcess):
                 "state": True,
                 "tooltip": "Ignores errors, and jumps to next element instead of stopping."
             }
-            Settings['Settings']['Download location'] = {
+            settings['Settings']['Download location'] = {
                 "Active option": 0,
                 "Command": "-o {}",
                 "dependency": None,
@@ -743,7 +743,7 @@ class GUI(QProcess):
                 "state": False,
                 "tooltip": "Select download location."
             }
-            Settings['Settings']['Strict file names'] = {
+            settings['Settings']['Strict file names'] = {
                 "Active option": 0,
                 "Command": "--restrict-filenames",
                 "dependency": None,
@@ -751,7 +751,7 @@ class GUI(QProcess):
                 "state": False,
                 "tooltip": "Sets strict naming, to prevent unsupported characters in names."
             }
-            Settings['Settings']['Keep archive'] = {
+            settings['Settings']['Keep archive'] = {
                 "Active option": 0,
                 "Command": "--download-archive {}",
                 "dependency": None,
@@ -760,14 +760,14 @@ class GUI(QProcess):
                 "tooltip": "Saves links to a textfile to avoid duplicate downloads later."
             }
             with open('Settings.json', 'w') as f:
-                json.dump(Settings, f, indent=4, sort_keys=True)
-            return Settings
+                json.dump(settings, f, indent=4, sort_keys=True)
+            return settings
         else:
             if os.path.isfile('Settings.json'):
                 with open('Settings.json', 'r') as f:
                     return json.load(f)
             else:
-                return GUI.write_default_settings(All=True)
+                return GUI.write_default_settings(reset=True)
 
     def check_settings_integrity(self):
         # Base info.
@@ -777,25 +777,44 @@ class GUI(QProcess):
                          'Download location',
                          'Strict file names',
                          'Keep archive']
+        base_keys = ['Command',
+                     'dependency',
+                     'options',
+                     'state',
+                     'tooltip']
 
         if not self.settings:
             raise SettingsError('Empty settings file!')
 
-        missing_settings = []
+        missing_settings = {}
+
         for option in base_settings:
-            if not option in self.settings['Settings']:
-                missing_settings.append(option)
+            if option not in self.settings['Settings']:
+                missing_settings[option] = []
+            else:
+                for key in base_keys:
+                    if key not in self.settings['Settings'][option]:
+                        if option not in missing_settings.keys():
+                            missing_settings[option] = [key]
+                        else:
+                            missing_settings[option].append(key)
+
         if missing_settings:
-            raise SettingsError('\n'.join(['Settingfile is corrupt/missing:', '-' * 20, *missing_settings, '-' * 20]))
+            raise SettingsError('\n'.join(['Settingfile is corrupt/missing:',
+                                           '-' * 20, *[f'{key}:\n - {", ".join(value)}' for key, value in missing_settings.items()] , '-' * 20]))
 
         if not self.settings['Settings']['Download location']['options']:
             self.settings['Settings']['Download location']['options'] = [self.workDir + '/DL/%(title)s.%(ext)s']
 
-        for option in self.settings['Settings'].keys():
-            if self.settings['Settings'][option]['options'] is not None:
-                if self.settings['Settings'][option]['Active option'] >= len(
-                        self.settings['Settings'][option]['options']):
-                    self.settings['Settings'][option]['Active option'] = 0
+        try:
+            for option in self.settings['Settings'].keys():
+                if self.settings['Settings'][option]['options'] is not None:
+                    if self.settings['Settings'][option]['Active option'] >= len(
+                            self.settings['Settings'][option]['options']):
+                        self.settings['Settings'][option]['Active option'] = 0
+
+        except KeyError as error:
+            raise SettingsError(f'{option} is missing a needed option {error}.')
 
         self.write_setting(self.settings)
 
@@ -820,7 +839,7 @@ class GUI(QProcess):
                                     question=True)
 
         if result == QMessageBox.Yes:
-            self.write_default_settings(All=True)
+            self.write_default_settings(reset=True)
             qApp.exit(self.EXIT_CODE_REBOOT)
 
     @staticmethod
@@ -1299,3 +1318,5 @@ if __name__ == '__main__':
             if A == QMessageBox.Yes:
                 GUI.write_default_settings(True)
                 continue
+            else:
+                break
