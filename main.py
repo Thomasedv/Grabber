@@ -5,17 +5,15 @@ from PyQt5.QtWidgets import QApplication
 
 
 def main():
-    EXIT_CODE = GUI.EXIT_CODE_REBOOT
-
     while True:
         try:
             app = QApplication(sys.argv)
-            qProcess = GUI()
+            program = GUI()
 
             EXIT_CODE = app.exec_()
             app = None
 
-            if not (EXIT_CODE == -123456789):
+            if not (EXIT_CODE == GUI.EXIT_CODE_REBOOT):
                 break
 
         except (SettingsError,json.decoder.JSONDecodeError) as e:
