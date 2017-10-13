@@ -800,8 +800,10 @@ class GUI(QProcess):
                             missing_settings[option].append(key)
 
         if missing_settings:
-            raise SettingsError('\n'.join(['Settingfile is corrupt/missing:',
-                                           '-' * 20, *[f'{key}:\n - {", ".join(value)}' for key, value in missing_settings.items()] , '-' * 20]))
+            raise SettingsError('\n'.join(['Settings file is corrupt/missing:',
+                                           '-' * 20,
+                                           *[f'{key}:\n - {", ".join(value)}' for key, value in missing_settings.items()],
+                                           '-' * 20]))
 
         if not self.settings['Settings']['Download location']['options']:
             self.settings['Settings']['Download location']['options'] = [self.workDir + '/DL/%(title)s.%(ext)s']
