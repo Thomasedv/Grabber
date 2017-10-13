@@ -1020,6 +1020,7 @@ class GUI(QProcess):
     def start_DL(self):
         self.tab1_lineedit.clearFocus()
 
+
         self.tab1_textbrowser.clear()
         command = []
 
@@ -1085,7 +1086,7 @@ class GUI(QProcess):
 
         return regexp.sub(lambda match: self.replace_dict[match.group(0)], info)
 
-    # appends youtube-dl output to textedit (self.edit).
+    # appends youtube-dl output to tab1_textbrowser.
     def read_stdoutput(self):
         data = self.readAllStandardOutput().data()
         text = data.decode('utf-8', 'ignore').strip()
@@ -1137,7 +1138,6 @@ class GUI(QProcess):
             scrollbar.setSliderPosition(place)
         else:
             scrollbar.setSliderPosition(scrollbar.maximum())
-
 
     # Startup function, sets the startbutton to disabled, if lineEdit is empty,
     # And disables the lineEdit if the textbox is checked.

@@ -15,10 +15,7 @@ def main():
             EXIT_CODE = app.exec_()
             app = None
 
-
-            if EXIT_CODE == -123456789:
-                continue
-            else:
+            if not (EXIT_CODE == -123456789):
                 break
 
         except (SettingsError,json.decoder.JSONDecodeError) as e:
