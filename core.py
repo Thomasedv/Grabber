@@ -812,18 +812,16 @@ class GUI(QProcess):
         self.write_setting(diction)
 
     def reset_settings(self):
-        warning_window = QMessageBox(parent=self.main_tab)
-        # confirm1.setStyleSheet(self.Style)
-        warning_window.setWindowTitle('Warning!')
-        warning_window.setText('Restart required!')
-        warning_window.setWindowIcon(self.alertIcon)
-        warning_window.setInformativeText(
-            'To reset the settings, the program has to be restarted. Do you want to reset and restart?')
-        warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        result1 = warning_window.exec()
-        if result1 == QMessageBox.Yes:
+        result = self.alert_message('Warning!',
+                                    'Restart required!',
+                                    'To reset the settings, '
+                                    'the program has to be restarted. '
+                                    'Do you want to reset and restart?',
+                                    question=True)
+
+        if result == QMessageBox.Yes:
             self.write_default_settings(All=True)
-            qApp.exit(GUI.EXIT_CODE_REBOOT)
+            qApp.exit(self.EXIT_CODE_REBOOT)
 
     @staticmethod
     def write_setting(diction):
@@ -1004,7 +1002,7 @@ class GUI(QProcess):
     def is_batch_dl_checked(self):
         self.tab1_lineedit.setDisabled(self.tab1_checkbox.isChecked())
         self.tab1_start_btn.setDisabled(
-            (not (self.tab1_checkbox.checkState() == 2 or (self.tab1_lineedit.text() != '')) == True) or self.RUNNING)
+            (not (self.tab1_checkbox.checkState() == 2 or (self.tab1_lineedit.text() != '')) is True) or self.RUNNING)
 
     # The process for starting the download. Clears text edit.
 
@@ -1272,6 +1270,7 @@ class GUI(QProcess):
 
     def selector(self):
         self.tab1_lineedit.selectAll()
+
 
 class SettingsError(Exception):
     pass

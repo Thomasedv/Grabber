@@ -16,7 +16,7 @@ def main():
             if not (EXIT_CODE == GUI.EXIT_CODE_REBOOT):
                 break
 
-        except (SettingsError,json.decoder.JSONDecodeError) as e:
+        except (SettingsError, json.decoder.JSONDecodeError) as e:
             warning = QMessageBox.warning(None,
                                           'Corrupt settings',
                                           ''.join([str(e),'\nRestore default settings?']),
