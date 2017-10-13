@@ -1280,8 +1280,7 @@ class SettingsError(Exception):
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication, QMessageBox
 
-    EXIT_CODE = GUI.EXIT_CODE_REBOOT
-    while EXIT_CODE == -123456789:
+    while True:
         try:
             app = QApplication(sys.argv)
             qProcess = GUI()
@@ -1289,12 +1288,15 @@ if __name__ == '__main__':
             EXIT_CODE = app.exec_()
             app = None
 
+            if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
+                continue
+            break
+
         except (SettingsError, json.decoder.JSONDecodeError) as e:
             A = QMessageBox.warning(None, 'Corrupt settings', ''.join([str(e), '\nRestore default settings?']),
                                     buttons=QMessageBox.Yes | QMessageBox.No)
+
+            app = None
             if A == QMessageBox.Yes:
                 GUI.write_default_settings(True)
-                EXIT_CODE = -123456789
-            else:
-                EXIT_CODE= 1
-            app = None
+                continue
