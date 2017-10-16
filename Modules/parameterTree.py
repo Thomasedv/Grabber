@@ -186,7 +186,7 @@ if __name__ == '__main__':
 
     SampleDict = {
     "Other stuff": {
-        "multidl_txt": "C:/Users/THOMAS/PycharmProjects/YTDLGUI/test.txt"
+        "multidl_txt": "C:/User/Mike Hunt/links.txt"
     },
     "Settings": {
         "Add thumbnail": {
@@ -213,9 +213,9 @@ if __name__ == '__main__':
             "Command": "-o {}",
             "dependency": None,
             "options": [
-                "D:/Musikk/DLs/%(title)s.%(ext)s",
-                "C:/Users/THOMAS/Downloads/Convertering/%(title)s.%(ext)s",
-                "D:/Musikk/Needs review and selection/%(title)s.%(ext)s"
+                "D:/Music/DL/%(title)s.%(ext)s",
+                "C:/Users/Clint Oris/Downloads/%(title)s.%(ext)s",
+                "D:/Music/%(title)s.%(ext)s"
             ],
             "state": True,
             "tooltip": "Select download location."

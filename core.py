@@ -671,9 +671,11 @@ class GUI(QProcess):
                             self.settings['Settings']['Download location']['options'].insert(0,
                                                                                              full_path + '/%(title)s.%(ext)s')
 
+
                     if item.childCount() >= 3:
                         item.removeChild(item.child(3))
 
+                    self.tab2_options.resizer(item)
                     self.tab2_options.blockSignals(False)
 
                     # self.tab2_download_lineedit.setText(location)
@@ -685,8 +687,7 @@ class GUI(QProcess):
                     self.write_setting(self.settings)
 
             except Exception as e:
-                # print(e)
-                traceback.print_exc()
+                raise NotImplementedError('Failed to catch an error.'+str(e))
 
     def resource_path(self, relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -802,7 +803,8 @@ class GUI(QProcess):
         if missing_settings:
             raise SettingsError('\n'.join(['Settings file is corrupt/missing:',
                                            '-' * 20,
-                                           *[f'{key}:\n - {", ".join(value)}' for key, value in missing_settings.items()],
+                                           *[f'{key}:\n - {", ".join(value)}' if value
+                                             else f"{key}" for key, value in missing_settings.items()],
                                            '-' * 20]))
 
         if not self.settings['Settings']['Download location']['options']:
