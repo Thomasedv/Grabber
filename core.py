@@ -1110,7 +1110,7 @@ class GUI(QProcess):
     # appends youtube-dl output to tab1_textbrowser.
     def read_stdoutput(self):
         data = self.readAllStandardOutput().data()
-        text = data.decode('utf-8', 'ignore').strip()
+        text = data.decode('latin-1', 'replace').strip()
         text = self.cmdoutput(text)
 
         scrollbar = self.tab1_textbrowser.verticalScrollBar()
