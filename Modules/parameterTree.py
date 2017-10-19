@@ -97,6 +97,13 @@ class ParameterTree(QTreeWidget):
         for i in range(self.topLevelItemCount()):
             yield self.topLevelItem(i)
 
+    def childrens(self, item: QTreeWidgetItem):
+        """Iterates through toplevelitems and returns them."""
+        print(type(item))
+        for i in range(item.childCount()):
+            print(type(item.child(i)))
+            yield item.child(i)
+
     @staticmethod
     def make_option(name: str,
                     parent: Union[QTreeWidget, QTreeWidgetItem],
