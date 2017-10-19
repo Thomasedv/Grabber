@@ -640,6 +640,11 @@ class GUI(QProcess):
                 if item.data(0, 32) == 'Download location':
                     short_path = self.path_shortener(full_path)
 
+                    names = [i.data(0, 0) for i in self.tab2_options.childrens(item)]
+                    if short_path in names \
+                            and full_path+'/%(title)s.%(ext)s' in self.settings['Settings']['Download location']['options']:
+                        self.alert_message('Warning','Option already exists!','',question=False)
+                        break
                     self.tab2_options.blockSignals(True)
 
                     sub = self.tab2_options.make_option(name=full_path,
@@ -671,7 +676,6 @@ class GUI(QProcess):
                             self.settings['Settings']['Download location']['options'].insert(0,
                                                                                              full_path + '/%(title)s.%(ext)s')
 
-
                     if item.childCount() >= 3:
                         item.removeChild(item.child(3))
 
@@ -687,7 +691,7 @@ class GUI(QProcess):
                     self.write_setting(self.settings)
 
             except Exception as e:
-                raise NotImplementedError('Failed to catch an error.'+str(e))
+                raise NotImplementedError('Failed to catch an error.\n'+str(e))
 
     def resource_path(self, relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -1228,8 +1232,10 @@ class GUI(QProcess):
     def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
         warning_window = QMessageBox(parent=self.main_tab)
         warning_window.setText(text)
+        warning_window.setIcon(QMessageBox.Warning)
         warning_window.setWindowTitle(title)
         warning_window.setWindowIcon(self.alertIcon)
+
         if info_text:
             warning_window.setInformativeText(info_text)
         if question and allow_cancel:

@@ -99,9 +99,7 @@ class ParameterTree(QTreeWidget):
 
     def childrens(self, item: QTreeWidgetItem):
         """Iterates through toplevelitems and returns them."""
-        print(type(item))
         for i in range(item.childCount()):
-            print(type(item.child(i)))
             yield item.child(i)
 
     @staticmethod
