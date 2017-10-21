@@ -1069,7 +1069,7 @@ class GUI(QProcess):
                                               options['options'][options['Active option']])
                     command += add
                 else:
-                    command += ['-o', ''.join(self.local_dl_path+'%(title)s.%(ext)s')]
+                    command += ['-o', self.local_dl_path+'%(title)s.%(ext)s']
             elif parameter == 'Keep archive':
                 if options['state']:
                     add = self.format_in_list(options['Command'],
