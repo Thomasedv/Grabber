@@ -1063,15 +1063,13 @@ class GUI(QProcess):
             command[i] = command[i].format(txt=txt)
 
         for parameter, options in self.settings['Settings'].items():
-            # print(options['Command'])
-
             if parameter == 'Download location':
                 if options['state']:
                     add = self.format_in_list(options['Command'],
                                               options['options'][options['Active option']])
                     command += add
                 else:
-                    command += ['-o', self.local_dl_path, '%(title)s.%(ext)s']
+                    command += ['-o', self.local_dl_path+'%(title)s.%(ext)s']
             elif parameter == 'Keep archive':
                 if options['state']:
                     add = self.format_in_list(options['Command'],
@@ -1084,6 +1082,7 @@ class GUI(QProcess):
                                                   options['Active option']] if options['options'] is not None
                                                                                or options['options'] else '')
                     command += add
+
         if self.settings['Other stuff']['custom']['state']:
             if self.settings['Other stuff']['custom']['Command'] != 'Custom command double click to change':
                 command += self.settings['Other stuff']['custom']['Command'].split()
