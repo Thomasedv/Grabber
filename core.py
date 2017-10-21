@@ -354,9 +354,8 @@ class GUI(QProcess):
 
         self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
 
+        # Menu creation for tab2_download_lineedit
         menu = QMenu()
-
-
         # Makes an action for the tab2_download_lineedit
         open_folder_action = QAction('Open location', parent=self.tab2_download_lineedit)
         #open_folder_action.setEnabled(True)
@@ -366,7 +365,6 @@ class GUI(QProcess):
         copy_action.triggered.connect(self.copy_to_cliboard)
 
         menu.addAction(copy_action)
-
 
         ## Layout tab 2.
 
