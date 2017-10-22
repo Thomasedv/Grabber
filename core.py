@@ -270,6 +270,7 @@ class GUI(QProcess):
 
         # TextEdit creation, for showing status messages, and the youtube-dl output.
         self.tab1_textbrowser = QTextBrowser()
+
         self.tab1_textbrowser.setAcceptRichText(True)
         self.tab1_textbrowser.setOpenExternalLinks(True)
         self.tab1_textbrowser.setContextMenuPolicy(Qt.NoContextMenu)
@@ -1053,14 +1054,14 @@ class GUI(QProcess):
                 self.tab1_textbrowser.append('No textfile selected...\n\nNo download started!')
                 return
 
-            command += (' -a {txt}'.split())
             txt = self.settings['Other stuff']['multidl_txt']
+            command += (' -a {txt}'.split()[-1].format(txt=txt))
         else:
-            command.append('{txt}')
             txt = self.tab1_lineedit.text()
+            command.append(f'{txt}')
 
-        for i in range(len(command)):
-            command[i] = command[i].format(txt=txt)
+        #for i in range(len(command)):
+        #    command[i] = command[i].format(txt=txt)
 
         for parameter, options in self.settings['Settings'].items():
             if parameter == 'Download location':
@@ -1111,7 +1112,7 @@ class GUI(QProcess):
     # appends youtube-dl output to tab1_textbrowser.
     def read_stdoutput(self):
         data = self.readAllStandardOutput().data()
-        text = data.decode('latin-1', 'replace').strip()
+        text = data.decode('windows-1252', 'replace').strip()
         text = self.cmdoutput(text)
 
         scrollbar = self.tab1_textbrowser.verticalScrollBar()
