@@ -883,6 +883,8 @@ class GUI(QProcess):
             if item.data(0, 0) in ('', ' '):
                 item.setData(0,0, 'Custom command double click to change')
                 item.setCheckState(0, Qt.Unchecked)
+            if item.data(0, 0) in ('custom', 'Custom'):
+                item.setCheckState(0, Qt.Unchecked)
             self.settings['Other stuff']['custom']['Command'] = item.data(0, 0)
             self.settings['Other stuff']['custom']['state'] = item.checkState(0) == Qt.Checked
             self.write_setting(self.settings)
@@ -1085,7 +1087,7 @@ class GUI(QProcess):
                     command += add
 
         if self.settings['Other stuff']['custom']['state']:
-            if self.settings['Other stuff']['custom']['Command'] != 'Custom command double click to change':
+            if self.settings['Other stuff']['custom']['Command'] not in ('Custom command double click to change','Custom'):
                 command += self.settings['Other stuff']['custom']['Command'].split()
 
         try:
