@@ -1094,6 +1094,8 @@ class GUI(QProcess):
             if self.ffmpeg_path:
                 command += ['--ffmpeg-location', self.ffmpeg_path]
         except Exception as error:
+            self.tab1_textbrowser.append(f'There was a small error with ffmpeg. Give this to dev:\n'
+                                         f'{error}')
             print(error)
 
         self.Errors = 0
