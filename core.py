@@ -1057,7 +1057,7 @@ class GUI(QProcess):
                 return
 
             txt = self.settings['Other stuff']['multidl_txt']
-            command += (' -a {txt}'.split()[-1].format(txt=txt))
+            command += ['-a', f'{txt}']
         else:
             txt = self.tab1_lineedit.text()
             command.append(f'{txt}')
