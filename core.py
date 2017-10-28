@@ -270,6 +270,7 @@ class GUI(QProcess):
 
         # TextEdit creation, for showing status messages, and the youtube-dl output.
         self.tab1_textbrowser = QTextBrowser()
+
         self.tab1_textbrowser.setAcceptRichText(True)
         self.tab1_textbrowser.setOpenExternalLinks(True)
         self.tab1_textbrowser.setContextMenuPolicy(Qt.NoContextMenu)
@@ -882,6 +883,8 @@ class GUI(QProcess):
             if item.data(0, 0) in ('', ' '):
                 item.setData(0,0, 'Custom command double click to change')
                 item.setCheckState(0, Qt.Unchecked)
+            if item.data(0, 0) in ('custom', 'Custom'):
+                item.setCheckState(0, Qt.Unchecked)
             self.settings['Other stuff']['custom']['Command'] = item.data(0, 0)
             self.settings['Other stuff']['custom']['state'] = item.checkState(0) == Qt.Checked
             self.write_setting(self.settings)
@@ -1053,14 +1056,14 @@ class GUI(QProcess):
                 self.tab1_textbrowser.append('No textfile selected...\n\nNo download started!')
                 return
 
-            command += (' -a {txt}'.split())
             txt = self.settings['Other stuff']['multidl_txt']
+            command += ['-a', f'{txt}']
         else:
-            command.append('{txt}')
             txt = self.tab1_lineedit.text()
+            command.append(f'{txt}')
 
-        for i in range(len(command)):
-            command[i] = command[i].format(txt=txt)
+        #for i in range(len(command)):
+        #    command[i] = command[i].format(txt=txt)
 
         for parameter, options in self.settings['Settings'].items():
             if parameter == 'Download location':
@@ -1084,13 +1087,18 @@ class GUI(QProcess):
                     command += add
 
         if self.settings['Other stuff']['custom']['state']:
-            if self.settings['Other stuff']['custom']['Command'] != 'Custom command double click to change':
+            if self.settings['Other stuff']['custom']['Command'] not in ('Custom command double click to change','Custom'):
                 command += self.settings['Other stuff']['custom']['Command'].split()
+
+        # Sets encoding to utf-8, allowing better character support in output stream.
+        command += ['--encoding', 'utf-8']
 
         try:
             if self.ffmpeg_path:
                 command += ['--ffmpeg-location', self.ffmpeg_path]
         except Exception as error:
+            self.tab1_textbrowser.append(f'There was a small error with ffmpeg. Give this to dev:\n'
+                                         f'{error}')
             print(error)
 
         self.Errors = 0
@@ -1111,7 +1119,7 @@ class GUI(QProcess):
     # appends youtube-dl output to tab1_textbrowser.
     def read_stdoutput(self):
         data = self.readAllStandardOutput().data()
-        text = data.decode('latin-1', 'replace').strip()
+        text = data.decode('utf-8', 'replace').strip()
         text = self.cmdoutput(text)
 
         scrollbar = self.tab1_textbrowser.verticalScrollBar()
