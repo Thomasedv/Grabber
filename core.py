@@ -1090,6 +1090,9 @@ class GUI(QProcess):
             if self.settings['Other stuff']['custom']['Command'] not in ('Custom command double click to change','Custom'):
                 command += self.settings['Other stuff']['custom']['Command'].split()
 
+        # Sets encoding to utf-8, allowing better character support in output stream.
+        command += ['--encoding', 'utf-8']
+
         try:
             if self.ffmpeg_path:
                 command += ['--ffmpeg-location', self.ffmpeg_path]
@@ -1116,7 +1119,7 @@ class GUI(QProcess):
     # appends youtube-dl output to tab1_textbrowser.
     def read_stdoutput(self):
         data = self.readAllStandardOutput().data()
-        text = data.decode('windows-1252', 'replace').strip()
+        text = data.decode('utf-8', 'replace').strip()
         text = self.cmdoutput(text)
 
         scrollbar = self.tab1_textbrowser.verticalScrollBar()
