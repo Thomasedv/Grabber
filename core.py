@@ -527,6 +527,26 @@ class GUI(QProcess):
 
         ### Future tab creation here! Currently 4 tabs already.
 
+        ## TEST TAB ##
+        if __name__ == '__main__':
+            # Only shows if core.py is run, not when main.py is.
+            self.testbutton = QPushButton('Press me!')
+            self.test_layout = QVBoxLayout()
+            self.test_layout.addWidget(self.testbutton)
+            self.test_layout.addStretch(1)
+
+            def TEST_function():
+                self.tab2_options.load_profile(self.settings['Settings'])
+
+            self.test_tab = QWidget()
+            self.test_tab.setLayout(self.test_layout)
+            self.main_tab.addTab(self.test_tab, 'TEST')
+
+            self.testbutton.clicked.connect(TEST_function)
+
+
+
+
         ### Configuration main widget.
 
         # Adds tabs to the tab widget, and names the tabs.
@@ -625,6 +645,9 @@ class GUI(QProcess):
                         if item.child(number).checkState(0) == Qt.Checked:
                             self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
                             break
+                    else:
+                        print('TESD')
+                        #raise SettingsError('Error, no active option!')
                 else:
                     self.tab2_download_lineedit.setText(self.path_shortener(self.local_dl_path))
                     self.tab2_download_lineedit.setToolTip(self.local_dl_path)
@@ -706,6 +729,7 @@ class GUI(QProcess):
     def write_default_settings(reset=False):
         if reset:
             settings = {}
+            settings['Profiles'] = {}
             settings['Settings'] = {}
             settings['Other stuff'] = {
                 'multidl_txt': '',
@@ -1046,7 +1070,6 @@ class GUI(QProcess):
     def start_DL(self):
         self.tab1_lineedit.clearFocus()
 
-
         self.tab1_textbrowser.clear()
         command = []
 
@@ -1121,6 +1144,7 @@ class GUI(QProcess):
         data = self.readAllStandardOutput().data()
         text = data.decode('utf-8', 'replace').strip()
         text = self.cmdoutput(text)
+        print(text)
 
         scrollbar = self.tab1_textbrowser.verticalScrollBar()
         place = scrollbar.sliderPosition()

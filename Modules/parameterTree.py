@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 
 class ParameterTree(QTreeWidget):
-    def __init__(self, dicts: dict):
+    def __init__(self, profile: dict):
         """
         Data table:
         All data is in column 0.
@@ -28,9 +28,17 @@ class ParameterTree(QTreeWidget):
         # self.headerItem().setResizeMode(QHeaderView.ResizeToContents)
 
         # self.setItemWidget()
-        for name, settings in dicts.items():
+        self.load_profile(profile)
+
+        self.itemChanged.connect(self.make_exclusive)
+        self.itemChanged.connect(self.check_dependency)
+
+    def load_profile(self, profile: dict):
+        self.blockSignals(True)
+        self.clear()
+        for name, settings in profile.items():
             parent = self.make_option(name, self, settings['state'], 0, settings['tooltip'], settings['dependency'])
-            if settings['options'] is not None:
+            if settings['options']:
                 for number, choice in enumerate(settings['options']):
                     if settings['Active option'] == number:
                         option = self.make_option(choice, parent, True, 1, subindex=number)
@@ -40,11 +48,8 @@ class ParameterTree(QTreeWidget):
             self.make_exclusive(parent)
 
         self.hock_dependency()
-
-        self.itemChanged.connect(self.make_exclusive)
-        self.itemChanged.connect(self.check_dependency)
-
-        self.start_size()
+        self.update_size()
+        self.blockSignals(False)
 
     def hock_dependency(self):
         top_level_names = []
@@ -133,7 +138,7 @@ class ParameterTree(QTreeWidget):
 
         return widget_item
 
-    def start_size(self):
+    def update_size(self):
         """Sets widget size. Required to keep consistent."""
         size = sum([1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
         # Unhandled lengths when the program exceeds the window size. Might implement a max factor, and allow scrolling.
@@ -160,6 +165,11 @@ class ParameterTree(QTreeWidget):
         """
         Handles changes to self. Ensure options are expand_options, and resizes self when needed.
         """
+        if self.signalsBlocked():
+            unblock = False
+        else:
+            unblock = True
+
         if item.data(0, 33) == 0:
             self.expand_options(item)
             self.resizer(item)
@@ -182,8 +192,10 @@ class ParameterTree(QTreeWidget):
         elif item.data(0, 33) == 2:
             pass  # Custom options should not have options, not now at least.
         else:
-            print('Parent/child state not set.' + str(item.data(0, 32)))
-        self.blockSignals(False)
+            print('Parent/child state not set. ' + str(item.data(0, 32)))
+
+        if unblock:
+            self.blockSignals(False)
 
 
 if __name__ == '__main__':
