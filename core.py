@@ -701,7 +701,7 @@ class GUI(QProcess):
                     if item.childCount() >= 3:
                         item.removeChild(item.child(3))
 
-                    self.tab2_options.resizer(item)
+                    self.tab2_options.update_size()
                     self.tab2_options.blockSignals(False)
 
                     # self.tab2_download_lineedit.setText(location)
