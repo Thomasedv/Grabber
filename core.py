@@ -563,6 +563,11 @@ class GUI(QProcess):
         self.main_tab.setMinimumHeight(200)
         self.main_tab.setWindowIcon(self.windowIcon)  # Window icon
 
+        if self.settings['Other stuff']['select_on_focus']:
+            self.main_tab.gotfocus.connect(self.window_focus_event)
+        else:
+            self.tab1_lineedit.setFocus()
+
         # Other functionality.
         self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3_textedit)
         self.shortcut.activated.connect(self.tab3_saveButton.click)
@@ -581,7 +586,10 @@ class GUI(QProcess):
         # Shows the main window.
         self.main_tab.show()
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
+
+    def window_focus_event(self):
         self.tab1_lineedit.setFocus()
+        self.tab1_lineedit.selectAll()
 
     def copy_to_cliboard(self, text):
         mime = QMimeData()
@@ -733,6 +741,7 @@ class GUI(QProcess):
             settings['Settings'] = {}
             settings['Other stuff'] = {
                 'multidl_txt': '',
+                'select_on_focus':True,
                 'custom':{
                     "Command": "Custom",
                     "state": False,
