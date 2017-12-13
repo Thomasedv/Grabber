@@ -240,6 +240,10 @@ class GUI(QProcess):
                         }}
 
                         """
+        self.font = QFont()
+        self.font.setFamily('Consolas')
+        self.font.setPixelSize(13)
+
 
         ### Main widget. This will be the ones that holds everything.
 
@@ -267,6 +271,7 @@ class GUI(QProcess):
         # Label and lineedit creation. Line edit for acception youtube links as well as paramters.
         self.tab1_label = QLabel("Url: ")
         self.tab1_lineedit = LineEdit()
+
 
         # TextEdit creation, for showing status messages, and the youtube-dl output.
         self.tab1_textbrowser = QTextBrowser()
@@ -410,9 +415,7 @@ class GUI(QProcess):
         self.tab3_textedit = QTextEdit()
         self.tab3_textedit.setObjectName('TextFileEdit')
 
-        self.font = QFont()
-        self.font.setFamily('Consolas')
-        self.font.setPixelSize(13)
+
         self.tab3_textedit.setFont(self.font)
 
         # Create load button and label.
@@ -540,7 +543,7 @@ class GUI(QProcess):
 
             self.test_tab = QWidget()
             self.test_tab.setLayout(self.test_layout)
-            self.main_tab.addTab(self.test_tab, 'TEST')
+            #self.main_tab.addTab(self.test_tab, 'TEST')
 
             self.testbutton.clicked.connect(TEST_function)
 
@@ -916,7 +919,7 @@ class GUI(QProcess):
             if item.data(0, 0) in ('', ' '):
                 item.setData(0,0, 'Custom command double click to change')
                 item.setCheckState(0, Qt.Unchecked)
-            if item.data(0, 0) in ('custom', 'Custom'):
+            elif item.data(0, 0) in ('custom', 'Custom'):
                 item.setCheckState(0, Qt.Unchecked)
             self.settings['Other stuff']['custom']['Command'] = item.data(0, 0)
             self.settings['Other stuff']['custom']['state'] = item.checkState(0) == Qt.Checked
