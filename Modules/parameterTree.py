@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 
 class ParameterTree(QTreeWidget):
+    max_size = 400
     def __init__(self, profile: dict):
         """
         Data table:
@@ -28,7 +29,8 @@ class ParameterTree(QTreeWidget):
         # self.headerItem().setResizeMode(QHeaderView.ResizeToContents)
 
         # self.setItemWidget()
-        self.load_profile(profile)
+        if type(profile) is dict:
+            self.load_profile(profile)
 
         self.itemChanged.connect(self.make_exclusive)
         self.itemChanged.connect(self.check_dependency)
@@ -40,11 +42,11 @@ class ParameterTree(QTreeWidget):
             parent = self.make_option(name, self, settings['state'], 0, settings['tooltip'], settings['dependency'])
             if settings['options']:
                 for number, choice in enumerate(settings['options']):
-                    if settings['Active option'] == number:
-                        option = self.make_option(choice, parent, True, 1, subindex=number)
+                    if settings['active option'] == number:
+                        option = self.make_option(str(choice), parent, True, 1, subindex=number)
                         option.setFlags(option.flags() ^ Qt.ItemIsUserCheckable)
                     else:
-                        option = self.make_option(choice, parent, False, 1, subindex=number)
+                        option = self.make_option(str(choice), parent, False, 1, subindex=number)
             self.make_exclusive(parent)
 
         self.hock_dependency()
@@ -140,10 +142,14 @@ class ParameterTree(QTreeWidget):
 
     def update_size(self):
         """Sets widget size. Required to keep consistent."""
-        size = sum([1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
+        child_size = 15 * sum([1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
+        parent_size = 20 * self.topLevelItemCount()
         # Unhandled lengths when the program exceeds the window size. Might implement a max factor, and allow scrolling.
         # Future cases might implement two ParameterTrees side by side, for better use of space and usability.
-        self.setFixedHeight(20 * self.topLevelItemCount() + 15 * size)
+        if ParameterTree.max_size < (child_size + parent_size):
+            self.setFixedHeight(ParameterTree.max_size)
+        else:
+            self.setFixedHeight((child_size + parent_size))
 
     def expand_options(self, item: QTreeWidgetItem):
         """Handles if the options should show, depends on checkstate."""
@@ -155,10 +161,11 @@ class ParameterTree(QTreeWidget):
     def resizer(self, item: QTreeWidgetItem):
         # print('Child count', item.childCount())
         if item.checkState(0):
-            self.setFixedHeight(self.height() + 15 * item.childCount())
+            if self.height() + 15 * item.childCount() < ParameterTree.max_size:
+                self.setFixedHeight(self.height() + 15 * item.childCount())
             # print('Expanding')
         else:
-            self.setFixedHeight(self.height() - 15 * item.childCount())
+            self.update_size()
             # print('Collapsing')
 
     def make_exclusive(self, item: QTreeWidgetItem):
@@ -207,16 +214,16 @@ if __name__ == '__main__':
     },
     "Settings": {
         "Add thumbnail": {
-            "Active option": 0,
-            "Command": "--embed-thumbnail",
+            "active option": 0,
+            "command": "--embed-thumbnail",
             "dependency": "Convert to audio",
             "options": None,
             "state": True,
             "tooltip": "Include thumbnail on audio files."
         },
         "Convert to audio": {
-            "Active option": 0,
-            "Command": "-x --audio-format {} --audio-quality 0",
+            "active option": 0,
+            "command": "-x --audio-format {} --audio-quality 0",
             "dependency": None,
             "options": [
                 "mp3",
@@ -226,8 +233,8 @@ if __name__ == '__main__':
             "tooltip": "Convert to selected audio format."
         },
         "Download location": {
-            "Active option": 2,
-            "Command": "-o {}",
+            "active option": 2,
+            "command": "-o {}",
             "dependency": None,
             "options": [
                 "D:/Music/DL/%(title)s.%(ext)s",
@@ -238,16 +245,16 @@ if __name__ == '__main__':
             "tooltip": "Select download location."
         },
         "Ignore errors": {
-            "Active option": 0,
-            "Command": "-i",
+            "active option": 0,
+            "command": "-i",
             "dependency": None,
             "options": None,
             "state": True,
             "tooltip": "Ignores errors, and jumps to next element instead of stopping."
         },
         "Keep archive": {
-            "Active option": 0,
-            "Command": "--download-archive {}",
+            "active option": 0,
+            "command": "--download-archive {}",
             "dependency": None,
             "options": [
                 "Archive.txt"
@@ -256,8 +263,8 @@ if __name__ == '__main__':
             "tooltip": "Saves links to a textfile to avoid duplicates later."
         },
         "Strict file names": {
-            "Active option": 0,
-            "Command": "--restrict-filenames",
+            "active option": 0,
+            "command": "--restrict-filenames",
             "dependency": None,
             "options": None,
             "state": False,
