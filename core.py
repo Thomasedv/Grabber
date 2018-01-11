@@ -17,7 +17,7 @@ from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGu
 
 
 class GUI(QProcess):
-    sendclose = pyqtSignal()
+    sendClose = pyqtSignal()
     EXIT_CODE_REBOOT = -123456789
 
     def __init__(self):
@@ -42,14 +42,14 @@ class GUI(QProcess):
         self.ffmpeg_path = self.locate_program_path('ffmpeg.exe')
         self.program_workdir = self.set_program_working_directory().replace('\\', '/')
         self.workDir = os.getcwd().replace('\\', '/')
-        self.lincense_path = self.resource_path('LICENSE')
+        self.license_path = self.resource_path('LICENSE')
 
         self.local_dl_path = ''.join([self.workDir, '/DL/'])
 
         self.check_settings_integrity()
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
         # Use replace('\\', '/') on path.
-        self.iconlist = []
+        self.icon_list = []
 
         # Find icon paths
         self.unchecked_icon = self.resource_path('GUI\\Icon_unchecked.ico').replace('\\', '/')
@@ -58,10 +58,10 @@ class GUI(QProcess):
         self.window_icon = self.resource_path('GUI\\YTDLGUI.ico').replace('\\', '/')
 
         # Adding icons to list. For debug purposes.
-        self.iconlist.append(self.unchecked_icon)
-        self.iconlist.append(self.checked_icon)
-        self.iconlist.append(self.alert_icon)
-        self.iconlist.append(self.window_icon)
+        self.icon_list.append(self.unchecked_icon)
+        self.icon_list.append(self.checked_icon)
+        self.icon_list.append(self.alert_icon)
+        self.icon_list.append(self.window_icon)
 
         # Creating icon objects for use in message windows.
         self.alertIcon = QIcon()
@@ -266,7 +266,7 @@ class GUI(QProcess):
         ## Create top level tab widget system for the UI.
         self.main_tab = Tabwidget()
         self.main_tab.onclose.connect(self.confirm)
-        self.sendclose.connect(self.main_tab.closeE)
+        self.sendClose.connect(self.main_tab.closeE)
 
         # When statechanged, then the program state changed function is called.
         # Checks if the process is running and enables/disables buttons.
@@ -498,6 +498,7 @@ class GUI(QProcess):
 
         # When loadbutton is clicked, launch load textfile.
         self.tab3_loadButton.clicked.connect(self.load_text_from_file)
+
         # When savebutton clicked, save text to document.
         self.tab3_saveButton.clicked.connect(self.save_text_to_file)
         self.tab3_textedit.textChanged.connect(self.enable_saving)
@@ -662,7 +663,7 @@ class GUI(QProcess):
         self.tab1_lineedit.setFocus()
         self.tab1_lineedit.selectAll()
 
-    def copy_to_cliboard(self, text):
+    def copy_to_cliboard(self):
         mime = QMimeData()
         mime.setText(self.tab2_download_lineedit.text())
         board = QGuiApplication.clipboard()
@@ -695,6 +696,7 @@ class GUI(QProcess):
         return short_path
 
     def open_folder(self):
+        # noinspection PyCallByClass
         QProcess.startDetached('explorer {}'.format(self.tab2_download_lineedit.toolTip().replace("/", "\\")))
 
     def custom_options(self):
@@ -710,10 +712,9 @@ class GUI(QProcess):
         self.tab2_favorites.blockSignals(False)
 
     def download_name_handler(self):
-        for item in self.tab2_options.topLevelItems():
-            self.tab2_options.blockSignals(True)
-
+        for item in (*self.tab2_options.topLevelItems(), *self.tab2_favorites.topLevelItems()):
             if item.data(0, 32) == 'Download location':
+                item.treeWidget().blockSignals(True)
                 for number in range(item.childCount()):
                     item.child(number).setData(0, 0,
                                                self.path_shortener(item.child(number).data(0, 0)))
@@ -725,13 +726,14 @@ class GUI(QProcess):
                             self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
                             break
                     else:
-                        print('TESD')
+                        print('WARNING! No selected download item, this should not happen.... ')
+                        print('You messed with the settings... didn\'t you?!')
                         # raise SettingsError('Error, no active option!')
                 else:
                     self.tab2_download_lineedit.setText(self.path_shortener(self.local_dl_path))
                     self.tab2_download_lineedit.setToolTip(self.local_dl_path)
-
-            self.tab2_options.blockSignals(False)
+                item.treeWidget().blockSignals(False)
+                break
 
     def find_download_widget(self):
         for item in self.tab2_favorites.topLevelItems():
@@ -747,7 +749,6 @@ class GUI(QProcess):
         # Remove try/except later.
         try:
             item = self.tab2_download_option
-            item: QTreeWidgetItem
 
             short_path = self.path_shortener(full_path)
             names = [item.child(i).data(0, 0) for i in range(item.childCount())]
@@ -803,11 +804,12 @@ class GUI(QProcess):
             sub.setCheckState(0, Qt.Checked)
 
             self.write_setting(self.settings)
-        except Exception as e:
-            print(e)
+        except Exception as error:
+            print(error)
             traceback.print_exc()
 
-    def resource_path(self, relative_path):
+    @staticmethod
+    def resource_path(relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
@@ -820,7 +822,7 @@ class GUI(QProcess):
     @staticmethod
     def write_default_settings(reset=False):
         if reset:
-            settings = {}
+            settings = dict()
             settings['Profiles'] = {}
             settings['Favorites'] = []
             settings['Settings'] = {}
@@ -936,7 +938,8 @@ class GUI(QProcess):
                 "dependency": None,
                 "options": ['Implement later'],
                 "state": False,
-                "tooltip": "Use this proxy to verify the IP address for some geo-restricted sites.\nThe default proxy specified by"
+                "tooltip": "Use this proxy to verify the IP address for some geo-restricted sites.\n"
+                           "The default proxy specified by"
                            " --proxy (or none, if the options is not present)\nis used for the actual downloading."
             }
             settings['Settings']['Geo bypass country CODE'] = {
@@ -1374,7 +1377,7 @@ class GUI(QProcess):
 
         self.tab1_textbrowser.append(self.color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
 
-        for i in self.iconlist:
+        for i in self.icon_list:
             if i is not None:
                 try:
                     if os.path.isfile(str(i)):
@@ -1518,7 +1521,7 @@ class GUI(QProcess):
 
         if self.settings['Other stuff']['custom']['state']:
             if self.settings['Other stuff']['custom']['command'] not in (
-            'Custom command double click to change', 'Custom'):
+                    'Custom command double click to change', 'Custom'):
                 command += self.settings['Other stuff']['custom']['command'].split()
 
         # Sets encoding to utf-8, allowing better character support in output stream.
@@ -1697,7 +1700,7 @@ class GUI(QProcess):
                 return None
 
         if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
-            self.sendclose.emit()
+            self.sendClose.emit()
         else:
             result = self.alert_message('Unsaved changes in list!',
                                         'Save?',
@@ -1706,16 +1709,16 @@ class GUI(QProcess):
                                         allow_cancel=True)
             if result == QMessageBox.Yes:
                 self.save_text_to_file()
-                self.sendclose.emit()
+                self.sendClose.emit()
             elif result == QMessageBox.Cancel:
                 pass
             else:
-                self.sendclose.emit()
+                self.sendClose.emit()
 
     def read_license(self):
         if not self.license_shown:
             self.tab4_abouttext_textedit.clear()
-            with open(self.lincense_path, 'r') as f:
+            with open(self.license_path, 'r') as f:
                 for line in f.readlines():
                     self.tab4_abouttext_textedit.append(line.strip())
             self.license_shown = True
