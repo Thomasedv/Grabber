@@ -1,11 +1,19 @@
 import sys
+import traceback
 from typing import Union, Optional
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAction, QMenu
+from PyQt5.QtGui import QCursor
 
+
+class TreeWidgetItem(QTreeWidgetItem):
+    def __lt__(self, other):
+        return False
 
 class ParameterTree(QTreeWidget):
     max_size = 400
+    move_request = pyqtSignal(QTreeWidgetItem, bool)
+
     def __init__(self, profile: dict):
         """
         Data table:
@@ -21,10 +29,15 @@ class ParameterTree(QTreeWidget):
         """
         super().__init__()
 
+        self.favorite = False
+
         self.setExpandsOnDoubleClick(False)
         # self.setHeaderHidden(True)
         self.setRootIsDecorated(False)
         self.setHeaderHidden(True)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.contextMenu)
+
         # self.header().setSectionResizeMode(0,QHeaderView.ResizeToContents)
         # self.headerItem().setResizeMode(QHeaderView.ResizeToContents)
 
@@ -32,8 +45,37 @@ class ParameterTree(QTreeWidget):
         if type(profile) is dict:
             self.load_profile(profile)
 
+        self.setSortingEnabled(True)
+        self.sortByColumn(0, Qt.AscendingOrder)
+
         self.itemChanged.connect(self.make_exclusive)
         self.itemChanged.connect(self.check_dependency)
+
+    def contextMenu(self):
+        item = self.selectedItems()[0]
+        if len(self.selectedItems()) != 1:
+            print('Unexpected item given.')
+
+        if item.data(0, 33) == 0:
+            take_item = item
+        elif item.data(0, 33) == 1:
+            take_item = item.parent()
+        elif item.data(0, 33) == 2:
+            take_item = item
+        else:
+            raise Exception('No item selected or data in pos. 33 is not correct.')
+        action = QAction('Favorite' if not self.favorite else 'Remove favorite')
+        action.triggered.connect(lambda: self.move_widget(take_item))
+        action.setIconVisibleInMenu(False)
+
+        menu = QMenu(self)
+        menu.addAction(action)
+
+        menu.exec_(QCursor.pos())
+
+    def move_widget(self, item: QTreeWidgetItem):
+        taken_item = self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+        self.move_request.emit(taken_item, self.favorite)
 
     def load_profile(self, profile: dict):
         self.blockSignals(True)
@@ -121,7 +163,11 @@ class ParameterTree(QTreeWidget):
         """
         Makes a QWidgetItem and returns it.
         """
-        widget_item = QTreeWidgetItem(parent, [name])
+        if level != 1:
+            widget_item = QTreeWidgetItem(parent, [name])
+        else:
+            widget_item = TreeWidgetItem(parent, [name])
+
         if tooltip:
             widget_item.setToolTip(0, tooltip)
         if checkstate:
@@ -275,6 +321,7 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     Checkbox = ParameterTree(SampleDict['Settings'])
+    Checkbox.__name__ = 'Favorites'
     Checkbox.show()
 
     app.exec_()
