@@ -10,9 +10,11 @@ class TreeWidgetItem(QTreeWidgetItem):
     def __lt__(self, other):
         return False
 
+
 class ParameterTree(QTreeWidget):
     max_size = 400
     move_request = pyqtSignal(QTreeWidgetItem, bool)
+    addOption = pyqtSignal(QTreeWidgetItem)
 
     def __init__(self, profile: dict):
         """
@@ -56,22 +58,37 @@ class ParameterTree(QTreeWidget):
         if len(self.selectedItems()) != 1:
             print('Unexpected item given.')
 
+        menu = QMenu(self)
+
         if item.data(0, 33) == 0:
             take_item = item
         elif item.data(0, 33) == 1:
             take_item = item.parent()
+
         elif item.data(0, 33) == 2:
-            take_item = item
+            take_item = None
+            #take_item = item
         else:
             raise Exception('No item selected or data in pos. 33 is not correct.')
+
         action = QAction('Favorite' if not self.favorite else 'Remove favorite')
         action.triggered.connect(lambda: self.move_widget(take_item))
-        action.setIconVisibleInMenu(False)
 
-        menu = QMenu(self)
+        # Custom Option will likely crash this program. If you try to move it.
+
+        add_option = QAction('Add option')
+        add_option.triggered.connect(lambda: self.add_option(take_item))
+
+        action.setIconVisibleInMenu(False)
+        # Make Edit option action and remove option action.
+
         menu.addAction(action)
+        menu.addAction(add_option)
 
         menu.exec_(QCursor.pos())
+
+    def add_option(self, item):
+        self.addOption.emit(item)
 
     def move_widget(self, item: QTreeWidgetItem):
         taken_item = self.takeTopLevelItem(self.indexOfTopLevelItem(item))

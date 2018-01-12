@@ -5,13 +5,14 @@ import re
 import traceback
 from functools import wraps
 
+from Modules.dialog import Dialog
 from Modules.parameterTree import ParameterTree
 from Modules.tabWidget import Tabwidget
 from Modules.lineEdit import LineEdit
 
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
     QCheckBox, QMessageBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
-    QFrame
+    QFrame, QDialog
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 
@@ -630,6 +631,9 @@ class GUI(QProcess):
                                                          'or make sure it\'s in the same folder as this program. '
                                                          'Then close and reopen this program.', 'darkorange', 'bold'))
 
+        self.tab2_favorites.addOption.connect(self.check_for_options)
+        self.tab2_options.addOption.connect(self.check_for_options)
+
         # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
         self.download_name_handler()
         # Ensures widets are in correct state at startup and when tab1_lineedit is changed.
@@ -637,6 +641,58 @@ class GUI(QProcess):
         # Shows the main window.
         self.main_tab.show()
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
+
+    def design_option_dialog(self):
+        try:
+            dialog = Dialog(self.main_tab)
+            if dialog.exec_() == QDialog.Accepted:
+                return dialog.option.text()
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+
+        return None
+
+    def check_for_options(self, item: QTreeWidgetItem):
+        if item.data(0, 32) == 'Download location':
+            self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
+        elif '{}' in self.settings['Settings'][item.data(0, 32)]['command']:
+
+            item.treeWidget().blockSignals(True)
+            parameter = self.design_option_dialog()
+
+            if parameter:
+                new_option = ParameterTree.make_option(parameter.strip(),
+                                                       item,
+                                                       True,
+                                                       1,
+                                                       None,
+                                                       None,
+                                                       0)
+
+                move = item.takeChild(item.indexOfChild(new_option))
+                item.insertChild(0, move)
+
+                self.settings['Settings'][item.data(0, 32)]['options'].insert(0, parameter)
+                for i in range(len(self.settings['Settings'][item.data(0, 32)]['options'])):
+                    if i >= 3:
+                        del self.settings['Settings'][item.data(0, 32)]['options'][i]
+                        item.removeChild(item.child(i))
+                    else:
+                        item.child(i).setData(0, 35, i)
+                        if i == 0:
+                            item.child(i).setCheckState(0, Qt.Checked)
+                        else:
+                            item.child(i).setCheckState(0, Qt.Unchecked)
+
+                item.treeWidget().update_size()
+
+                self.write_setting(self.settings)
+            item.treeWidget().blockSignals(False)
+
+        else:
+            self.alert_message('Error!','The specified option does not take arguments!', None)
+            print('Doesn\'t have an option')
 
     def move_item(self, item: QTreeWidgetItem, favorite: bool):
         print(favorite)
@@ -1261,9 +1317,9 @@ class GUI(QProcess):
 
         self.write_setting(self.settings)
 
-    # def update_setting(self, diction: dict, section: str, key: str, value):
-    #     diction[section][key] = value
-    #     self.write_setting(diction)
+    def update_setting(self, diction: dict, section: str, key: str, value):
+         diction[section][key] = value
+         self.write_setting(diction)
 
     def update_parameters(self, diction, setting, state):
         diction['Settings'][setting]['state'] = state
