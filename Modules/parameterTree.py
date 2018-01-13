@@ -1,9 +1,9 @@
 import sys
-import traceback
 from typing import Union, Optional
+
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAction, QMenu
 from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAction, QMenu
 
 
 class TreeWidgetItem(QTreeWidgetItem):
@@ -66,8 +66,8 @@ class ParameterTree(QTreeWidget):
             take_item = item.parent()
 
         elif item.data(0, 33) == 2:
-            take_item = None
-            #take_item = item
+            take_item = item
+            # take_item = item
         else:
             raise Exception('No item selected or data in pos. 33 is not correct.')
 
@@ -175,7 +175,7 @@ class ParameterTree(QTreeWidget):
                     level: int = 0,
                     tooltip: Optional[str] = None,
                     dependency: Optional[list] = None,
-                    subindex: Optional[int] = None)\
+                    subindex: Optional[int] = None) \
             -> QTreeWidgetItem:
         """
         Makes a QWidgetItem and returns it.
@@ -205,7 +205,8 @@ class ParameterTree(QTreeWidget):
 
     def update_size(self):
         """Sets widget size. Required to keep consistent."""
-        child_size = 15 * sum([1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
+        child_size = 15 * sum(
+            [1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
         parent_size = 20 * self.topLevelItemCount()
         # Unhandled lengths when the program exceeds the window size. Might implement a max factor, and allow scrolling.
         # Future cases might implement two ParameterTrees side by side, for better use of space and usability.
@@ -272,68 +273,68 @@ if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
 
     SampleDict = {
-    "Other stuff": {
-        "multidl_txt": "C:/User/Mike Hunt/links.txt"
-    },
-    "Settings": {
-        "Add thumbnail": {
-            "active option": 0,
-            "command": "--embed-thumbnail",
-            "dependency": "Convert to audio",
-            "options": None,
-            "state": True,
-            "tooltip": "Include thumbnail on audio files."
+        "Other stuff": {
+            "multidl_txt": "C:/User/Mike Hunt/links.txt"
         },
-        "Convert to audio": {
-            "active option": 0,
-            "command": "-x --audio-format {} --audio-quality 0",
-            "dependency": None,
-            "options": [
-                "mp3",
-                "mp4"
-            ],
-            "state": True,
-            "tooltip": "Convert to selected audio format."
-        },
-        "Download location": {
-            "active option": 2,
-            "command": "-o {}",
-            "dependency": None,
-            "options": [
-                "D:/Music/DL/%(title)s.%(ext)s",
-                "C:/Users/Clint Oris/Downloads/%(title)s.%(ext)s",
-                "D:/Music/%(title)s.%(ext)s"
-            ],
-            "state": True,
-            "tooltip": "Select download location."
-        },
-        "Ignore errors": {
-            "active option": 0,
-            "command": "-i",
-            "dependency": None,
-            "options": None,
-            "state": True,
-            "tooltip": "Ignores errors, and jumps to next element instead of stopping."
-        },
-        "Keep archive": {
-            "active option": 0,
-            "command": "--download-archive {}",
-            "dependency": None,
-            "options": [
-                "Archive.txt"
-            ],
-            "state": False,
-            "tooltip": "Saves links to a textfile to avoid duplicates later."
-        },
-        "Strict file names": {
-            "active option": 0,
-            "command": "--restrict-filenames",
-            "dependency": None,
-            "options": None,
-            "state": False,
-            "tooltip": "Sets strict naming, to prevent unsupported characters in names."
+        "Settings": {
+            "Add thumbnail": {
+                "active option": 0,
+                "command": "--embed-thumbnail",
+                "dependency": "Convert to audio",
+                "options": None,
+                "state": True,
+                "tooltip": "Include thumbnail on audio files."
+            },
+            "Convert to audio": {
+                "active option": 0,
+                "command": "-x --audio-format {} --audio-quality 0",
+                "dependency": None,
+                "options": [
+                    "mp3",
+                    "mp4"
+                ],
+                "state": True,
+                "tooltip": "Convert to selected audio format."
+            },
+            "Download location": {
+                "active option": 2,
+                "command": "-o {}",
+                "dependency": None,
+                "options": [
+                    "D:/Music/DL/%(title)s.%(ext)s",
+                    "C:/Users/Clint Oris/Downloads/%(title)s.%(ext)s",
+                    "D:/Music/%(title)s.%(ext)s"
+                ],
+                "state": True,
+                "tooltip": "Select download location."
+            },
+            "Ignore errors": {
+                "active option": 0,
+                "command": "-i",
+                "dependency": None,
+                "options": None,
+                "state": True,
+                "tooltip": "Ignores errors, and jumps to next element instead of stopping."
+            },
+            "Keep archive": {
+                "active option": 0,
+                "command": "--download-archive {}",
+                "dependency": None,
+                "options": [
+                    "Archive.txt"
+                ],
+                "state": False,
+                "tooltip": "Saves links to a textfile to avoid duplicates later."
+            },
+            "Strict file names": {
+                "active option": 0,
+                "command": "--restrict-filenames",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Sets strict naming, to prevent unsupported characters in names."
+            }
         }
-    }
     }
 
     app = QApplication(sys.argv)
@@ -342,4 +343,3 @@ if __name__ == '__main__':
     Checkbox.show()
 
     app.exec_()
-

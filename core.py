@@ -1,20 +1,19 @@
-import sys
-import os.path
 import json
+import os.path
 import re
+import sys
 import traceback
-from functools import wraps
 
-from Modules.dialog import Dialog
-from Modules.parameterTree import ParameterTree
-from Modules.tabWidget import Tabwidget
-from Modules.lineEdit import LineEdit
-
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
-    QCheckBox, QMessageBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
-    QFrame, QDialog
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
+    QCheckBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
+    QFrame, QDialog
+
+from Modules.dialog import Dialog
+from Modules.lineEdit import LineEdit
+from Modules.parameterTree import ParameterTree
+from Modules.tabWidget import Tabwidget
 
 
 class GUI(QProcess):
@@ -758,11 +757,11 @@ class GUI(QProcess):
     def custom_options(self):
         self.tab2_favorites.blockSignals(True)
 
-        parent = self.tab2_options.make_option(self.settings['Other stuff']['custom']['command'],
-                                               self.tab2_favorites,
-                                               self.settings['Other stuff']['custom']['state'],
-                                               2,
-                                               self.settings['Other stuff']['custom']['tooltip'])
+        parent = ParameterTree.make_option(self.settings['Other stuff']['custom']['command'],
+                                           self.tab2_favorites,
+                                           self.settings['Other stuff']['custom']['state'],
+                                           2,
+                                           self.settings['Other stuff']['custom']['tooltip'])
         self.tab2_favorites.update_size()
         parent.setFlags(parent.flags() | Qt.ItemIsEditable)
         self.tab2_favorites.blockSignals(False)
@@ -896,7 +895,7 @@ class GUI(QProcess):
                 "command": "-x --audio-format {} --audio-quality 0",
                 "dependency": None,
                 "options": ['mp3'],
-                "state": True,
+                "state": False,
                 "tooltip": "Convert video files to audio-only files\n"
                            "Requires ffmpeg, avconv and ffprobe or avprobe."
             }
@@ -905,7 +904,7 @@ class GUI(QProcess):
                 "command": "--embed-thumbnail",
                 "dependency": 'Convert to audio',
                 "options": None,
-                "state": True,
+                "state": False,
                 "tooltip": "Include thumbnail on audio files."
             }
             settings['Settings']['Ignore errors'] = {
@@ -913,7 +912,7 @@ class GUI(QProcess):
                 "command": "-i",
                 "dependency": None,
                 "options": None,
-                "state": True,
+                "state": False,
                 "tooltip": "Ignores errors, and jumps to next element instead of stopping."
             }
             settings['Settings']['Download location'] = {
@@ -937,7 +936,7 @@ class GUI(QProcess):
                 "command": "--download-archive {}",
                 "dependency": None,
                 "options": ['Archive.txt'],
-                "state": True,
+                "state": False,
                 "tooltip": "Saves links to a textfile to avoid duplicate downloads later."
             }
             # settings['Settings']['Abort on error'] = {
@@ -1280,20 +1279,50 @@ class GUI(QProcess):
             raise SettingsError('Empty settings file!')
 
         missing_settings = {}
+        self.need_parameters = []
+
         for section in base_sections:
             if section not in self.settings:
                 missing_settings[section] = []
 
-        for option in base_settings:
-            if option not in self.settings['Settings']:
-                missing_settings[option] = []
-            else:
-                for key in base_keys:
-                    if key not in self.settings['Settings'][option]:
-                        if option not in missing_settings.keys():
-                            missing_settings[option] = [key]
-                        else:
-                            missing_settings[option].append(key)
+        for setting, option in self.settings['Settings'].items():
+            # setting: The name of the settting, like "Ignore errors"
+            # option: The dict which contains the base keys.
+            # key (Define below): is a key in the base settings
+
+            # print(setting)
+            # print(option)
+            for key in base_keys:
+                # Check if all base keys are in the options.
+                if key not in option.keys():
+                    # Check if the current setting has already logged a missing key
+                    # If it hasn't, create an entry in the missing_settings dict, as a list.
+                    # If it's there, then add the key to the missing list.
+                    if setting not in missing_settings.keys():
+                        missing_settings[setting] = [key]
+                    else:
+                        missing_settings[setting].append(key)
+                # Check if the current setting is missing options for the command, when needed.
+                # Disable the setting by default. Possibly alert the user.
+                elif key == 'command':
+                    if '{}' in option[key]:
+                        if not option['options']:
+                            # print(f'{setting} currently lacks any valid options!')
+                            if 'state' in option.keys():
+                                self.settings['Settings'][setting]['state'] = False
+                                # Add to a list over options to add setting to.
+                                self.need_parameters.append(setting)
+
+            #
+            # if option not in self.settings['Settings']:
+            #     missing_settings[option] = []
+            # else:
+            #     for key in base_keys:
+            #         if key not in self.settings['Settings'][option]:
+            #             if option not in missing_settings.keys():
+            #                 missing_settings[option] = [key]
+            #             else:
+            #                 missing_settings[option].append(key)
 
         if missing_settings:
             raise SettingsError('\n'.join(['Settings file is corrupt/missing:',
@@ -1303,23 +1332,29 @@ class GUI(QProcess):
                                            '-' * 20]))
 
         if not self.settings['Settings']['Download location']['options']:
+            # Checks for a download setting, set the current path to that.
             self.settings['Settings']['Download location']['options'] = [self.workDir + '/DL/%(title)s.%(ext)s']
 
         try:
-            for option in self.settings['Settings'].keys():
-                if self.settings['Settings'][option]['options'] is not None:
-                    if self.settings['Settings'][option]['active option'] >= len(
-                            self.settings['Settings'][option]['options']):
-                        self.settings['Settings'][option]['active option'] = 0
-
+            # Checks if the active option is valid, if not reset to the first item.
+            for setting in self.settings['Settings'].keys():
+                if self.settings['Settings'][setting]['options'] is not None:
+                    if self.settings['Settings'][setting]['active option'] >= len(
+                            self.settings['Settings'][setting]['options']):
+                        self.settings['Settings'][setting]['active option'] = 0
+        # Catch if the setting is missing for needed options.
         except KeyError as error:
-            raise SettingsError(f'{option} is missing a needed option {error}.')
+            raise SettingsError(f'{setting} is missing a needed option {error}.')
+        # Catches mutiple type errors.
+        except TypeError as error:
+            raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
+
 
         self.write_setting(self.settings)
 
     def update_setting(self, diction: dict, section: str, key: str, value):
-         diction[section][key] = value
-         self.write_setting(diction)
+        diction[section][key] = value
+        self.write_setting(diction)
 
     def update_parameters(self, diction, setting, state):
         diction['Settings'][setting]['state'] = state
@@ -1349,6 +1384,19 @@ class GUI(QProcess):
 
     def parameter_updater(self, item: QTreeWidgetItem):
         if item.data(0, 33) == 0:
+            if item.data(0, 32) in self.need_parameters:
+                result = self.alert_message('Warning!','This parameter needs an option!', 'There are no options!\n'
+                                                                                          'Would you make one?', True)
+                if result == QMessageBox.Yes:
+                    item.treeWidget().blockSignals(True)
+                    title = self.design_option_dialog()
+                    ParameterTree.make_option(title, item, True, 1, None, None, 0)
+                    item.treeWidget().blockSignals(False)
+                    self.update_setting(self.settings['Settings'], item.data(0, 32), 'options', [title])
+                else:
+                    item.treeWidget().blockSignals(True)
+                    item.setCheckState(0, Qt.Unchecked)
+                    item.treeWidget().blockSignals(False)
             if item.checkState(0) == Qt.Checked:
                 self.update_parameters(self.settings, item.data(0, 32), True)
                 if item.data(0, 32) == 'Download location':
