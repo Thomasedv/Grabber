@@ -959,7 +959,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--proxy {}",
                 "dependency": None,
-                "options": ['Implement option to add in GUI later.'],
+                "options": [],
                 "state": False,
                 "tooltip": "Use the specified HTTP/HTTPS/SOCKS proxy."
             }
@@ -975,7 +975,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--source-address {}",
                 "dependency": None,
-                "options": ["Implement later"],
+                "options": [],
                 "state": False,
                 "tooltip": "Client-side IP address to bind to."
             }
@@ -991,7 +991,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--geo-verification-proxy {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Use this proxy to verify the IP address for some geo-restricted sites.\n"
                            "The default proxy specified by"
@@ -1001,7 +1001,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--geo-bypass-country {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Force bypass geographic restriction with explicitly provided\n"
                            "two-letter ISO 3166-2 country code (experimental)."
@@ -1010,7 +1010,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--playlist-start {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Playlist video to start at (default is 1)."
             }
@@ -1018,7 +1018,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--playlist-end {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Playlist video to end at (default is last)."
             }
@@ -1026,7 +1026,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--playlist-items {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Playlist video items to download.\n"
                            "Specify indices of the videos in the playlist "
@@ -1038,7 +1038,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--match-title {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Download only matching titles (regex or caseless sub-string)."
             }
@@ -1046,7 +1046,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--reject-title {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Skip download for matching titles (regex or caseless sub-string)."
             }
@@ -1054,7 +1054,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--max-downloads {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Abort after downloading a certain number of files."
             }
@@ -1062,7 +1062,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--min-filesize {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Do not download any videos smaller than SIZE (e.g. 50k or 44.6m)."
             }
@@ -1070,7 +1070,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--max-filesize {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Do not download any videos bigger than SIZE (e.g. 50k or 44.6m)."
             }
@@ -1086,7 +1086,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--limit-rate {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Maximum download rate in bytes per second (e.g. 50K or 4.2M)."
             }
@@ -1150,7 +1150,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--user-agent {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Specify a custom user agent."
             }
@@ -1158,7 +1158,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--referer {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Specify a custom referer, use if the video access is restricted to one domain."
             }
@@ -1166,7 +1166,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--sleep-interval {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Number of seconds to sleep before each download;\nwhen used "
                            "alone or a lower bound of a range for randomized sleep before each\n"
@@ -1175,8 +1175,8 @@ class GUI(QProcess):
             settings['Settings']['Max sleep interval'] = {
                 "active option": 0,
                 "command": "--max-sleep-interval {}",
-                "dependency": "Sleep interval",
-                "options": ['Implement later'],
+                "dependency": "Min sleep interval",
+                "options": [],
                 "state": False,
                 "tooltip": "Upper bound of a range for randomized sleep before each download\n"
                            "(maximum possible number of seconds to sleep).\n"
@@ -1236,7 +1236,7 @@ class GUI(QProcess):
                 "active option": 0,
                 "command": "--metadata-from-title {}",
                 "dependency": None,
-                "options": ['Implement later'],
+                "options": [],
                 "state": False,
                 "tooltip": "Parse additional metadata like song title /"
                            "artist from the video title.\nThe format"
@@ -1389,10 +1389,19 @@ class GUI(QProcess):
                                                                                           'Would you make one?', True)
                 if result == QMessageBox.Yes:
                     item.treeWidget().blockSignals(True)
+
                     title = self.design_option_dialog()
-                    ParameterTree.make_option(title, item, True, 1, None, None, 0)
+                    if title:
+                        ParameterTree.make_option(title, item, True, 1, None, None, 0)
+
+                        self.need_parameters.remove(item.data(0, 32))
+                        self.update_setting(self.settings['Settings'], item.data(0, 32), 'options', [title])
+
+                    else:
+                        item.setCheckState(0, Qt.Unchecked)
+
                     item.treeWidget().blockSignals(False)
-                    self.update_setting(self.settings['Settings'], item.data(0, 32), 'options', [title])
+
                 else:
                     item.treeWidget().blockSignals(True)
                     item.setCheckState(0, Qt.Unchecked)
