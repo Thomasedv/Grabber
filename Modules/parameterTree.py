@@ -56,7 +56,7 @@ class ParameterTree(QTreeWidget):
     def contextMenu(self):
         item = self.selectedItems()[0]
         if len(self.selectedItems()) != 1:
-            print('Unexpected item given.')
+            print('Unexpected item(s) given.')
 
         menu = QMenu(self)
 
@@ -79,13 +79,22 @@ class ParameterTree(QTreeWidget):
         add_option = QAction('Add option')
         add_option.triggered.connect(lambda: self.add_option(take_item))
 
+        remove_option = QAction('Remove option')
+
+        if item.data(0, 33) == 1:
+            remove_option.triggered.connect(lambda: self.del_option(item))
+            menu.addAction(remove_option)
+
         action.setIconVisibleInMenu(False)
         # Make Edit option action and remove option action.
 
-        menu.addAction(action)
         menu.addAction(add_option)
+        menu.addAction(action)
 
         menu.exec_(QCursor.pos())
+
+    def del_option(self, item: QTreeWidgetItem):
+        pass
 
     def add_option(self, item):
         self.addOption.emit(item)

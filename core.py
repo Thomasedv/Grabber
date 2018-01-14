@@ -652,6 +652,10 @@ class GUI(QProcess):
 
         return None
 
+    def delete_option(self, item):
+        pass
+
+
     def check_for_options(self, item: QTreeWidgetItem):
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
@@ -674,15 +678,14 @@ class GUI(QProcess):
 
                 self.settings['Settings'][item.data(0, 32)]['options'].insert(0, parameter)
                 for i in range(len(self.settings['Settings'][item.data(0, 32)]['options'])):
-                    if i >= 3:
-                        del self.settings['Settings'][item.data(0, 32)]['options'][i]
-                        item.removeChild(item.child(i))
+                    item.child(i).setData(0, 35, i)
+                    if i == 0:
+
+                        item.child(i).setCheckState(0, Qt.Checked)
+                        item.child(i).setFlags(item.flags() ^ Qt.ItemIsUserCheckable)
                     else:
-                        item.child(i).setData(0, 35, i)
-                        if i == 0:
-                            item.child(i).setCheckState(0, Qt.Checked)
-                        else:
-                            item.child(i).setCheckState(0, Qt.Unchecked)
+                        item.child(i).setCheckState(0, Qt.Unchecked)
+                        item.child(i).setFlags(item.flags() | Qt.ItemIsUserCheckable)
 
                 item.treeWidget().update_size()
 
