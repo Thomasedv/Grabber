@@ -655,7 +655,6 @@ class GUI(QProcess):
     def delete_option(self, item):
         pass
 
-
     def check_for_options(self, item: QTreeWidgetItem):
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)

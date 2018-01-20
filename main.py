@@ -1,7 +1,7 @@
 import sys
 import json
-from core import GUI, SettingsError, QMessageBox
-from PyQt5.QtWidgets import QApplication
+from core import GUI, SettingsError
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 
 def main():
