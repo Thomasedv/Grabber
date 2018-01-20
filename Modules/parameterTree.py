@@ -75,10 +75,10 @@ class ParameterTree(QTreeWidget):
 
         add_option = QAction('Add option')
         add_option.triggered.connect(lambda: self.addOption.emit(take_item))
-
-        remove_option = QAction('Remove option')
+        menu.addAction(add_option)
 
         if item.data(0, 33) == 1:
+            remove_option = QAction('Remove option')
             remove_option.triggered.connect(lambda: self.del_option(item))
             menu.addAction(remove_option)
 
@@ -89,8 +89,6 @@ class ParameterTree(QTreeWidget):
             action.triggered.connect(lambda: self.move_widget(take_item))
             action.setIconVisibleInMenu(False)
             menu.addAction(action)
-
-        menu.addAction(add_option)
 
         menu.exec_(QCursor.pos())
 
