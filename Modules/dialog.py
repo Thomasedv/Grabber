@@ -1,19 +1,7 @@
-import sys
-import os.path
-import json
 import re
-import traceback
-from functools import wraps
 
-from Modules.parameterTree import ParameterTree
-from Modules.tabWidget import Tabwidget
-from Modules.lineEdit import LineEdit
-
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
-    QCheckBox, QMessageBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
-    QFrame, QDialog, QSizePolicy
-from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
-from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
+from PyQt5.QtWidgets import QPushButton, QLabel, QLineEdit, \
+    QGridLayout, QDialog
 
 
 class Dialog(QDialog):
@@ -47,8 +35,3 @@ class Dialog(QDialog):
             self.ok_button.setDisabled(True)
         else:
             self.ok_button.setDisabled(False)
-
-
-
-
-

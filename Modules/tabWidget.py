@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QEvent, QObject
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QEvent
 from PyQt5.QtWidgets import QTabWidget
 
 

@@ -8,7 +8,7 @@ from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
     QCheckBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
-    QFrame, QDialog, QSizePolicy
+    QFrame, QDialog
 
 from Modules.dialog import Dialog
 from Modules.lineEdit import LineEdit
@@ -617,7 +617,6 @@ class GUI(QProcess):
         self.main_tab.setMinimumWidth(340)
         self.main_tab.setMinimumHeight(200)
 
-
         # Window icon
         if self.settings['Other stuff']['select_on_focus']:
             self.main_tab.gotfocus.connect(self.window_focus_event)
@@ -703,18 +702,18 @@ class GUI(QProcess):
             item.treeWidget().blockSignals(False)
 
         else:
-            self.alert_message('Error!','The specified option does not take arguments!', None)
+            self.alert_message('Error!', 'The specified option does not take arguments!', None)
             print('Doesn\'t have an option')
 
     def move_item(self, item: QTreeWidgetItem, favorite: bool):
-        #print(favorite)
+        # print(favorite)
         self.blockSignals(True)
         if favorite:
             self.tab2_options.addTopLevelItem(item)
-            #print('remove')
+            # print('remove')
             self.settings['Favorites'].remove(item.data(0, 0))
         else:
-            #print(favorite)
+            # print(favorite)
             self.tab2_favorites.addTopLevelItem(item)
             self.settings['Favorites'].append(item.data(0, 0))
         self.tab2_favorites.update_size()
@@ -736,7 +735,7 @@ class GUI(QProcess):
         self.tab2_favorites.setFixedHeight(size)
 
     def window_focus_event(self):
-        #self.tab2_options.max_size =
+        # self.tab2_options.max_size =
         self.tab1_lineedit.setFocus()
         self.tab1_lineedit.selectAll()
 
@@ -1371,7 +1370,6 @@ class GUI(QProcess):
         except TypeError as error:
             raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
 
-
         self.write_setting(self.settings)
 
     def update_setting(self, diction: dict, section: str, key: str, value):
@@ -1407,8 +1405,8 @@ class GUI(QProcess):
     def parameter_updater(self, item: QTreeWidgetItem):
         if item.data(0, 33) == 0:
             if item.data(0, 32) in self.need_parameters:
-                result = self.alert_message('Warning!','This parameter needs an option!', 'There are no options!\n'
-                                                                                          'Would you make one?', True)
+                result = self.alert_message('Warning!', 'This parameter needs an option!', 'There are no options!\n'
+                                                                                           'Would you make one?', True)
                 if result == QMessageBox.Yes:
                     item.treeWidget().blockSignals(True)
 
