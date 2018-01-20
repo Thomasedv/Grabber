@@ -6,11 +6,16 @@ class Tabwidget(QTabWidget):
     onclose = pyqtSignal()
     LetClose = False
     gotfocus = pyqtSignal()
+    resizedByUser = pyqtSignal()
 
     def __init__(self):
         super(Tabwidget, self).__init__()
 
         self.installEventFilter(self)
+
+    def resizeEvent(self, QResizeEvent):
+        self.resizedByUser.emit()
+        super(Tabwidget, self).resizeEvent(QResizeEvent)
 
     def eventFilter(self, QObject, Event):
         if Event.type() == QEvent.WindowActivate:

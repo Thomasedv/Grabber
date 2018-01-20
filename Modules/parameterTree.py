@@ -82,7 +82,6 @@ class ParameterTree(QTreeWidget):
             remove_option.triggered.connect(lambda: self.del_option(item))
             menu.addAction(remove_option)
 
-
         # Make Edit option action and remove option action.
 
         if take_item.data(0, 33) != 2:

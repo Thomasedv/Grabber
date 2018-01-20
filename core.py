@@ -8,7 +8,7 @@ from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
     QCheckBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
-    QFrame, QDialog
+    QFrame, QDialog, QSizePolicy
 
 from Modules.dialog import Dialog
 from Modules.lineEdit import LineEdit
@@ -406,7 +406,7 @@ class GUI(QProcess):
         # Vertical layout creation
         self.tab2_QV = QVBoxLayout()
         # Adds the dl layout to the vertical one.
-        self.tab2_QV.addLayout(self.tab2_QH)
+        self.tab2_QV.addLayout(self.tab2_QH, stretch=0)
 
         # Adds stretch to the layout.
         self.grid = QGridLayout()
@@ -429,6 +429,10 @@ class GUI(QProcess):
         self.grid.addWidget(self.frame2, 2, 1)
         self.grid.addWidget(self.tab2_favorites, 3, 0, Qt.AlignTop)
         self.grid.addWidget(self.tab2_options, 3, 1, Qt.AlignTop)
+        self.grid.setRowStretch(0, 0)
+        self.grid.setRowStretch(1, 0)
+        self.grid.setRowStretch(2, 0)
+        self.grid.setRowStretch(3, 1)
         self.tab2_QV.addLayout(self.grid)
 
         # self.tab2_hdl_box = QHBoxLayout()
@@ -612,8 +616,9 @@ class GUI(QProcess):
         # Set base size.
         self.main_tab.setMinimumWidth(340)
         self.main_tab.setMinimumHeight(200)
-        self.main_tab.setWindowIcon(self.windowIcon)  # Window icon
 
+
+        # Window icon
         if self.settings['Other stuff']['select_on_focus']:
             self.main_tab.gotfocus.connect(self.window_focus_event)
         else:
@@ -639,7 +644,13 @@ class GUI(QProcess):
         self.enable_start()
         # Shows the main window.
         self.main_tab.show()
+        # Connect after show!!
+        self.main_tab.resizedByUser.connect(self.resize_contents)
+
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
+
+    def resize_job(self, *args):
+        print(args)
 
     def design_option_dialog(self):
         try:
@@ -716,7 +727,16 @@ class GUI(QProcess):
             item.setExpanded(False)
         self.blockSignals(False)
 
+    def resize_contents(self):
+
+        size = self.main_tab.height() - (self.frame.height() + self.tab2_download_lineedit.height()
+                                         + self.tab2_favlabel.height() + self.main_tab.tabBar().height() + 40)
+        ParameterTree.max_size = size
+        self.tab2_options.setFixedHeight(size)
+        self.tab2_favorites.setFixedHeight(size)
+
     def window_focus_event(self):
+        #self.tab2_options.max_size =
         self.tab1_lineedit.setFocus()
         self.tab1_lineedit.selectAll()
 
