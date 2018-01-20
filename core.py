@@ -696,14 +696,14 @@ class GUI(QProcess):
             print('Doesn\'t have an option')
 
     def move_item(self, item: QTreeWidgetItem, favorite: bool):
-        print(favorite)
+        #print(favorite)
         self.blockSignals(True)
         if favorite:
             self.tab2_options.addTopLevelItem(item)
-            print('remove')
+            #print('remove')
             self.settings['Favorites'].remove(item.data(0, 0))
         else:
-            print(favorite)
+            #print(favorite)
             self.tab2_favorites.addTopLevelItem(item)
             self.settings['Favorites'].append(item.data(0, 0))
         self.tab2_favorites.update_size()

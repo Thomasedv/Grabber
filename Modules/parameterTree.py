@@ -71,13 +71,10 @@ class ParameterTree(QTreeWidget):
         else:
             raise Exception('No item selected or data in pos. 33 is not correct.')
 
-        action = QAction('Favorite' if not self.favorite else 'Remove favorite')
-        action.triggered.connect(lambda: self.move_widget(take_item))
-
         # Custom Option will likely crash this program. If you try to move it.
 
         add_option = QAction('Add option')
-        add_option.triggered.connect(lambda: self.add_option(take_item))
+        add_option.triggered.connect(lambda: self.addOption.emit(take_item))
 
         remove_option = QAction('Remove option')
 
@@ -85,19 +82,21 @@ class ParameterTree(QTreeWidget):
             remove_option.triggered.connect(lambda: self.del_option(item))
             menu.addAction(remove_option)
 
-        action.setIconVisibleInMenu(False)
+
         # Make Edit option action and remove option action.
 
+        if take_item.data(0, 33) != 2:
+            action = QAction('Favorite' if not self.favorite else 'Remove favorite')
+            action.triggered.connect(lambda: self.move_widget(take_item))
+            action.setIconVisibleInMenu(False)
+            menu.addAction(action)
+
         menu.addAction(add_option)
-        menu.addAction(action)
 
         menu.exec_(QCursor.pos())
 
     def del_option(self, item: QTreeWidgetItem):
         pass
-
-    def add_option(self, item):
-        self.addOption.emit(item)
 
     def move_widget(self, item: QTreeWidgetItem):
         taken_item = self.takeTopLevelItem(self.indexOfTopLevelItem(item))
