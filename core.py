@@ -1,21 +1,23 @@
-import sys
-import os.path
 import json
+import os.path
 import re
+import sys
 import traceback
 
-from Modules.parameterTree import ParameterTree
-from Modules.tabWidget import Tabwidget
-from Modules.lineEdit import LineEdit
-
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
-    QCheckBox, QMessageBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
+    QCheckBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
+    QFrame, QDialog
+
+from Modules.dialog import Dialog
+from Modules.lineEdit import LineEdit
+from Modules.parameterTree import ParameterTree
+from Modules.tabWidget import Tabwidget
 
 
 class GUI(QProcess):
-    sendclose = pyqtSignal()
+    sendClose = pyqtSignal()
     EXIT_CODE_REBOOT = -123456789
 
     def __init__(self):
@@ -40,14 +42,14 @@ class GUI(QProcess):
         self.ffmpeg_path = self.locate_program_path('ffmpeg.exe')
         self.program_workdir = self.set_program_working_directory().replace('\\', '/')
         self.workDir = os.getcwd().replace('\\', '/')
-        self.lincense_path = self.resource_path('LICENSE')
+        self.license_path = self.resource_path('LICENSE')
 
         self.local_dl_path = ''.join([self.workDir, '/DL/'])
 
         self.check_settings_integrity()
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
         # Use replace('\\', '/') on path.
-        self.iconlist = []
+        self.icon_list = []
 
         # Find icon paths
         self.unchecked_icon = self.resource_path('GUI\\Icon_unchecked.ico').replace('\\', '/')
@@ -56,10 +58,10 @@ class GUI(QProcess):
         self.window_icon = self.resource_path('GUI\\YTDLGUI.ico').replace('\\', '/')
 
         # Adding icons to list. For debug purposes.
-        self.iconlist.append(self.unchecked_icon)
-        self.iconlist.append(self.checked_icon)
-        self.iconlist.append(self.alert_icon)
-        self.iconlist.append(self.window_icon)
+        self.icon_list.append(self.unchecked_icon)
+        self.icon_list.append(self.checked_icon)
+        self.icon_list.append(self.alert_icon)
+        self.icon_list.append(self.window_icon)
 
         # Creating icon objects for use in message windows.
         self.alertIcon = QIcon()
@@ -74,6 +76,8 @@ class GUI(QProcess):
         self.RUNNING = False
         # Denotes if the textfile is saved.
         self.SAVED = True
+        # Error count is provided after process quit.
+        self.Errors = 0
         # Indicates if license is shown.
         self.license_shown = False
 
@@ -89,9 +93,18 @@ class GUI(QProcess):
                             background-color: #484848;
                             color: white;
                         }}
-
+                        
+                        QFrame#line {{
+                            color: #303030;
+                        }}
+                        
                         QTabWidget::pane {{
                             border: none;
+                        }}
+                        
+                        QMenu::item {{
+                            border: none;
+                            padding: 3px 20px 3px 5px
                         }}
                         
                         QMenu {{
@@ -244,18 +257,20 @@ class GUI(QProcess):
         self.font.setFamily('Consolas')
         self.font.setPixelSize(13)
 
+        options = {k: v for k, v in self.settings['Settings'].items() if k not in self.settings['Favorites']}
+
+        favorites = {i: self.settings['Settings'][i] for i in self.settings['Favorites']}
 
         ### Main widget. This will be the ones that holds everything.
 
         ## Create top level tab widget system for the UI.
         self.main_tab = Tabwidget()
         self.main_tab.onclose.connect(self.confirm)
-        self.sendclose.connect(self.main_tab.closeE)
+        self.sendClose.connect(self.main_tab.closeE)
 
         # When statechanged, then the program state changed function is called.
         # Checks if the process is running and enables/disables buttons.
         self.stateChanged.connect(self.program_state_changed)
-
 
         ### TAB 1 ###
 
@@ -271,7 +286,6 @@ class GUI(QProcess):
         # Label and lineedit creation. Line edit for acception youtube links as well as paramters.
         self.tab1_label = QLabel("Url: ")
         self.tab1_lineedit = LineEdit()
-
 
         # TextEdit creation, for showing status messages, and the youtube-dl output.
         self.tab1_textbrowser = QTextBrowser()
@@ -340,6 +354,9 @@ class GUI(QProcess):
         # Label for the lineEdit.
         self.tab2_download_label = QLabel('Download to:')
 
+        self.tab2_favlabel = QLabel('Favorites:')
+        self.tab2_optlabel = QLabel('All settings:')
+
         # LineEdit for download location.
         self.tab2_download_lineedit = QLineEdit()
         self.tab2_download_lineedit.setReadOnly(True)
@@ -348,14 +365,18 @@ class GUI(QProcess):
             self.tab2_download_lineedit.setText('')
             self.tab2_download_lineedit.setToolTip(self.settings['Settings']['Download location']['options'][
                                                        self.settings['Settings']['Download location'][
-                                                           'Active option']].replace('%(title)s.%(ext)s', ''))
+                                                           'active option']].replace('%(title)s.%(ext)s', ''))
         else:
             # Should not be reachable anymore!
             self.tab2_download_lineedit.setText('DL')
             self.tab2_download_lineedit.setToolTip('Default download location.')
 
         # Sets up the parameter tree.
-        self.tab2_options = ParameterTree(self.settings['Settings'])
+        self.tab2_options = ParameterTree(options)
+        self.tab2_favorites = ParameterTree(favorites)
+        self.tab2_favorites.favorite = True
+
+        self.tab2_download_option = self.find_download_widget()
         self.custom_options()
 
         self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
@@ -364,10 +385,10 @@ class GUI(QProcess):
         menu = QMenu()
         # Makes an action for the tab2_download_lineedit
         open_folder_action = QAction('Open location', parent=self.tab2_download_lineedit)
-        #open_folder_action.setEnabled(True)
+        # open_folder_action.setEnabled(True)
         open_folder_action.triggered.connect(self.open_folder)
 
-        copy_action = QAction('Copy',parent=self.tab2_download_lineedit)
+        copy_action = QAction('Copy', parent=self.tab2_download_lineedit)
         copy_action.triggered.connect(self.copy_to_cliboard)
 
         menu.addAction(copy_action)
@@ -388,12 +409,38 @@ class GUI(QProcess):
         self.tab2_QV.addLayout(self.tab2_QH)
 
         # Adds stretch to the layout.
-        self.tab2_grid_layout = QGridLayout()
-        self.tab2_grid_layout.expandingDirections()
-        self.tab2_grid_layout.addWidget(self.tab2_options)
+        self.grid = QGridLayout()
 
-        self.tab2_QV.addLayout(self.tab2_grid_layout)
-        self.tab2_QV.addStretch(1)
+        self.frame = QFrame()
+        self.frame2 = QFrame()
+
+        self.frame2.setFrameShape(QFrame.HLine)
+        self.frame.setFrameShape(QFrame.HLine)
+
+        self.frame.setLineWidth(2)
+        self.frame2.setLineWidth(2)
+
+        self.frame.setObjectName('line')
+        self.frame2.setObjectName('line')
+
+        self.grid.addWidget(self.tab2_favlabel, 1, 0)
+        self.grid.addWidget(self.tab2_optlabel, 1, 1)
+        self.grid.addWidget(self.frame, 2, 0)
+        self.grid.addWidget(self.frame2, 2, 1)
+        self.grid.addWidget(self.tab2_favorites, 3, 0, Qt.AlignTop)
+        self.grid.addWidget(self.tab2_options, 3, 1, Qt.AlignTop)
+        self.tab2_QV.addLayout(self.grid)
+
+        # self.tab2_hdl_box = QHBoxLayout()
+        # self.tab2_grid_layout.expandingDirections()
+        # self.tab2_vdl_box = QVBoxLayout()
+        # self.tab2_vdl_box.addWidget(self.tab2_options)
+        # self.tab2_vdl_box.addStretch(1)
+        # self.tab2_hdl_box.addLayout(self.tab2_vdl_box)
+        # self.tab2_hdl_box.addWidget(self.tab2_favorites)
+
+        # self.tab2_QV.addLayout(self.tab2_hdl_box)
+        # self.tab2_QV.addStretch(1)
 
         # Create Qwidget for the layout for tab 2.
         self.tab2 = QWidget()
@@ -406,6 +453,10 @@ class GUI(QProcess):
         self.tab2_download_lineedit.addAction(copy_action)
 
         self.tab2_options.itemChanged.connect(self.parameter_updater)
+        self.tab2_options.move_request.connect(self.move_item)
+        self.tab2_favorites.itemChanged.connect(self.parameter_updater)
+        self.tab2_favorites.move_request.connect(self.move_item)
+
         self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
 
         ### Tab 3.
@@ -414,7 +465,6 @@ class GUI(QProcess):
         # Create textedit
         self.tab3_textedit = QTextEdit()
         self.tab3_textedit.setObjectName('TextFileEdit')
-
 
         self.tab3_textedit.setFont(self.font)
 
@@ -448,6 +498,7 @@ class GUI(QProcess):
 
         # When loadbutton is clicked, launch load textfile.
         self.tab3_loadButton.clicked.connect(self.load_text_from_file)
+
         # When savebutton clicked, save text to document.
         self.tab3_saveButton.clicked.connect(self.save_text_to_file)
         self.tab3_textedit.textChanged.connect(self.enable_saving)
@@ -543,12 +594,9 @@ class GUI(QProcess):
 
             self.test_tab = QWidget()
             self.test_tab.setLayout(self.test_layout)
-            #self.main_tab.addTab(self.test_tab, 'TEST')
+            # self.main_tab.addTab(self.test_tab, 'TEST')
 
             self.testbutton.clicked.connect(TEST_function)
-
-
-
 
         ### Configuration main widget.
 
@@ -582,6 +630,9 @@ class GUI(QProcess):
                                                          'or make sure it\'s in the same folder as this program. '
                                                          'Then close and reopen this program.', 'darkorange', 'bold'))
 
+        self.tab2_favorites.addOption.connect(self.check_for_options)
+        self.tab2_options.addOption.connect(self.check_for_options)
+
         # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
         self.download_name_handler()
         # Ensures widets are in correct state at startup and when tab1_lineedit is changed.
@@ -590,11 +641,86 @@ class GUI(QProcess):
         self.main_tab.show()
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
 
+    def design_option_dialog(self):
+        try:
+            dialog = Dialog(self.main_tab)
+            if dialog.exec_() == QDialog.Accepted:
+                return dialog.option.text()
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+
+        return None
+
+    def delete_option(self, item):
+        pass
+
+    def check_for_options(self, item: QTreeWidgetItem):
+        if item.data(0, 32) == 'Download location':
+            self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
+        elif '{}' in self.settings['Settings'][item.data(0, 32)]['command']:
+
+            item.treeWidget().blockSignals(True)
+            parameter = self.design_option_dialog()
+
+            if parameter:
+                new_option = ParameterTree.make_option(parameter.strip(),
+                                                       item,
+                                                       True,
+                                                       1,
+                                                       None,
+                                                       None,
+                                                       0)
+
+                move = item.takeChild(item.indexOfChild(new_option))
+                item.insertChild(0, move)
+
+                self.settings['Settings'][item.data(0, 32)]['options'].insert(0, parameter)
+                for i in range(len(self.settings['Settings'][item.data(0, 32)]['options'])):
+                    item.child(i).setData(0, 35, i)
+                    if i == 0:
+
+                        item.child(i).setCheckState(0, Qt.Checked)
+                        item.child(i).setFlags(item.flags() ^ Qt.ItemIsUserCheckable)
+                    else:
+                        item.child(i).setCheckState(0, Qt.Unchecked)
+                        item.child(i).setFlags(item.flags() | Qt.ItemIsUserCheckable)
+
+                item.treeWidget().update_size()
+
+                self.write_setting(self.settings)
+            item.treeWidget().blockSignals(False)
+
+        else:
+            self.alert_message('Error!','The specified option does not take arguments!', None)
+            print('Doesn\'t have an option')
+
+    def move_item(self, item: QTreeWidgetItem, favorite: bool):
+        #print(favorite)
+        self.blockSignals(True)
+        if favorite:
+            self.tab2_options.addTopLevelItem(item)
+            #print('remove')
+            self.settings['Favorites'].remove(item.data(0, 0))
+        else:
+            #print(favorite)
+            self.tab2_favorites.addTopLevelItem(item)
+            self.settings['Favorites'].append(item.data(0, 0))
+        self.tab2_favorites.update_size()
+        self.tab2_options.update_size()
+        self.write_setting(self.settings)
+
+        if item.checkState(0) == Qt.Checked:
+            item.setExpanded(True)
+        else:
+            item.setExpanded(False)
+        self.blockSignals(False)
+
     def window_focus_event(self):
         self.tab1_lineedit.setFocus()
         self.tab1_lineedit.selectAll()
 
-    def copy_to_cliboard(self, text):
+    def copy_to_cliboard(self):
         mime = QMimeData()
         mime.setText(self.tab2_download_lineedit.text())
         board = QGuiApplication.clipboard()
@@ -627,25 +753,25 @@ class GUI(QProcess):
         return short_path
 
     def open_folder(self):
-        QProcess.startDetached('explorer {}'.format(self.tab2_download_lineedit.toolTip().replace("/","\\")))
+        # noinspection PyCallByClass
+        QProcess.startDetached('explorer {}'.format(self.tab2_download_lineedit.toolTip().replace("/", "\\")))
 
     def custom_options(self):
-        self.tab2_options.blockSignals(True)
+        self.tab2_favorites.blockSignals(True)
 
-        parent = self.tab2_options.make_option(self.settings['Other stuff']['custom']['Command'],
-                                               self.tab2_options,
-                                               self.settings['Other stuff']['custom']['state'],
-                                               2,
-                                               self.settings['Other stuff']['custom']['tooltip'])
-
+        parent = ParameterTree.make_option(self.settings['Other stuff']['custom']['command'],
+                                           self.tab2_favorites,
+                                           self.settings['Other stuff']['custom']['state'],
+                                           2,
+                                           self.settings['Other stuff']['custom']['tooltip'])
+        self.tab2_favorites.update_size()
         parent.setFlags(parent.flags() | Qt.ItemIsEditable)
-        self.tab2_options.blockSignals(False)
+        self.tab2_favorites.blockSignals(False)
 
     def download_name_handler(self):
-        for item in self.tab2_options.topLevelItems():
-            self.tab2_options.blockSignals(True)
-
+        for item in (*self.tab2_options.topLevelItems(), *self.tab2_favorites.topLevelItems()):
             if item.data(0, 32) == 'Download location':
+                item.treeWidget().blockSignals(True)
                 for number in range(item.childCount()):
                     item.child(number).setData(0, 0,
                                                self.path_shortener(item.child(number).data(0, 0)))
@@ -657,76 +783,90 @@ class GUI(QProcess):
                             self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
                             break
                     else:
-                        print('TESD')
-                        #raise SettingsError('Error, no active option!')
+                        print('WARNING! No selected download item, this should not happen.... ')
+                        print('You messed with the settings... didn\'t you?!')
+                        # raise SettingsError('Error, no active option!')
                 else:
                     self.tab2_download_lineedit.setText(self.path_shortener(self.local_dl_path))
                     self.tab2_download_lineedit.setToolTip(self.local_dl_path)
+                item.treeWidget().blockSignals(False)
+                break
 
-            self.tab2_options.blockSignals(False)
+    def find_download_widget(self):
+        for item in self.tab2_favorites.topLevelItems():
+            if item.data(0, 32) == 'Download location':
+                return item
+        for item in self.tab2_options.topLevelItems():
+            if item.data(0, 32) == 'Download location':
+                return item
+        raise SettingsError('No download item found in settings.')
 
     def download_option_handler(self, full_path):
         # Adds new dl location to the tree and settings. Removes oldest one, if there is more than 3.
         # Remove try/except later.
-        for item in self.tab2_options.topLevelItems():
-            try:
-                if item.data(0, 32) == 'Download location':
-                    short_path = self.path_shortener(full_path)
+        try:
+            item = self.tab2_download_option
 
-                    names = [i.data(0, 0) for i in self.tab2_options.childrens(item)]
-                    if short_path in names \
-                            and full_path+'/%(title)s.%(ext)s' in self.settings['Settings']['Download location']['options']:
-                        self.alert_message('Warning','Option already exists!','',question=False)
-                        break
-                    self.tab2_options.blockSignals(True)
+            short_path = self.path_shortener(full_path)
+            names = [item.child(i).data(0, 0) for i in range(item.childCount())]
+            if short_path in names \
+                    and full_path + '/%(title)s.%(ext)s' in self.settings['Settings']['Download location']['options']:
+                self.alert_message('Warning', 'Option already exists!', '', question=False)
+                return
+            print('-' * 50)
+            item.treeWidget().blockSignals(True)
 
-                    sub = self.tab2_options.make_option(name=full_path,
-                                                        parent=item,
-                                                        checkstate=False,
-                                                        level=1,
-                                                        tooltip=full_path,
-                                                        dependency=None,
-                                                        subindex=None)
-                    sub.setData(0, 0, short_path)
+            sub = ParameterTree.make_option(name=full_path,
+                                            parent=item,
+                                            checkstate=False,
+                                            level=1,
+                                            tooltip=full_path,
+                                            dependency=None,
+                                            subindex=None)
+            sub.setData(0, 0, short_path)
+            print('sorting enabled?', item.treeWidget().isSortingEnabled())
+            moving_sub = item.takeChild(item.indexOfChild(sub))
 
-                    moving_sub = item.takeChild(item.indexOfChild(sub))
+            item.insertChild(0, moving_sub)
 
-                    item.insertChild(0, moving_sub)
+            for number in range(item.childCount()):
+                item.child(number).setData(0, 35, number)
+                print(item.child(number).data(0, 0))
 
-                    for number in range(item.childCount()):
-                        item.child(number).setData(0, 35, number)
+            if self.settings['Settings']['Download location']['options'] is None:
+                self.settings['Settings']['Download location']['options'] = [full_path + '/%(title)s.%(ext)s']
+            else:
+                if item.childCount() >= 4:
+                    self.settings['Settings']['Download location']['options']: list
+                    self.settings['Settings']['Download location']['options'].insert(0,
+                                                                                     full_path + '/%(title)s.%(ext)s')
 
-                    if self.settings['Settings']['Download location']['options'] is None:
-                        self.settings['Settings']['Download location']['options'] = [full_path + '/%(title)s.%(ext)s']
-                    else:
-                        if item.childCount() >= 4:
-                            self.settings['Settings']['Download location']['options']: list
-                            self.settings['Settings']['Download location']['options'].insert(0,
-                                                                                             full_path + '/%(title)s.%(ext)s')
+                    del self.settings['Settings']['Download location']['options'][3:]
+                else:
+                    self.settings['Settings']['Download location']['options'].insert(0,
+                                                                                     full_path + '/%(title)s.%(ext)s')
 
-                            del self.settings['Settings']['Download location']['options'][3:]
-                        else:
-                            self.settings['Settings']['Download location']['options'].insert(0,
-                                                                                             full_path + '/%(title)s.%(ext)s')
+            if item.childCount() >= 3:
+                item.removeChild(item.child(3))
 
-                    if item.childCount() >= 3:
-                        item.removeChild(item.child(3))
+            item.treeWidget().update_size()
 
-                    self.tab2_options.update_size()
-                    self.tab2_options.blockSignals(False)
+            item.treeWidget().setSortingEnabled(True)
+            item.treeWidget().blockSignals(False)
 
-                    # self.tab2_download_lineedit.setText(location)
-                    # self.tab2_download_lineedit.setToolTip(tooltip)
+            # self.tab2_download_lineedit.setText(location)
+            # self.tab2_download_lineedit.setToolTip(tooltip)
 
-                    item.setCheckState(0, Qt.Checked)
-                    sub.setCheckState(0, Qt.Checked)
+            item.setCheckState(0, Qt.Checked)
+            sub.setCheckState(0, Qt.Checked)
 
-                    self.write_setting(self.settings)
+            self.write_setting(self.settings)
+        except Exception as error:
+            print(error)
+            traceback.print_exc()
 
-            except Exception as e:
-                raise NotImplementedError('Failed to catch an error.\n'+str(e))
-
-    def resource_path(self, relative_path):
+    @staticmethod
+    def resource_path(relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
@@ -739,66 +879,378 @@ class GUI(QProcess):
     @staticmethod
     def write_default_settings(reset=False):
         if reset:
-            settings = {}
+            settings = dict()
             settings['Profiles'] = {}
+            settings['Favorites'] = []
             settings['Settings'] = {}
             settings['Other stuff'] = {
                 'multidl_txt': '',
-                'select_on_focus':True,
-                'custom':{
-                    "Command": "Custom",
+                'select_on_focus': True,
+                'custom': {
+                    "command": "Custom",
                     "state": False,
                     "tooltip": "Custom option, double click to edit."
                 }
             }
             settings['Settings']['Convert to audio'] = {
-                "Active option": 0,
-                "Command": "-x --audio-format {} --audio-quality 0",
+                "active option": 0,
+                "command": "-x --audio-format {} --audio-quality 0",
                 "dependency": None,
                 "options": ['mp3'],
-                "state": True,
-                "tooltip": "Convert to selected audio format."
+                "state": False,
+                "tooltip": "Convert video files to audio-only files\n"
+                           "Requires ffmpeg, avconv and ffprobe or avprobe."
             }
             settings['Settings']["Add thumbnail"] = {
-                "Active option": 0,
-                "Command": "--embed-thumbnail",
+                "active option": 0,
+                "command": "--embed-thumbnail",
                 "dependency": 'Convert to audio',
                 "options": None,
-                "state": True,
+                "state": False,
                 "tooltip": "Include thumbnail on audio files."
             }
             settings['Settings']['Ignore errors'] = {
-                "Active option": 0,
-                "Command": "-i",
+                "active option": 0,
+                "command": "-i",
                 "dependency": None,
                 "options": None,
-                "state": True,
+                "state": False,
                 "tooltip": "Ignores errors, and jumps to next element instead of stopping."
             }
             settings['Settings']['Download location'] = {
-                "Active option": 0,
-                "Command": "-o {}",
+                "active option": 0,
+                "command": "-o {}",
                 "dependency": None,
                 "options": None,
                 "state": False,
                 "tooltip": "Select download location."
             }
             settings['Settings']['Strict file names'] = {
-                "Active option": 0,
-                "Command": "--restrict-filenames",
+                "active option": 0,
+                "command": "--restrict-filenames",
                 "dependency": None,
                 "options": None,
                 "state": False,
                 "tooltip": "Sets strict naming, to prevent unsupported characters in names."
             }
             settings['Settings']['Keep archive'] = {
-                "Active option": 0,
-                "Command": "--download-archive {}",
+                "active option": 0,
+                "command": "--download-archive {}",
                 "dependency": None,
                 "options": ['Archive.txt'],
-                "state": True,
+                "state": False,
                 "tooltip": "Saves links to a textfile to avoid duplicate downloads later."
             }
+            # settings['Settings']['Abort on error'] = {
+            #     "active option": 0,
+            #     "command": "--abort-on-error",
+            #     "dependency": None,
+            #     "options": None,
+            #     "state": False,
+            #     "tooltip": "Abort downloading of further videos if an error occurs."
+            # }
+            settings['Settings']['Force generic extractor'] = {
+                "active option": 0,
+                "command": "--force-generic-extractor",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Force extraction to use the generic extractor"
+            }
+            settings['Settings']['Use proxy'] = {
+                "active option": 0,
+                "command": "--proxy {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Use the specified HTTP/HTTPS/SOCKS proxy."
+            }
+            settings['Settings']['Socket timeout'] = {
+                "active option": 0,
+                "command": "--socket-timeout {}",
+                "dependency": None,
+                "options": [10, 60, 300],
+                "state": False,
+                "tooltip": "Time to wait before giving up, in seconds."
+            }
+            settings['Settings']['Source IP'] = {
+                "active option": 0,
+                "command": "--source-address {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Client-side IP address to bind to."
+            }
+            settings['Settings']['Force ipv4/6'] = {
+                "active option": 0,
+                "command": "--{}",
+                "dependency": None,
+                "options": ['force-ipv4', 'force-ipv6'],
+                "state": False,
+                "tooltip": "Make all connections via ipv4/6."
+            }
+            settings['Settings']['Geo bypass URL'] = {
+                "active option": 0,
+                "command": "--geo-verification-proxy {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Use this proxy to verify the IP address for some geo-restricted sites.\n"
+                           "The default proxy specified by"
+                           " --proxy (or none, if the options is not present)\nis used for the actual downloading."
+            }
+            settings['Settings']['Geo bypass country CODE'] = {
+                "active option": 0,
+                "command": "--geo-bypass-country {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Force bypass geographic restriction with explicitly provided\n"
+                           "two-letter ISO 3166-2 country code (experimental)."
+            }
+            settings['Settings']['Playlist start'] = {
+                "active option": 0,
+                "command": "--playlist-start {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Playlist video to start at (default is 1)."
+            }
+            settings['Settings']['Playlist end'] = {
+                "active option": 0,
+                "command": "--playlist-end {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Playlist video to end at (default is last)."
+            }
+            settings['Settings']['Playlist items'] = {
+                "active option": 0,
+                "command": "--playlist-items {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Playlist video items to download.\n"
+                           "Specify indices of the videos in the playlist "
+                           "separated by commas like:\n\"1,2,5,8\" if you want to download videos "
+                           "indexed 1, 2, 5, 8 in the playlist.\nYou can specify range:"
+                           "\"1-3,7,10-13\"\nwill download the videos at index:\n1, 2, 3, 7, 10, 11, 12 and 13."
+            }
+            settings['Settings']['Match titles'] = {
+                "active option": 0,
+                "command": "--match-title {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Download only matching titles (regex or caseless sub-string)."
+            }
+            settings['Settings']['Reject titles'] = {
+                "active option": 0,
+                "command": "--reject-title {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Skip download for matching titles (regex or caseless sub-string)."
+            }
+            settings['Settings']['Max downloads'] = {
+                "active option": 0,
+                "command": "--max-downloads {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Abort after downloading a certain number of files."
+            }
+            settings['Settings']['Minimum size'] = {
+                "active option": 0,
+                "command": "--min-filesize {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Do not download any videos smaller than SIZE (e.g. 50k or 44.6m)."
+            }
+            settings['Settings']['Maximum size'] = {
+                "active option": 0,
+                "command": "--max-filesize {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Do not download any videos bigger than SIZE (e.g. 50k or 44.6m)."
+            }
+            settings['Settings']['No playlist'] = {
+                "active option": 0,
+                "command": "--no-playlist ",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Download only the video, if the URL refers to a video and a playlist."
+            }
+            settings['Settings']['Download speed limit'] = {
+                "active option": 0,
+                "command": "--limit-rate {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Maximum download rate in bytes per second (e.g. 50K or 4.2M)."
+            }
+            settings['Settings']['Retry rate'] = {
+                "active option": 0,
+                "command": "--retries {}",
+                "dependency": None,
+                "options": ['Implement later', 10, 15],
+                "state": False,
+                "tooltip": "Number of retries (default is 10), or \"infinite\"."
+            }
+            settings['Settings']['Download order'] = {
+                "active option": 0,
+                "command": "--playlist-{}",
+                "dependency": None,
+                "options": ['reverse', 'random'],
+                "state": False,
+                "tooltip": "Download playlist videos in reverse/random order."
+            }
+            settings['Settings']['Prefer native/ffmpeg'] = {
+                "active option": 0,
+                "command": "--hls-prefer-{}",
+                "dependency": None,
+                "options": ['ffmpeg', 'native'],
+                "state": False,
+                "tooltip": "Use the native HLS downloader instead of ffmpeg, or vice versa."
+            }
+            settings['Settings']['Don\'t overwrite files'] = {
+                "active option": 0,
+                "command": "--no-overwrites",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Do not overwrite files"
+            }
+            settings['Settings']['Don\'t continue files'] = {
+                "active option": 0,
+                "command": "--no-continue",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Do not resume partially downloaded files."
+            }
+            settings['Settings']['Don\'t use .part files'] = {
+                "active option": 0,
+                "command": "--no-part",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Do not use .part files - write directly into output file."
+            }
+            settings['Settings']['Verbose'] = {
+                "active option": 0,
+                "command": "--verbose",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Print various debugging information."
+            }
+            settings['Settings']['Custom user agent'] = {
+                "active option": 0,
+                "command": "--user-agent {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Specify a custom user agent."
+            }
+            settings['Settings']['Custom referer'] = {
+                "active option": 0,
+                "command": "--referer {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Specify a custom referer, use if the video access is restricted to one domain."
+            }
+            settings['Settings']['Min sleep interval'] = {
+                "active option": 0,
+                "command": "--sleep-interval {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Number of seconds to sleep before each download;\nwhen used "
+                           "alone or a lower bound of a range for randomized sleep before each\n"
+                           "download when used along with max sleep interval."
+            }
+            settings['Settings']['Max sleep interval'] = {
+                "active option": 0,
+                "command": "--max-sleep-interval {}",
+                "dependency": "Min sleep interval",
+                "options": [],
+                "state": False,
+                "tooltip": "Upper bound of a range for randomized sleep before each download\n"
+                           "(maximum possible number of seconds to sleep).\n"
+                           "Must only be used along with --min-sleep-interval."
+            }
+            settings['Settings']['Video format'] = {
+                "active option": 0,
+                "command": "--format {}",
+                "dependency": None,
+                "options": ["Implement later"],
+                "state": False,
+                "tooltip": "Video format code."
+            }
+            settings['Settings']['Write subtitle file'] = {
+                "active option": 0,
+                "command": "--write-sub",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Write subtitle file."
+            }
+            settings['Settings']['Recode video'] = {
+                "active option": 0,
+                "command": "--recode-video {}",
+                "dependency": None,
+                "options": ['mp4', 'flv', 'ogg', 'webm', 'mkv', 'avi'],
+                "state": False,
+                "tooltip": "Encode the video to another format if necessary.\n"
+                           "Currently supported: mp4|flv|ogg|webm|mkv|avi."
+            }
+            settings['Settings']['No post overwrite'] = {
+                "active option": 0,
+                "command": "--no-post-overwrites",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Do not overwrite post-processed files;\n"
+                           "the post-processed files are overwritten by default."
+            }
+            settings['Settings']['Embed subs'] = {
+                "active option": 0,
+                "command": "--embed-subs",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Embed subtitles in the video (only for mp4, webm and mkv videos)"
+            }
+            settings['Settings']['Add metadata'] = {
+                "active option": 0,
+                "command": "--add-metadata",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Write metadata to the video file."
+            }
+            settings['Settings']['Metadata from title'] = {
+                "active option": 0,
+                "command": "--metadata-from-title {}",
+                "dependency": None,
+                "options": [],
+                "state": False,
+                "tooltip": "Parse additional metadata like song title /"
+                           "artist from the video title.\nThe format"
+                           "syntax is the same as --output.\nRegular "
+                           "expression with named capture groups may"
+                           "also be used.\nThe parsed parameters replace "
+                           "existing values.\n\n"
+                           "Example:\n\"%(artist)s - %(title)s\" matches a"
+                           "title like \"Coldplay - Paradise\".\nExample"
+                           "(regex):\n\"(?P<artist>.+?) - (?P<title>.+)\""
+            }
+
             with open('Settings.json', 'w') as f:
                 json.dump(settings, f, indent=4, sort_keys=True)
             return settings
@@ -811,13 +1263,15 @@ class GUI(QProcess):
 
     def check_settings_integrity(self):
         # Base info.
+
+        base_sections = ['Profiles', 'Favorites', 'Settings', 'Other stuff']
         base_settings = ['Convert to audio',
                          'Add thumbnail',
                          'Ignore errors',
                          'Download location',
                          'Strict file names',
                          'Keep archive']
-        base_keys = ['Command',
+        base_keys = ['command',
                      'dependency',
                      'options',
                      'state',
@@ -827,17 +1281,50 @@ class GUI(QProcess):
             raise SettingsError('Empty settings file!')
 
         missing_settings = {}
+        self.need_parameters = []
 
-        for option in base_settings:
-            if option not in self.settings['Settings']:
-                missing_settings[option] = []
-            else:
-                for key in base_keys:
-                    if key not in self.settings['Settings'][option]:
-                        if option not in missing_settings.keys():
-                            missing_settings[option] = [key]
-                        else:
-                            missing_settings[option].append(key)
+        for section in base_sections:
+            if section not in self.settings:
+                missing_settings[section] = []
+
+        for setting, option in self.settings['Settings'].items():
+            # setting: The name of the settting, like "Ignore errors"
+            # option: The dict which contains the base keys.
+            # key (Define below): is a key in the base settings
+
+            # print(setting)
+            # print(option)
+            for key in base_keys:
+                # Check if all base keys are in the options.
+                if key not in option.keys():
+                    # Check if the current setting has already logged a missing key
+                    # If it hasn't, create an entry in the missing_settings dict, as a list.
+                    # If it's there, then add the key to the missing list.
+                    if setting not in missing_settings.keys():
+                        missing_settings[setting] = [key]
+                    else:
+                        missing_settings[setting].append(key)
+                # Check if the current setting is missing options for the command, when needed.
+                # Disable the setting by default. Possibly alert the user.
+                elif key == 'command':
+                    if '{}' in option[key]:
+                        if not option['options']:
+                            # print(f'{setting} currently lacks any valid options!')
+                            if 'state' in option.keys():
+                                self.settings['Settings'][setting]['state'] = False
+                                # Add to a list over options to add setting to.
+                                self.need_parameters.append(setting)
+
+            #
+            # if option not in self.settings['Settings']:
+            #     missing_settings[option] = []
+            # else:
+            #     for key in base_keys:
+            #         if key not in self.settings['Settings'][option]:
+            #             if option not in missing_settings.keys():
+            #                 missing_settings[option] = [key]
+            #             else:
+            #                 missing_settings[option].append(key)
 
         if missing_settings:
             raise SettingsError('\n'.join(['Settings file is corrupt/missing:',
@@ -847,17 +1334,23 @@ class GUI(QProcess):
                                            '-' * 20]))
 
         if not self.settings['Settings']['Download location']['options']:
+            # Checks for a download setting, set the current path to that.
             self.settings['Settings']['Download location']['options'] = [self.workDir + '/DL/%(title)s.%(ext)s']
 
         try:
-            for option in self.settings['Settings'].keys():
-                if self.settings['Settings'][option]['options'] is not None:
-                    if self.settings['Settings'][option]['Active option'] >= len(
-                            self.settings['Settings'][option]['options']):
-                        self.settings['Settings'][option]['Active option'] = 0
-
+            # Checks if the active option is valid, if not reset to the first item.
+            for setting in self.settings['Settings'].keys():
+                if self.settings['Settings'][setting]['options'] is not None:
+                    if self.settings['Settings'][setting]['active option'] >= len(
+                            self.settings['Settings'][setting]['options']):
+                        self.settings['Settings'][setting]['active option'] = 0
+        # Catch if the setting is missing for needed options.
         except KeyError as error:
-            raise SettingsError(f'{option} is missing a needed option {error}.')
+            raise SettingsError(f'{setting} is missing a needed option {error}.')
+        # Catches mutiple type errors.
+        except TypeError as error:
+            raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
+
 
         self.write_setting(self.settings)
 
@@ -870,7 +1363,8 @@ class GUI(QProcess):
         self.write_setting(diction)
 
     def update_options(self, diction, setting, index):
-        diction['Settings'][setting]['Active option'] = index
+        if setting in diction['Settings'].keys():
+            diction['Settings'][setting]['active option'] = index
         self.write_setting(diction)
 
     def reset_settings(self):
@@ -892,6 +1386,28 @@ class GUI(QProcess):
 
     def parameter_updater(self, item: QTreeWidgetItem):
         if item.data(0, 33) == 0:
+            if item.data(0, 32) in self.need_parameters:
+                result = self.alert_message('Warning!','This parameter needs an option!', 'There are no options!\n'
+                                                                                          'Would you make one?', True)
+                if result == QMessageBox.Yes:
+                    item.treeWidget().blockSignals(True)
+
+                    title = self.design_option_dialog()
+                    if title:
+                        ParameterTree.make_option(title, item, True, 1, None, None, 0)
+
+                        self.need_parameters.remove(item.data(0, 32))
+                        self.update_setting(self.settings['Settings'], item.data(0, 32), 'options', [title])
+
+                    else:
+                        item.setCheckState(0, Qt.Unchecked)
+
+                    item.treeWidget().blockSignals(False)
+
+                else:
+                    item.treeWidget().blockSignals(True)
+                    item.setCheckState(0, Qt.Unchecked)
+                    item.treeWidget().blockSignals(False)
             if item.checkState(0) == Qt.Checked:
                 self.update_parameters(self.settings, item.data(0, 32), True)
                 if item.data(0, 32) == 'Download location':
@@ -917,16 +1433,13 @@ class GUI(QProcess):
             # print(str(item.data(0,0)))
             # print(str(item.checkState(0) == Qt.Checked))
             if item.data(0, 0) in ('', ' '):
-                item.setData(0,0, 'Custom command double click to change')
+                item.setData(0, 0, 'Custom command double click to change')
                 item.setCheckState(0, Qt.Unchecked)
             elif item.data(0, 0) in ('custom', 'Custom'):
                 item.setCheckState(0, Qt.Unchecked)
-            self.settings['Other stuff']['custom']['Command'] = item.data(0, 0)
+            self.settings['Other stuff']['custom']['command'] = item.data(0, 0)
             self.settings['Other stuff']['custom']['state'] = item.checkState(0) == Qt.Checked
             self.write_setting(self.settings)
-
-
-
 
     @staticmethod
     def locate_program_path(program):
@@ -979,7 +1492,7 @@ class GUI(QProcess):
 
         self.tab1_textbrowser.append(self.color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
 
-        for i in self.iconlist:
+        for i in self.icon_list:
             if i is not None:
                 try:
                     if os.path.isfile(str(i)):
@@ -1059,7 +1572,7 @@ class GUI(QProcess):
                 self.SAVED = True
                 self.load_text_from_file()
         else:
-            self.alert_message('Error!','Could not find file!','')
+            self.alert_message('Error!', 'Could not find file!', '')
             # Check if the checkbox is toggled, and disables the line edit if it is.
             #  Also disables start button if lineEdit is empty and checkbox is not checked
 
@@ -1087,7 +1600,7 @@ class GUI(QProcess):
 
         if self.tab1_checkbox.isChecked():
             if self.tab4_txt_lineedit.text() == '':
-                self.alert_message('Error!','No textfile selected!','')
+                self.alert_message('Error!', 'No textfile selected!', '')
                 self.tab1_textbrowser.append('No textfile selected...\n\nNo download started!')
                 return
 
@@ -1097,33 +1610,34 @@ class GUI(QProcess):
             txt = self.tab1_lineedit.text()
             command.append(f'{txt}')
 
-        #for i in range(len(command)):
+        # for i in range(len(command)):
         #    command[i] = command[i].format(txt=txt)
 
         for parameter, options in self.settings['Settings'].items():
             if parameter == 'Download location':
                 if options['state']:
-                    add = self.format_in_list(options['Command'],
-                                              options['options'][options['Active option']])
+                    add = self.format_in_list(options['command'],
+                                              options['options'][options['active option']])
                     command += add
                 else:
-                    command += ['-o', self.local_dl_path+'%(title)s.%(ext)s']
+                    command += ['-o', self.local_dl_path + '%(title)s.%(ext)s']
             elif parameter == 'Keep archive':
                 if options['state']:
-                    add = self.format_in_list(options['Command'],
-                                              os.path.join(self.workDir, options['options'][options['Active option']]))
+                    add = self.format_in_list(options['command'],
+                                              os.path.join(self.workDir, options['options'][options['active option']]))
                     command += add
             else:
                 if options['state']:
-                    add = self.format_in_list(options['Command'],
+                    add = self.format_in_list(options['command'],
                                               options['options'][
-                                                  options['Active option']] if options['options'] is not None
+                                                  options['active option']] if options['options'] is not None
                                                                                or options['options'] else '')
                     command += add
 
         if self.settings['Other stuff']['custom']['state']:
-            if self.settings['Other stuff']['custom']['Command'] not in ('Custom command double click to change','Custom'):
-                command += self.settings['Other stuff']['custom']['Command'].split()
+            if self.settings['Other stuff']['custom']['command'] not in (
+                    'Custom command double click to change', 'Custom'):
+                command += self.settings['Other stuff']['custom']['command'].split()
 
         # Sets encoding to utf-8, allowing better character support in output stream.
         command += ['--encoding', 'utf-8']
@@ -1144,7 +1658,7 @@ class GUI(QProcess):
     def cmdoutput(self, info):
         if info.startswith('ERROR'):
             self.Errors += 1
-            info = info.replace('ERROR','<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>')
+            info = info.replace('ERROR', '<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>')
         info = re.sub(r'\s+$', '', info, 0, re.M)
         info = re.sub(' +', ' ', info)
         regexp = re.compile('|'.join(map(re.escape, self.substrs)))
@@ -1301,7 +1815,7 @@ class GUI(QProcess):
                 return None
 
         if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
-            self.sendclose.emit()
+            self.sendClose.emit()
         else:
             result = self.alert_message('Unsaved changes in list!',
                                         'Save?',
@@ -1310,19 +1824,19 @@ class GUI(QProcess):
                                         allow_cancel=True)
             if result == QMessageBox.Yes:
                 self.save_text_to_file()
-                self.sendclose.emit()
+                self.sendClose.emit()
             elif result == QMessageBox.Cancel:
                 pass
             else:
-                self.sendclose.emit()
+                self.sendClose.emit()
 
     def read_license(self):
         if not self.license_shown:
-                self.tab4_abouttext_textedit.clear()
-                with open(self.lincense_path,'r') as f:
-                    for line in f.readlines():
-                        self.tab4_abouttext_textedit.append(line.strip())
-                self.license_shown = True
+            self.tab4_abouttext_textedit.clear()
+            with open(self.license_path, 'r') as f:
+                for line in f.readlines():
+                    self.tab4_abouttext_textedit.append(line.strip())
+            self.license_shown = True
         else:
             self.tab4_abouttext_textedit.setText('In-development (on my free time) version of a Youtube-dl GUI. \n'
                                                  'I\'m just a developer for fun.\nThis is licensed under GPL 3.\n')

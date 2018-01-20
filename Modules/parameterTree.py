@@ -1,10 +1,21 @@
 import sys
 from typing import Union, Optional
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAction, QMenu
+
+
+class TreeWidgetItem(QTreeWidgetItem):
+    def __lt__(self, other):
+        return False
 
 
 class ParameterTree(QTreeWidget):
+    max_size = 400
+    move_request = pyqtSignal(QTreeWidgetItem, bool)
+    addOption = pyqtSignal(QTreeWidgetItem)
+
     def __init__(self, profile: dict):
         """
         Data table:
@@ -20,18 +31,76 @@ class ParameterTree(QTreeWidget):
         """
         super().__init__()
 
+        self.favorite = False
+
         self.setExpandsOnDoubleClick(False)
         # self.setHeaderHidden(True)
         self.setRootIsDecorated(False)
         self.setHeaderHidden(True)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.contextMenu)
+
         # self.header().setSectionResizeMode(0,QHeaderView.ResizeToContents)
         # self.headerItem().setResizeMode(QHeaderView.ResizeToContents)
 
         # self.setItemWidget()
-        self.load_profile(profile)
+        if type(profile) is dict:
+            self.load_profile(profile)
+
+        self.setSortingEnabled(True)
+        self.sortByColumn(0, Qt.AscendingOrder)
 
         self.itemChanged.connect(self.make_exclusive)
         self.itemChanged.connect(self.check_dependency)
+
+    def contextMenu(self):
+        item = self.selectedItems()[0]
+        if len(self.selectedItems()) != 1:
+            print('Unexpected item(s) given.')
+
+        menu = QMenu(self)
+
+        if item.data(0, 33) == 0:
+            take_item = item
+        elif item.data(0, 33) == 1:
+            take_item = item.parent()
+
+        elif item.data(0, 33) == 2:
+            take_item = item
+            # take_item = item
+        else:
+            raise Exception('No item selected or data in pos. 33 is not correct.')
+
+        # Custom Option will likely crash this program. If you try to move it.
+
+        add_option = QAction('Add option')
+        add_option.triggered.connect(lambda: self.addOption.emit(take_item))
+
+        remove_option = QAction('Remove option')
+
+        if item.data(0, 33) == 1:
+            remove_option.triggered.connect(lambda: self.del_option(item))
+            menu.addAction(remove_option)
+
+
+        # Make Edit option action and remove option action.
+
+        if take_item.data(0, 33) != 2:
+            action = QAction('Favorite' if not self.favorite else 'Remove favorite')
+            action.triggered.connect(lambda: self.move_widget(take_item))
+            action.setIconVisibleInMenu(False)
+            menu.addAction(action)
+
+        menu.addAction(add_option)
+
+        menu.exec_(QCursor.pos())
+
+    def del_option(self, item: QTreeWidgetItem):
+        pass
+
+    def move_widget(self, item: QTreeWidgetItem):
+        taken_item = self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+        self.move_request.emit(taken_item, self.favorite)
 
     def load_profile(self, profile: dict):
         self.blockSignals(True)
@@ -40,11 +109,11 @@ class ParameterTree(QTreeWidget):
             parent = self.make_option(name, self, settings['state'], 0, settings['tooltip'], settings['dependency'])
             if settings['options']:
                 for number, choice in enumerate(settings['options']):
-                    if settings['Active option'] == number:
-                        option = self.make_option(choice, parent, True, 1, subindex=number)
+                    if settings['active option'] == number:
+                        option = self.make_option(str(choice), parent, True, 1, subindex=number)
                         option.setFlags(option.flags() ^ Qt.ItemIsUserCheckable)
                     else:
-                        option = self.make_option(choice, parent, False, 1, subindex=number)
+                        option = self.make_option(str(choice), parent, False, 1, subindex=number)
             self.make_exclusive(parent)
 
         self.hock_dependency()
@@ -114,12 +183,16 @@ class ParameterTree(QTreeWidget):
                     level: int = 0,
                     tooltip: Optional[str] = None,
                     dependency: Optional[list] = None,
-                    subindex: Optional[int] = None)\
+                    subindex: Optional[int] = None) \
             -> QTreeWidgetItem:
         """
         Makes a QWidgetItem and returns it.
         """
-        widget_item = QTreeWidgetItem(parent, [name])
+        if level != 1:
+            widget_item = QTreeWidgetItem(parent, [name])
+        else:
+            widget_item = TreeWidgetItem(parent, [name])
+
         if tooltip:
             widget_item.setToolTip(0, tooltip)
         if checkstate:
@@ -140,10 +213,15 @@ class ParameterTree(QTreeWidget):
 
     def update_size(self):
         """Sets widget size. Required to keep consistent."""
-        size = sum([1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
+        child_size = 15 * sum(
+            [1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
+        parent_size = 20 * self.topLevelItemCount()
         # Unhandled lengths when the program exceeds the window size. Might implement a max factor, and allow scrolling.
         # Future cases might implement two ParameterTrees side by side, for better use of space and usability.
-        self.setFixedHeight(20 * self.topLevelItemCount() + 15 * size)
+        if ParameterTree.max_size < (child_size + parent_size):
+            self.setFixedHeight(ParameterTree.max_size)
+        else:
+            self.setFixedHeight((child_size + parent_size))
 
     def expand_options(self, item: QTreeWidgetItem):
         """Handles if the options should show, depends on checkstate."""
@@ -155,10 +233,11 @@ class ParameterTree(QTreeWidget):
     def resizer(self, item: QTreeWidgetItem):
         # print('Child count', item.childCount())
         if item.checkState(0):
-            self.setFixedHeight(self.height() + 15 * item.childCount())
+            if self.height() + 15 * item.childCount() < ParameterTree.max_size:
+                self.setFixedHeight(self.height() + 15 * item.childCount())
             # print('Expanding')
         else:
-            self.setFixedHeight(self.height() - 15 * item.childCount())
+            self.update_size()
             # print('Collapsing')
 
     def make_exclusive(self, item: QTreeWidgetItem):
@@ -202,73 +281,73 @@ if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
 
     SampleDict = {
-    "Other stuff": {
-        "multidl_txt": "C:/User/Mike Hunt/links.txt"
-    },
-    "Settings": {
-        "Add thumbnail": {
-            "Active option": 0,
-            "Command": "--embed-thumbnail",
-            "dependency": "Convert to audio",
-            "options": None,
-            "state": True,
-            "tooltip": "Include thumbnail on audio files."
+        "Other stuff": {
+            "multidl_txt": "C:/User/Mike Hunt/links.txt"
         },
-        "Convert to audio": {
-            "Active option": 0,
-            "Command": "-x --audio-format {} --audio-quality 0",
-            "dependency": None,
-            "options": [
-                "mp3",
-                "mp4"
-            ],
-            "state": True,
-            "tooltip": "Convert to selected audio format."
-        },
-        "Download location": {
-            "Active option": 2,
-            "Command": "-o {}",
-            "dependency": None,
-            "options": [
-                "D:/Music/DL/%(title)s.%(ext)s",
-                "C:/Users/Clint Oris/Downloads/%(title)s.%(ext)s",
-                "D:/Music/%(title)s.%(ext)s"
-            ],
-            "state": True,
-            "tooltip": "Select download location."
-        },
-        "Ignore errors": {
-            "Active option": 0,
-            "Command": "-i",
-            "dependency": None,
-            "options": None,
-            "state": True,
-            "tooltip": "Ignores errors, and jumps to next element instead of stopping."
-        },
-        "Keep archive": {
-            "Active option": 0,
-            "Command": "--download-archive {}",
-            "dependency": None,
-            "options": [
-                "Archive.txt"
-            ],
-            "state": False,
-            "tooltip": "Saves links to a textfile to avoid duplicates later."
-        },
-        "Strict file names": {
-            "Active option": 0,
-            "Command": "--restrict-filenames",
-            "dependency": None,
-            "options": None,
-            "state": False,
-            "tooltip": "Sets strict naming, to prevent unsupported characters in names."
+        "Settings": {
+            "Add thumbnail": {
+                "active option": 0,
+                "command": "--embed-thumbnail",
+                "dependency": "Convert to audio",
+                "options": None,
+                "state": True,
+                "tooltip": "Include thumbnail on audio files."
+            },
+            "Convert to audio": {
+                "active option": 0,
+                "command": "-x --audio-format {} --audio-quality 0",
+                "dependency": None,
+                "options": [
+                    "mp3",
+                    "mp4"
+                ],
+                "state": True,
+                "tooltip": "Convert to selected audio format."
+            },
+            "Download location": {
+                "active option": 2,
+                "command": "-o {}",
+                "dependency": None,
+                "options": [
+                    "D:/Music/DL/%(title)s.%(ext)s",
+                    "C:/Users/Clint Oris/Downloads/%(title)s.%(ext)s",
+                    "D:/Music/%(title)s.%(ext)s"
+                ],
+                "state": True,
+                "tooltip": "Select download location."
+            },
+            "Ignore errors": {
+                "active option": 0,
+                "command": "-i",
+                "dependency": None,
+                "options": None,
+                "state": True,
+                "tooltip": "Ignores errors, and jumps to next element instead of stopping."
+            },
+            "Keep archive": {
+                "active option": 0,
+                "command": "--download-archive {}",
+                "dependency": None,
+                "options": [
+                    "Archive.txt"
+                ],
+                "state": False,
+                "tooltip": "Saves links to a textfile to avoid duplicates later."
+            },
+            "Strict file names": {
+                "active option": 0,
+                "command": "--restrict-filenames",
+                "dependency": None,
+                "options": None,
+                "state": False,
+                "tooltip": "Sets strict naming, to prevent unsupported characters in names."
+            }
         }
-    }
     }
 
     app = QApplication(sys.argv)
     Checkbox = ParameterTree(SampleDict['Settings'])
+    Checkbox.__name__ = 'Favorites'
     Checkbox.show()
 
     app.exec_()
-

@@ -18,9 +18,9 @@ class Tabwidget(QTabWidget):
             return True
         return False
 
-    def focusInEvent(self, *args, **kwargs):
-        self.gotfocus.emit()
-        super(Tabwidget, self).focusInEvent(*args, **kwargs)
+    # def focusInEvent(self, *args, **kwargs):
+    #     #self.gotfocus.emit()
+    #     super(Tabwidget, self).focusInEvent(*args, **kwargs)
 
     def closeEvent(self, event):
         self.onclose.emit()
