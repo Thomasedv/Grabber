@@ -15,6 +15,7 @@ class ParameterTree(QTreeWidget):
     max_size = 400
     move_request = pyqtSignal(QTreeWidgetItem, bool)
     addOption = pyqtSignal(QTreeWidgetItem)
+    itemRemoved = pyqtSignal(QTreeWidgetItem, int)
 
     def __init__(self, profile: dict):
         """
@@ -62,40 +63,58 @@ class ParameterTree(QTreeWidget):
 
         menu = QMenu(self)
 
+        add_option = None
+        remove_option = None
+        move_action = None
+
         if item.data(0, 33) == 0:
             take_item = item
         elif item.data(0, 33) == 1:
             take_item = item.parent()
 
+            remove_option = QAction('Remove option')
+            remove_option.triggered.connect(lambda: self.del_option(take_item, item))
+
         elif item.data(0, 33) == 2:
             take_item = item
-            # take_item = item
         else:
-            raise Exception('No item selected or data in pos. 33 is not correct.')
-
-        # Custom Option will likely crash this program. If you try to move it.
+            raise Exception('No item selected or data in data(0, 33) is not correct.')
 
         add_option = QAction('Add option')
         add_option.triggered.connect(lambda: self.addOption.emit(take_item))
-        menu.addAction(add_option)
-
-        if item.data(0, 33) == 1:
-            remove_option = QAction('Remove option')
-            remove_option.triggered.connect(lambda: self.del_option(item))
-            menu.addAction(remove_option)
-
-        # Make Edit option action and remove option action.
 
         if take_item.data(0, 33) != 2:
-            action = QAction('Favorite' if not self.favorite else 'Remove favorite')
-            action.triggered.connect(lambda: self.move_widget(take_item))
-            action.setIconVisibleInMenu(False)
-            menu.addAction(action)
+            move_action = QAction('Favorite' if not self.favorite else 'Remove favorite')
+            move_action.triggered.connect(lambda: self.move_widget(take_item))
+            move_action.setIconVisibleInMenu(False)
+
+        menu.addAction(add_option)
+
+        if remove_option:
+            menu.addAction(remove_option)
+
+        menu.addSeparator()
+        menu.addAction(move_action)
 
         menu.exec_(QCursor.pos())
 
-    def del_option(self, item: QTreeWidgetItem):
-        pass
+    def del_option(self, parent: QTreeWidgetItem, child: QTreeWidgetItem):
+        self.itemRemoved.emit(parent, parent.indexOfChild(child))
+        self.blockSignals(True)
+        parent.removeChild(child)
+
+        selected_option = False
+        for i in range(parent.childCount()):
+            parent.child(i).setData(0, 35, i)
+            if parent.child(i).checkState(0) == Qt.Checked:
+                selected_option = True
+
+        if parent.childCount() > 0 and not selected_option:
+            parent.child(0).setCheckState(0, Qt.Checked)
+
+        self.blockSignals(False)
+        self.update_size()
+
 
     def move_widget(self, item: QTreeWidgetItem):
         taken_item = self.takeTopLevelItem(self.indexOfTopLevelItem(item))

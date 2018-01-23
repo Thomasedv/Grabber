@@ -21,7 +21,11 @@ class GUI(QProcess):
     EXIT_CODE_REBOOT = -123456789
 
     def __init__(self):
+        """
+        GUI that wraps a youtube-dl.exe to download videos and more.
+        """
         super(GUI, self).__init__()
+
         # starts checks
         self.initial_checks()
 
@@ -30,10 +34,12 @@ class GUI(QProcess):
 
         # Set the channel to merged.
         self.setProcessChannelMode(QProcess.MergedChannels)
-        # connects output to the GUI part.
+
+        # connects program output to the GUI part.
         self.readyReadStandardOutput.connect(self.read_stdoutput)
 
     def initial_checks(self):
+        """Loads settings and finds necessary files. Checks the setting file for errors."""
         self.settings = self.write_default_settings(reset=False)
 
         # Find resources.
@@ -72,6 +78,9 @@ class GUI(QProcess):
         self.windowIcon.addFile(self.window_icon)
 
     def build_gui(self):
+        """Generates the GUI elements, and hooks everything up."""
+        # TODO: Separate the GUI elements into their own class/file.
+        # TODO: Seperate the QProcess to own class/file.
         # Denotes if the process(youtube-dl) is running.
         self.RUNNING = False
         # Denotes if the textfile is saved.
@@ -86,6 +95,7 @@ class GUI(QProcess):
             '[ffmpeg] ': '',
             '[youtube] ': ''
         }
+
         self.substrs = sorted(self.replace_dict, key=len, reverse=True)
         ## Stylesheet of widget!
         self.style = f"""
@@ -262,7 +272,6 @@ class GUI(QProcess):
         favorites = {i: self.settings['Settings'][i] for i in self.settings['Favorites']}
 
         ### Main widget. This will be the ones that holds everything.
-
         ## Create top level tab widget system for the UI.
         self.main_tab = Tabwidget()
         self.main_tab.onclose.connect(self.confirm)
@@ -458,8 +467,13 @@ class GUI(QProcess):
 
         self.tab2_options.itemChanged.connect(self.parameter_updater)
         self.tab2_options.move_request.connect(self.move_item)
+        self.tab2_options.itemRemoved.connect(self.item_removed)
+        self.tab2_options.addOption.connect(self.check_for_options)
+
         self.tab2_favorites.itemChanged.connect(self.parameter_updater)
         self.tab2_favorites.move_request.connect(self.move_item)
+        self.tab2_favorites.itemRemoved.connect(self.item_removed)
+        self.tab2_favorites.addOption.connect(self.check_for_options)
 
         self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
 
@@ -634,9 +648,6 @@ class GUI(QProcess):
                                                          'or make sure it\'s in the same folder as this program. '
                                                          'Then close and reopen this program.', 'darkorange', 'bold'))
 
-        self.tab2_favorites.addOption.connect(self.check_for_options)
-        self.tab2_options.addOption.connect(self.check_for_options)
-
         # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
         self.download_name_handler()
         # Ensures widets are in correct state at startup and when tab1_lineedit is changed.
@@ -648,24 +659,31 @@ class GUI(QProcess):
 
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
 
-    def resize_job(self, *args):
-        print(args)
+    def item_removed(self, item: QTreeWidgetItem, index):
+        """Parent who had child removed. Updates settings and numbering of data 35"""
+        del self.settings['Settings'][item.data(0, 0)]['options'][index]
+        self.write_setting(self.settings)
 
     def design_option_dialog(self):
-        try:
-            dialog = Dialog(self.main_tab)
-            if dialog.exec_() == QDialog.Accepted:
-                return dialog.option.text()
-        except Exception as e:
-            print(e)
-            traceback.print_exc()
+        """
+        Creates dialog for user input
 
+        TODO: Add the parameter info to the dialog, for better context of what's the expected input.
+
+        """
+        dialog = Dialog(self.main_tab)
+        if dialog.exec_() == QDialog.Accepted:
+            return dialog.option.text()
         return None
 
     def delete_option(self, item):
+        """ TODO: Delete an option from the settings, once called. """
         pass
 
     def check_for_options(self, item: QTreeWidgetItem):
+        """
+
+        """
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
         elif '{}' in self.settings['Settings'][item.data(0, 32)]['command']:
@@ -736,8 +754,9 @@ class GUI(QProcess):
 
     def window_focus_event(self):
         # self.tab2_options.max_size =
-        self.tab1_lineedit.setFocus()
-        self.tab1_lineedit.selectAll()
+        if self.tab1_lineedit.isEnabled():
+            self.tab1_lineedit.setFocus()
+            self.tab1_lineedit.selectAll()
 
     def copy_to_cliboard(self):
         mime = QMimeData()
