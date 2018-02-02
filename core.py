@@ -210,15 +210,15 @@ class GUI(QProcess):
                         QPushButton {{
                             background-color: #303030;
                             color: white;
-                            border: 1px grey;
+                            border: 1px solid transparent;
                             border-radius: 5px;
-                            border-style: solid;
                             width: 60px;
                             height: 20px;
                         }}
 
                         QPushButton:disabled {{
-                            background-color: #484848;
+                            border: 1px solid #303030;
+                            background-color: transparent;
                             color: grey;
                         }}
                         QPushButton:pressed {{
@@ -932,7 +932,7 @@ class GUI(QProcess):
             }
             settings['Settings']['Convert to audio'] = {
                 "active option": 0,
-                "command": "-x --audio-format {} --audio-quality 0",
+                "command": "-x --audio-format {}",
                 "dependency": None,
                 "options": ['mp3'],
                 "state": False,
