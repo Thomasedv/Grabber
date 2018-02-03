@@ -662,6 +662,7 @@ class GUI(QProcess):
     def item_removed(self, item: QTreeWidgetItem, index):
         """Parent who had child removed. Updates settings and numbering of data 35"""
         del self.settings['Settings'][item.data(0, 0)]['options'][index]
+        self.settings['Settings'][item.data(0, 0)]['active option'] -= 1
         self.write_setting(self.settings)
 
     def design_option_dialog(self):
@@ -1379,8 +1380,9 @@ class GUI(QProcess):
             # Checks if the active option is valid, if not reset to the first item.
             for setting in self.settings['Settings'].keys():
                 if self.settings['Settings'][setting]['options'] is not None:
-                    if self.settings['Settings'][setting]['active option'] >= len(
-                            self.settings['Settings'][setting]['options']):
+                    # Check if active option is a valid number.
+                    if not (0 <= self.settings['Settings'][setting]['active option'] < len(
+                            self.settings['Settings'][setting]['options'])):
                         self.settings['Settings'][setting]['active option'] = 0
         # Catch if the setting is missing for needed options.
         except KeyError as error:
