@@ -294,68 +294,6 @@ class GUI(QWidget):
         self.main_tab.onclose.connect(self.confirm)
         self.sendClose.connect(self.main_tab.closeE)
 
-        # When state changed, then the program state changed function is called.
-        # Checks if the process is running and enables/disables buttons.
-        # self.stateChanged.connect(self.program_state_changed)
-
-        ### TAB 1 ###
-
-        ## Widget creation tab 1. Core tab.
-
-        # # Starts the program (Youtube-dl)
-        # self.tab1_start_btn = QPushButton('Download')
-        # # stops the program
-        # self.tab1_stop_btn = QPushButton('Abort')
-        # # Closes window (also stops the program)
-        # self.tab1_close_btn = QPushButton('Close')
-        #
-        # # Label and lineedit creation. Line edit for acception youtube links as well as paramters.
-        # self.tab1_label = QLabel("Url: ")
-        # self.tab1_lineedit = LineEdit()
-        #
-        # # TextEdit creation, for showing status messages, and the youtube-dl output.
-        # self.tab1_textbrowser = QTextBrowser()
-        #
-        # self.tab1_textbrowser.setAcceptRichText(True)
-        # self.tab1_textbrowser.setOpenExternalLinks(True)
-        # self.tab1_textbrowser.setContextMenuPolicy(Qt.NoContextMenu)
-        #
-        # # Adds welcome message on startup.
-        # self.tab1_textbrowser.append('Welcome!\n\nAdd video url, or load from text file.')
-        # # self.edit.append('<a href="URL">Showtext</a>') Learning purposes.
-        #
-        # # Start making checkbutton for selecting downloading from text file mode.
-        # self.tab1_checkbox = QCheckBox('Download from text file.')
-        #
-        # ## Layout tab 1.
-        #
-        # # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
-        # self.tab1_QH = QHBoxLayout()
-        #
-        # self.tab1_QH.addStretch(1)
-        # self.tab1_QH.addWidget(self.tab1_start_btn)
-        # self.tab1_QH.addWidget(self.tab1_stop_btn)
-        # self.tab1_QH.addWidget(self.tab1_close_btn)
-        #
-        # # Horizontal layout 2, contains label and LineEdit. LineEdit stretches horizontally by default.
-        # self.tab1_QH2 = QHBoxLayout()
-        #
-        # self.tab1_QH2.addWidget(self.tab1_label)
-        # self.tab1_QH2.addWidget(self.tab1_lineedit)
-        #
-        # # Creates vertical box for tab1.
-        # self.tab1_QV = QVBoxLayout()
-        #
-        # # Adds horizontal layouts, textbrowser and checkbox to create tab1.
-        # self.tab1_QV.addLayout(self.tab1_QH2)
-        # self.tab1_QV.addWidget(self.tab1_checkbox)
-        # self.tab1_QV.addWidget(self.tab1_textbrowser, 1)
-        # self.tab1_QV.addLayout(self.tab1_QH)
-        #
-        # # Tab 1 as a Qwidget.
-        # self.tab1 = QWidget()
-        # self.tab1.setLayout(self.tab1.QV)
-
         ## Connecting stuff for tab 1.
 
         # Start buttons starts download
@@ -368,9 +306,9 @@ class GUI(QWidget):
         # Close button closes the window/process.
         self.tab1.close_btn.clicked.connect(self.main_tab.close)
         # When the check button is checked or unchecked, calls function checked.
-        self.tab1.checkbox.stateChanged.connect(self.is_batch_dl_checked)
+        self.tab1.checkbox.stateChanged.connect(self.allow_start)
         # Connects actions to text changes and adds action to when you press Enter.
-        self.tab1.lineedit.textChanged.connect(self.enable_start)
+        self.tab1.lineedit.textChanged.connect(self.allow_start)
         # Starts downloading
         self.tab1.lineedit.returnPressed.connect(self.tab1.start_btn.click)
 
@@ -658,7 +596,7 @@ class GUI(QWidget):
         # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
         self.download_name_handler()
         # Ensures widets are in correct state at startup and when tab1.lineedit is changed.
-        self.enable_start()
+        self.allow_start()
         # Shows the main window.
         self.main_tab.show()
         # Connect after show!!
@@ -669,7 +607,8 @@ class GUI(QWidget):
     def item_removed(self, item: QTreeWidgetItem, index):
         """Parent who had child removed. Updates settings and numbering of data 35"""
         del self.settings['Settings'][item.data(0, 0)]['options'][index]
-        self.settings['Settings'][item.data(0, 0)]['active option'] -= 1
+        option = self.settings['Settings'][item.data(0, 0)]['active option']
+        option -= 1 if option > 0 else 0
         self.write_setting(self.settings)
 
     def design_option_dialog(self):
@@ -796,10 +735,7 @@ class GUI(QWidget):
             if item.data(0, 32) == 'Download location':
                 item.treeWidget().blockSignals(True)
                 for number in range(item.childCount()):
-                    item.child(number).setData(0, 0,
-                                               path_shortener(item.child(number).data(0, 0)))
-                    item.child(number).setToolTip(0, item.child(number).data(0, 32).replace('%(title)s.%(ext)s', ''))
-
+                    item.child(number).setData(0, 0, path_shortener(item.child(number).data(0, 0)))
                 if item.checkState(0) == Qt.Checked:
                     for number in range(item.childCount()):
                         if item.child(number).checkState(0) == Qt.Checked:
@@ -826,18 +762,18 @@ class GUI(QWidget):
                 return item
         raise SettingsError('No download item found in settings.')
 
-    def download_option_handler(self, full_path):
+    def download_option_handler(self, full_path: str):
         """ Handles the download options. """
         # Adds new dl location to the tree and settings. Removes oldest one, if there is more than 3.
         # Remove try/except later.
         try:
             item = self.tab2_download_option
-
+            if not full_path.endswith('/'):
+                full_path += '/'
             short_path = path_shortener(full_path)
             names = [item.child(i).data(0, 0) for i in range(item.childCount())]
             # TODO: Remove the added thing to full_path below
-            if short_path in names \
-                    and full_path + '/%(title)s.%(ext)s' in self.settings['Settings']['Download location']['options']:
+            if short_path in names and full_path in self.settings['Settings']['Download location']['options']:
                 self.alert_message('Warning', 'Option already exists!', '', question=False)
                 return
             print('-' * 50)
@@ -852,7 +788,7 @@ class GUI(QWidget):
                                             dependency=None,
                                             subindex=None)
             sub.setData(0, 0, short_path)
-            print('sorting enabled?', item.treeWidget().isSortingEnabled())
+            # print('sorting enabled?', item.treeWidget().isSortingEnabled())
             moving_sub = item.takeChild(item.indexOfChild(sub))
 
             item.insertChild(0, moving_sub)
@@ -862,17 +798,9 @@ class GUI(QWidget):
                 print(item.child(number).data(0, 0))
 
             if self.settings['Settings']['Download location']['options'] is None:
-                self.settings['Settings']['Download location']['options'] = [full_path + '/%(title)s.%(ext)s']
+                self.settings['Settings']['Download location']['options'] = [full_path]
             else:
-                if item.childCount() >= 4:
-                    self.settings['Settings']['Download location']['options']: list
-                    self.settings['Settings']['Download location']['options'].insert(0,
-                                                                                     full_path + '/%(title)s.%(ext)s')
-
-                    del self.settings['Settings']['Download location']['options'][3:]
-                else:
-                    self.settings['Settings']['Download location']['options'].insert(0,
-                                                                                     full_path + '/%(title)s.%(ext)s')
+                self.settings['Settings']['Download location']['options'].insert(0, full_path)
 
             if item.childCount() >= 3:
                 item.removeChild(item.child(3))
@@ -1541,7 +1469,6 @@ class GUI(QWidget):
         self.start(self.youtube_dl_path, ['-U'])
 
     def queue_handler(self, process_finished=False):
-        print('queue called')
         if not self.RUNNING or process_finished:
             if self.queue:
                 download = self.queue.popleft()
@@ -1559,7 +1486,6 @@ class GUI(QWidget):
         self.tab1.queue_label.setText(f'Items in queue: {len(self.queue):3}')
 
     def set_running(self, running=False):
-        print('set running called')
         self.RUNNING = running
         self.tab1.stop_btn.setEnabled(self.RUNNING)
         # When something is downloading add program wide changes here.
@@ -1569,7 +1495,7 @@ class GUI(QWidget):
         if new_state == QProcess.NotRunning:
             self.queue_handler(process_finished=True)
         elif new_state == QProcess.Running:
-            self.tab1.textbrowser.append('\nStarting a download:\n')
+            self.tab1.textbrowser.append(color_text('Starting a download:\n', 'lawngreen', 'normal', sections=(0, 8)))
 
         return
 
@@ -1609,11 +1535,6 @@ class GUI(QWidget):
             self.alert_message('Error!', 'Could not find file!', '')
             # Check if the checkbox is toggled, and disables the line edit if it is.
             #  Also disables start button if lineEdit is empty and checkbox is not checked
-
-    def is_batch_dl_checked(self):
-        self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
-        self.tab1.start_btn.setDisabled(self.tab1.checkbox.checkState() == Qt.Checked
-                                        or self.tab1.lineedit.text() == '')
 
     def queue_dl(self):
         if not self.RUNNING:
@@ -1673,8 +1594,6 @@ class GUI(QWidget):
         download_item = Download(self.program_workdir, self.youtube_dl_path, command, self)
         download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
         download_item.stateChanged.connect(self.program_state_changed)
-
-        # TODO: Increase queued downloads counter here.
 
         self.tab1.start_btn.setDisabled(True)
         self.queue.append(download_item)
@@ -1745,7 +1664,7 @@ class GUI(QWidget):
             if "%" in text and 'ETA' in text:
                 # Last line of text
                 self.tab1.textbrowser.append(color_text(text.split("[download]")[-1][1:],
-                                                        color='lightgreen',
+                                                        color='lawngreen',
                                                         weight='bold',
                                                         sections=(0, 5)))
             elif '[download]' in text:
@@ -1765,10 +1684,10 @@ class GUI(QWidget):
     # Startup function, sets the startbutton to disabled, if lineEdit is empty,
     # And disables the lineEdit if the textbox is checked.
     # Stop button is set to disabled, since no process is running.
-    def enable_start(self):
+    def allow_start(self):
+        self.tab1.stop_btn.setDisabled(self.RUNNING)
         self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
-        self.tab1.stop_btn.setDisabled(not self.RUNNING)
-        self.is_batch_dl_checked()
+        self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '')
 
     def load_text_from_file(self):
         if self.tab3_textedit.toPlainText() or (not self.tab3_saveButton.isEnabled()) or self.SAVED:
