@@ -7,7 +7,7 @@ from Modules.lineEdit import LineEdit
 class MainTab(QWidget):
 
     def __init__(self, parent=None):
-        super().__init__()
+        super().__init__(parent=parent)
 
         # Starts the program (Youtube-dl)
         self.start_btn = QPushButton('Download')
@@ -69,3 +69,14 @@ class MainTab(QWidget):
         self.QV.addLayout(self.QH)
 
         self.setLayout(self.QV)
+
+
+if __name__ == '__main__':
+    # Only visual aspects work here!!
+    from PyQt5.QtWidgets import QApplication
+    import sys
+
+    app = QApplication(sys.argv)
+    gui = MainTab()
+    gui.show()
+    app.exec_()

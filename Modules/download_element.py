@@ -22,14 +22,8 @@ class Download(QProcess):
         self.setProcessChannelMode(QProcess.MergedChannels)
 
     def start_dl(self):
-        print('DL started!')
         self.start(self.program_path, self.commands)
 
 
 if __name__ == '__main__':
-    from collections import deque
-
-    queue = deque()
-    print(bool(queue))
-    queue.append('1')
-    print(bool(queue))
+    pass
