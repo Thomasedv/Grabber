@@ -7,16 +7,19 @@ import traceback
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
-    QCheckBox, QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
+    QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
     QFrame, QDialog
 
 from Modules.dialog import Dialog
-from Modules.lineEdit import LineEdit
+from Modules.download_tab import MainTab
 from Modules.parameterTree import ParameterTree
 from Modules.tabWidget import Tabwidget
 
 
 class GUI(QProcess):
+    """
+    Runnable class that makes a wrapper for youtube-dl.
+    """
     sendClose = pyqtSignal()
     EXIT_CODE_REBOOT = -123456789
 
@@ -29,7 +32,7 @@ class GUI(QProcess):
         # starts checks
         self.initial_checks()
 
-        # Builds GUI and everything.
+        # Builds GUI and everything related to that.
         self.build_gui()
 
         # Set the channel to merged.
@@ -81,29 +84,33 @@ class GUI(QProcess):
         """Generates the GUI elements, and hooks everything up."""
         # TODO: Separate the GUI elements into their own class/file.
         # TODO: Seperate the QProcess to own class/file.
+
         # Denotes if the process(youtube-dl) is running.
         self.RUNNING = False
         # Denotes if the textfile is saved.
         self.SAVED = True
         # Error count is provided after process quit.
         self.Errors = 0
-        # Indicates if license is shown.
+        # Indicates if license is shown. (For license tab)
         self.license_shown = False
 
         # Used later for checking the text feed from youtuibne-dl.
+        # TODO: See what can be done with this part of the code. Why have this here?
         self.replace_dict = {
             '[ffmpeg] ': '',
             '[youtube] ': ''
         }
-
         self.substrs = sorted(self.replace_dict, key=len, reverse=True)
+
         ## Stylesheet of widget!
         self.style = f"""
                         QWidget {{
                             background-color: #484848;
                             color: white;
                         }}
-                        
+                        QMenu::separator {{
+                            height: 2px;
+                        }}
                         QFrame#line {{
                             color: #303030;
                         }}
@@ -263,12 +270,14 @@ class GUI(QProcess):
                         }}
 
                         """
+
+        ## Set font for tab 4.
         self.font = QFont()
         self.font.setFamily('Consolas')
         self.font.setPixelSize(13)
 
+        # Sorts the parameters, so that favorite ones are added to the favorite widget.
         options = {k: v for k, v in self.settings['Settings'].items() if k not in self.settings['Favorites']}
-
         favorites = {i: self.settings['Settings'][i] for i in self.settings['Favorites']}
 
         ### Main widget. This will be the ones that holds everything.
@@ -277,7 +286,7 @@ class GUI(QProcess):
         self.main_tab.onclose.connect(self.confirm)
         self.sendClose.connect(self.main_tab.closeE)
 
-        # When statechanged, then the program state changed function is called.
+        # When state changed, then the program state changed function is called.
         # Checks if the process is running and enables/disables buttons.
         self.stateChanged.connect(self.program_state_changed)
 
@@ -285,74 +294,77 @@ class GUI(QProcess):
 
         ## Widget creation tab 1. Core tab.
 
-        # Starts the program (Youtube-dl)
-        self.tab1_start_btn = QPushButton('Download')
-        # stops the program
-        self.tab1_stop_btn = QPushButton('Abort')
-        # Closes window (also stops the program)
-        self.tab1_close_btn = QPushButton('Close')
-
-        # Label and lineedit creation. Line edit for acception youtube links as well as paramters.
-        self.tab1_label = QLabel("Url: ")
-        self.tab1_lineedit = LineEdit()
-
-        # TextEdit creation, for showing status messages, and the youtube-dl output.
-        self.tab1_textbrowser = QTextBrowser()
-
-        self.tab1_textbrowser.setAcceptRichText(True)
-        self.tab1_textbrowser.setOpenExternalLinks(True)
-        self.tab1_textbrowser.setContextMenuPolicy(Qt.NoContextMenu)
-
-        # Adds welcome message on startup.
-        self.tab1_textbrowser.append('Welcome!\n\nAdd video url, or load from text file.')
-        # self.edit.append('<a href="URL">Showtext</a>') Learning purposes.
-
-        # Start making checkbutton for selecting downloading from text file mode.
-        self.tab1_checkbox = QCheckBox('Download from text file.')
-
-        ## Layout tab 1.
-
-        # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
-        self.tab1_QH = QHBoxLayout()
-
-        self.tab1_QH.addStretch(1)
-        self.tab1_QH.addWidget(self.tab1_start_btn)
-        self.tab1_QH.addWidget(self.tab1_stop_btn)
-        self.tab1_QH.addWidget(self.tab1_close_btn)
-
-        # Horizontal layout 2, contains label and LineEdit. LineEdit stretches horizontally by default.
-        self.tab1_QH2 = QHBoxLayout()
-
-        self.tab1_QH2.addWidget(self.tab1_label)
-        self.tab1_QH2.addWidget(self.tab1_lineedit)
-
-        # Creates vertical box for tab1.
-        self.tab1_QV = QVBoxLayout()
-
-        # Adds horizontal layouts, textbrowser and checkbox to create tab1.
-        self.tab1_QV.addLayout(self.tab1_QH2)
-        self.tab1_QV.addWidget(self.tab1_checkbox)
-        self.tab1_QV.addWidget(self.tab1_textbrowser, 1)
-        self.tab1_QV.addLayout(self.tab1_QH)
-
-        # Tab 1 as a Qwidget.
-        self.tab1 = QWidget()
-        self.tab1.setLayout(self.tab1_QV)
+        # # Starts the program (Youtube-dl)
+        # self.tab1_start_btn = QPushButton('Download')
+        # # stops the program
+        # self.tab1_stop_btn = QPushButton('Abort')
+        # # Closes window (also stops the program)
+        # self.tab1_close_btn = QPushButton('Close')
+        #
+        # # Label and lineedit creation. Line edit for acception youtube links as well as paramters.
+        # self.tab1_label = QLabel("Url: ")
+        # self.tab1_lineedit = LineEdit()
+        #
+        # # TextEdit creation, for showing status messages, and the youtube-dl output.
+        # self.tab1_textbrowser = QTextBrowser()
+        #
+        # self.tab1_textbrowser.setAcceptRichText(True)
+        # self.tab1_textbrowser.setOpenExternalLinks(True)
+        # self.tab1_textbrowser.setContextMenuPolicy(Qt.NoContextMenu)
+        #
+        # # Adds welcome message on startup.
+        # self.tab1_textbrowser.append('Welcome!\n\nAdd video url, or load from text file.')
+        # # self.edit.append('<a href="URL">Showtext</a>') Learning purposes.
+        #
+        # # Start making checkbutton for selecting downloading from text file mode.
+        # self.tab1_checkbox = QCheckBox('Download from text file.')
+        #
+        # ## Layout tab 1.
+        #
+        # # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
+        # self.tab1_QH = QHBoxLayout()
+        #
+        # self.tab1_QH.addStretch(1)
+        # self.tab1_QH.addWidget(self.tab1_start_btn)
+        # self.tab1_QH.addWidget(self.tab1_stop_btn)
+        # self.tab1_QH.addWidget(self.tab1_close_btn)
+        #
+        # # Horizontal layout 2, contains label and LineEdit. LineEdit stretches horizontally by default.
+        # self.tab1_QH2 = QHBoxLayout()
+        #
+        # self.tab1_QH2.addWidget(self.tab1_label)
+        # self.tab1_QH2.addWidget(self.tab1_lineedit)
+        #
+        # # Creates vertical box for tab1.
+        # self.tab1_QV = QVBoxLayout()
+        #
+        # # Adds horizontal layouts, textbrowser and checkbox to create tab1.
+        # self.tab1_QV.addLayout(self.tab1_QH2)
+        # self.tab1_QV.addWidget(self.tab1_checkbox)
+        # self.tab1_QV.addWidget(self.tab1_textbrowser, 1)
+        # self.tab1_QV.addLayout(self.tab1_QH)
+        #
+        # # Tab 1 as a Qwidget.
+        # self.tab1 = QWidget()
+        # self.tab1.setLayout(self.tab1.QV)
 
         ## Connecting stuff for tab 1.
 
         # Start buttons starts download
-        self.tab1_start_btn.clicked.connect(self.start_DL)
+
+        self.tab1 = MainTab(self)
+
+        self.tab1.start_btn.clicked.connect(self.start_DL)
         # Stop button kills the process, aka youtube-dl.
-        self.tab1_stop_btn.clicked.connect(self.kill)
+        self.tab1.stop_btn.clicked.connect(self.kill)
         # Close button closes the window/process.
-        self.tab1_close_btn.clicked.connect(self.main_tab.close)
+        self.tab1.close_btn.clicked.connect(self.main_tab.close)
         # When the check button is checked or unchecked, calls function checked.
-        self.tab1_checkbox.stateChanged.connect(self.is_batch_dl_checked)
+        self.tab1.checkbox.stateChanged.connect(self.is_batch_dl_checked)
         # Connects actions to text changes and adds action to when you press Enter.
-        self.tab1_lineedit.textChanged.connect(self.enable_start)
+        self.tab1.lineedit.textChanged.connect(self.enable_start)
         # Starts downloading
-        self.tab1_lineedit.returnPressed.connect(self.tab1_start_btn.click)
+        self.tab1.lineedit.returnPressed.connect(self.tab1.start_btn.click)
 
         ### Tab 2
         #  Building widget tab 2.
@@ -468,12 +480,12 @@ class GUI(QProcess):
         self.tab2_options.itemChanged.connect(self.parameter_updater)
         self.tab2_options.move_request.connect(self.move_item)
         self.tab2_options.itemRemoved.connect(self.item_removed)
-        self.tab2_options.addOption.connect(self.check_for_options)
+        self.tab2_options.addOption.connect(self.add_option)
 
         self.tab2_favorites.itemChanged.connect(self.parameter_updater)
         self.tab2_favorites.move_request.connect(self.move_item)
         self.tab2_favorites.itemRemoved.connect(self.item_removed)
-        self.tab2_favorites.addOption.connect(self.check_for_options)
+        self.tab2_favorites.addOption.connect(self.add_option)
 
         self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
 
@@ -635,7 +647,7 @@ class GUI(QProcess):
         if self.settings['Other stuff']['select_on_focus']:
             self.main_tab.gotfocus.connect(self.window_focus_event)
         else:
-            self.tab1_lineedit.setFocus()
+            self.tab1.lineedit.setFocus()
 
         # Other functionality.
         self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3_textedit)
@@ -644,13 +656,13 @@ class GUI(QProcess):
         # Check for youtube
         if self.youtube_dl_path is None:
             self.tab4_update_btn.setDisabled(True)
-            self.tab1_textbrowser.append(self.color_text('\nNo youtube-dl.exe found! Add to path, '
+            self.tab1.textbrowser.append(self.color_text('\nNo youtube-dl.exe found! Add to path, '
                                                          'or make sure it\'s in the same folder as this program. '
                                                          'Then close and reopen this program.', 'darkorange', 'bold'))
 
         # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
         self.download_name_handler()
-        # Ensures widets are in correct state at startup and when tab1_lineedit is changed.
+        # Ensures widets are in correct state at startup and when tab1.lineedit is changed.
         self.enable_start()
         # Shows the main window.
         self.main_tab.show()
@@ -678,12 +690,12 @@ class GUI(QProcess):
         return None
 
     def delete_option(self, item):
-        """ TODO: Delete an option from the settings, once called. """
+        """ Redundant function """
         pass
 
-    def check_for_options(self, item: QTreeWidgetItem):
+    def add_option(self, item: QTreeWidgetItem):
         """
-
+        Check if parameter has a possible option parameter, and lets the user add on if one exist.
         """
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
@@ -725,6 +737,7 @@ class GUI(QProcess):
             print('Doesn\'t have an option')
 
     def move_item(self, item: QTreeWidgetItem, favorite: bool):
+        """ Move an time to or from the favorites tree. """
         # print(favorite)
         self.blockSignals(True)
         if favorite:
@@ -746,7 +759,7 @@ class GUI(QProcess):
         self.blockSignals(False)
 
     def resize_contents(self):
-
+        """ Resized parameterTree widgets in tab2 to the window."""
         size = self.main_tab.height() - (self.frame.height() + self.tab2_download_lineedit.height()
                                          + self.tab2_favlabel.height() + self.main_tab.tabBar().height() + 40)
         ParameterTree.max_size = size
@@ -754,19 +767,22 @@ class GUI(QProcess):
         self.tab2_favorites.setFixedHeight(size)
 
     def window_focus_event(self):
+        """ Selects text in tab1 line edit on window focus. """
         # self.tab2_options.max_size =
-        if self.tab1_lineedit.isEnabled():
-            self.tab1_lineedit.setFocus()
-            self.tab1_lineedit.selectAll()
+        if self.tab1.lineedit.isEnabled():
+            self.tab1.lineedit.setFocus()
+            self.tab1.lineedit.selectAll()
 
     def copy_to_cliboard(self):
+        """ Adds text to clipboard. """
         mime = QMimeData()
         mime.setText(self.tab2_download_lineedit.text())
         board = QGuiApplication.clipboard()
         board.setMimeData(mime, mode=QClipboard.Clipboard)
 
     @staticmethod
-    def path_shortener(full_path):
+    def path_shortener(full_path: str):
+        """ Formats a path to a shorter version. """
         full_path = full_path.replace('%(title)s.%(ext)s', '')
         if full_path[-1] != '/':
             full_path = ''.join([full_path, '/'])
@@ -792,10 +808,12 @@ class GUI(QProcess):
         return short_path
 
     def open_folder(self):
+        """ Opens a folder at specified location. """
         # noinspection PyCallByClass
         QProcess.startDetached('explorer {}'.format(self.tab2_download_lineedit.toolTip().replace("/", "\\")))
 
     def custom_options(self):
+        """Creates a custom option for the parameterTree that is favorite. """
         self.tab2_favorites.blockSignals(True)
 
         parent = ParameterTree.make_option(self.settings['Other stuff']['custom']['command'],
@@ -808,6 +826,8 @@ class GUI(QProcess):
         self.tab2_favorites.blockSignals(False)
 
     def download_name_handler(self):
+        """ Formats download names and removes the naming string for ytdl. """
+        # TODO: Reforamt code to not save the naming sting to the settings, rather append it on download start.
         for item in (*self.tab2_options.topLevelItems(), *self.tab2_favorites.topLevelItems()):
             if item.data(0, 32) == 'Download location':
                 item.treeWidget().blockSignals(True)
@@ -832,6 +852,8 @@ class GUI(QProcess):
                 break
 
     def find_download_widget(self):
+        """ Finds the download widget. """
+        # TODO: Refactor to check the settings file/object, not the parameterTrees.
         for item in self.tab2_favorites.topLevelItems():
             if item.data(0, 32) == 'Download location':
                 return item
@@ -841,6 +863,7 @@ class GUI(QProcess):
         raise SettingsError('No download item found in settings.')
 
     def download_option_handler(self, full_path):
+        """ Handles the download options. """
         # Adds new dl location to the tree and settings. Removes oldest one, if there is more than 3.
         # Remove try/except later.
         try:
@@ -917,6 +940,7 @@ class GUI(QProcess):
 
     @staticmethod
     def write_default_settings(reset=False):
+        """ Reads settings, or writes them in absent, or if instructed to. """
         if reset:
             settings = dict()
             settings['Profiles'] = {}
@@ -947,6 +971,16 @@ class GUI(QProcess):
                 "options": None,
                 "state": False,
                 "tooltip": "Include thumbnail on audio files."
+            }
+            settings['Settings']['Audio quality'] = {
+                "active option": 0,
+                "command": "--audio-quality {}",
+                "dependency": 'Convert to audio',
+                "options": ['0', '5', '9'],
+                "state": True,
+                "tooltip": "Specify ffmpeg/avconv audio quality.\ninsert"
+                           "a value between\n0 (better) and 9 (worse)"
+                           "for VBR\nor a specific bitrate like 128K"
             }
             settings['Settings']['Ignore errors'] = {
                 "active option": 0,
@@ -1301,9 +1335,10 @@ class GUI(QProcess):
                 return GUI.write_default_settings(reset=True)
 
     def check_settings_integrity(self):
-        # Base info.
+        """ Checks the setttings for errors or missing data. """
 
         base_sections = ['Profiles', 'Favorites', 'Settings', 'Other stuff']
+        # TODO: Check if fully abandonded list. Remove if so.
         base_settings = ['Convert to audio',
                          'Add thumbnail',
                          'Ignore errors',
@@ -1349,7 +1384,7 @@ class GUI(QProcess):
                     if '{}' in option[key]:
                         if not option['options']:
                             # print(f'{setting} currently lacks any valid options!')
-                            if 'state' in option.keys():
+                            if 'state' in option.keys() and setting != 'Download location':
                                 self.settings['Settings'][setting]['state'] = False
                                 # Add to a list over options to add setting to.
                                 self.need_parameters.append(setting)
@@ -1527,22 +1562,22 @@ class GUI(QProcess):
                  self.window_icon]
 
         for i in debug:
-            self.tab1_textbrowser.append(str(i))
+            self.tab1.textbrowser.append(str(i))
 
-        self.tab1_textbrowser.append(self.color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
+        self.tab1.textbrowser.append(self.color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
 
         for i in self.icon_list:
             if i is not None:
                 try:
                     if os.path.isfile(str(i)):
-                        self.tab1_textbrowser.append(''.join(['Found:', os.path.split(i)[1]]))
+                        self.tab1.textbrowser.append(''.join(['Found:', os.path.split(i)[1]]))
                     else:
-                        self.tab1_textbrowser.append(''.join(['Missing in:', i]))
+                        self.tab1.textbrowser.append(''.join(['Missing in:', i]))
                 except IndexError:
                     if os.path.isfile(str(i)):
-                        self.tab1_textbrowser.append(''.join(['Found: ', i]))
+                        self.tab1.textbrowser.append(''.join(['Found: ', i]))
                     else:
-                        self.tab1_textbrowser.append(''.join(['Missing in:', i]))
+                        self.tab1.textbrowser.append(''.join(['Missing in:', i]))
 
     def set_program_working_directory(self):
         try:
@@ -1554,7 +1589,7 @@ class GUI(QProcess):
         return work_dir
 
     def update_youtube_dl(self):
-        self.tab1_textbrowser.clear()
+        self.tab1.textbrowser.clear()
         self.main_tab.setCurrentIndex(0)
         self.start(self.youtube_dl_path, ['-U'])
 
@@ -1562,19 +1597,19 @@ class GUI(QProcess):
     def program_state_changed(self, new_state):
         # If it's not running, start button is enabled, and stop button disabled.
         if new_state == QProcess.NotRunning:
-            self.tab1_start_btn.setDisabled(False)
-            self.tab1_stop_btn.setDisabled(True)
+            self.tab1.start_btn.setDisabled(False)
+            self.tab1.stop_btn.setDisabled(True)
             self.RUNNING = False
 
-            self.tab1_textbrowser.append('\nDone\n')
-            self.tab1_textbrowser.append(f'Error count: '
+            self.tab1.textbrowser.append('\nDone\n')
+            self.tab1.textbrowser.append(f'Error count: '
                                          f'{self.Errors if self.Errors ==0 else self.color_text(str(self.Errors),"darkorange","bold")}.')
             self.Errors = 0
 
         # Vise versa of the above.
         elif new_state == QProcess.Running:
-            self.tab1_start_btn.setDisabled(True)
-            self.tab1_stop_btn.setDisabled(False)
+            self.tab1.start_btn.setDisabled(True)
+            self.tab1.stop_btn.setDisabled(False)
             self.RUNNING = True
 
     def savefile_dialog(self):
@@ -1616,9 +1651,9 @@ class GUI(QProcess):
             #  Also disables start button if lineEdit is empty and checkbox is not checked
 
     def is_batch_dl_checked(self):
-        self.tab1_lineedit.setDisabled(self.tab1_checkbox.isChecked())
-        self.tab1_start_btn.setDisabled(
-            (not (self.tab1_checkbox.checkState() == 2 or (self.tab1_lineedit.text() != '')) is True) or self.RUNNING)
+        self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
+        self.tab1.start_btn.setDisabled(
+            (not (self.tab1.checkbox.checkState() == 2 or (self.tab1.lineedit.text() != '')) is True) or self.RUNNING)
 
     # The process for starting the download. Clears text edit.
 
@@ -1626,27 +1661,27 @@ class GUI(QProcess):
     def format_in_list(command, option):
         split_command = command.split()
         for index, item in enumerate(split_command):
-            if item == '{}':
+            if '{}' in item:
                 split_command[index] = item.format(option)
                 return split_command
         return split_command
 
     def start_DL(self):
-        self.tab1_lineedit.clearFocus()
+        self.tab1.lineedit.clearFocus()
 
-        self.tab1_textbrowser.clear()
+        self.tab1.textbrowser.clear()
         command = []
 
-        if self.tab1_checkbox.isChecked():
+        if self.tab1.checkbox.isChecked():
             if self.tab4_txt_lineedit.text() == '':
                 self.alert_message('Error!', 'No textfile selected!', '')
-                self.tab1_textbrowser.append('No textfile selected...\n\nNo download started!')
+                self.tab1.textbrowser.append('No textfile selected...\n\nNo download started!')
                 return
 
             txt = self.settings['Other stuff']['multidl_txt']
             command += ['-a', f'{txt}']
         else:
-            txt = self.tab1_lineedit.text()
+            txt = self.tab1.lineedit.text()
             command.append(f'{txt}')
 
         # for i in range(len(command)):
@@ -1685,14 +1720,14 @@ class GUI(QProcess):
             if self.ffmpeg_path:
                 command += ['--ffmpeg-location', self.ffmpeg_path]
         except Exception as error:
-            self.tab1_textbrowser.append(f'There was a small error with ffmpeg. Give this to dev:\n'
+            self.tab1.textbrowser.append(f'There was a small error with ffmpeg. Give this to dev:\n'
                                          f'{error}')
             print(error)
 
         self.Errors = 0
         print(command)
         self.start(self.youtube_dl_path, command)
-        self.tab1_textbrowser.append('Starting...\n')
+        self.tab1.textbrowser.append('Starting...\n')
 
     def cmdoutput(self, info):
         if info.startswith('ERROR'):
@@ -1704,14 +1739,14 @@ class GUI(QProcess):
 
         return regexp.sub(lambda match: self.replace_dict[match.group(0)], info)
 
-    # appends youtube-dl output to tab1_textbrowser.
+    # appends youtube-dl output to tab1.textbrowser.
     def read_stdoutput(self):
         data = self.readAllStandardOutput().data()
         text = data.decode('utf-8', 'replace').strip()
         text = self.cmdoutput(text)
         print(text)
 
-        scrollbar = self.tab1_textbrowser.verticalScrollBar()
+        scrollbar = self.tab1.textbrowser.verticalScrollBar()
         place = scrollbar.sliderPosition()
 
         if place == scrollbar.maximum():
@@ -1720,37 +1755,37 @@ class GUI(QProcess):
             keepPos = True
 
         # get the last line of QTextEdit
-        self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
-        self.tab1_textbrowser.moveCursor(QTextCursor.StartOfLine, QTextCursor.MoveAnchor)
-        self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.KeepAnchor)
-        last_line = self.tab1_textbrowser.textCursor().selectedText()
+        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
+        self.tab1.textbrowser.moveCursor(QTextCursor.StartOfLine, QTextCursor.MoveAnchor)
+        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.KeepAnchor)
+        last_line = self.tab1.textbrowser.textCursor().selectedText()
 
         # Check if a percentage has already been placed.
         if "%" in last_line and 'ETA' in last_line:
-            self.tab1_textbrowser.textCursor().removeSelectedText()
-            self.tab1_textbrowser.textCursor().deletePreviousChar()
+            self.tab1.textbrowser.textCursor().removeSelectedText()
+            self.tab1.textbrowser.textCursor().deletePreviousChar()
             # Last line of text
-            self.tab1_textbrowser.append(self.color_text(text.split("[download]")[-1][1:],
+            self.tab1.textbrowser.append(self.color_text(text.split("[download]")[-1][1:],
                                                          color='lawngreen',
                                                          extra='bold',
                                                          sections=[0, 5]))
             if '100%' in text:
-                self.tab1_textbrowser.append('')
+                self.tab1.textbrowser.append('')
 
         else:
             if "%" in text and 'ETA' in text:
                 # Last line of text
-                self.tab1_textbrowser.append(self.color_text(text.split("[download]")[-1][1:],
+                self.tab1.textbrowser.append(self.color_text(text.split("[download]")[-1][1:],
                                                              color='lightgreen',
                                                              extra='bold',
                                                              sections=[0, 5]))
             elif '[download]' in text:
-                self.tab1_textbrowser.append(''.join([text.replace('[download] ', ''), '\n']))
+                self.tab1.textbrowser.append(''.join([text.replace('[download] ', ''), '\n']))
             else:
-                self.tab1_textbrowser.append(''.join([text, '\n']))
+                self.tab1.textbrowser.append(''.join([text, '\n']))
 
         # Prevents some leftover highlighted text on errors and such.
-        self.tab1_textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
+        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
 
         # Ensures slider position is kept when not at bottom, and stays at bottom with new text where there.
         if keepPos:
@@ -1762,9 +1797,9 @@ class GUI(QProcess):
     # And disables the lineEdit if the textbox is checked.
     # Stop button is set to disabled, since no process is running.
     def enable_start(self):
-        self.tab1_start_btn.setDisabled((self.tab1_lineedit.text() == "") or (self.RUNNING is True))
-        self.tab1_lineedit.setDisabled(self.tab1_checkbox.isChecked() is True)
-        self.tab1_stop_btn.setDisabled((self.RUNNING is False))
+        self.tab1.start_btn.setDisabled((self.tab1.lineedit.text() == "") or (self.RUNNING is True))
+        self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked() is True)
+        self.tab1.stop_btn.setDisabled((self.RUNNING is False))
         self.is_batch_dl_checked()
 
     def load_text_from_file(self):
@@ -1892,7 +1927,7 @@ class GUI(QProcess):
             self.license_shown = False
 
     def selector(self):
-        self.tab1_lineedit.selectAll()
+        self.tab1.lineedit.selectAll()
 
 
 class SettingsError(Exception):
@@ -1924,3 +1959,4 @@ if __name__ == '__main__':
                 continue
             else:
                 break
+

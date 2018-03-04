@@ -115,7 +115,6 @@ class ParameterTree(QTreeWidget):
         self.blockSignals(False)
         self.update_size()
 
-
     def move_widget(self, item: QTreeWidgetItem):
         taken_item = self.takeTopLevelItem(self.indexOfTopLevelItem(item))
         self.move_request.emit(taken_item, self.favorite)
@@ -177,6 +176,7 @@ class ParameterTree(QTreeWidget):
                 if item.checkState(0) == Qt.Unchecked:
                     self.blockSignals(True)
                     i.setDisabled(True)
+                    i.setExpanded(False)
                     self.blockSignals(False)
                     i.setCheckState(0, Qt.Unchecked)
                 else:
