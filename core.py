@@ -1545,6 +1545,7 @@ class GUI(QWidget):
         if not self.RUNNING or process_finished:
             if self.queue:
                 download = self.queue.popleft()
+                self.tab1.queue_label.setText(f'Items in queue: {len(self.queue):5}')
                 self.active_download = download
                 download.start_dl()
 
@@ -1555,6 +1556,7 @@ class GUI(QWidget):
                 self.tab1.textbrowser.append(f'Error count: '
                                              f'{self.Errors if self.Errors ==0 else color_text(str(self.Errors),"darkorange","bold")}.')
                 self.Errors = 0
+        self.tab1.queue_label.setText(f'Items in queue: {len(self.queue):3}')
 
     def set_running(self, running=False):
         print('set running called')

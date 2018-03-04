@@ -20,6 +20,9 @@ class MainTab(QWidget):
         self.label = QLabel("Url: ")
         self.lineedit = LineEdit()
 
+        self.queue_label = QLabel('Items in queue:   0')
+
+
         # TextEdit creation, for showing status messages, and the youtube-dl output.
         self.textbrowser = QTextBrowser()
 
@@ -50,12 +53,18 @@ class MainTab(QWidget):
         self.QH2.addWidget(self.label)
         self.QH2.addWidget(self.lineedit)
 
+        # Line where Checkbox and queue label is.
+        self.QH3 = QHBoxLayout()
+        self.QH3.addWidget(self.checkbox)
+        self.QH3.addStretch(1)
+        self.QH3.addWidget(self.queue_label)
+
         # Creates vertical box for tab1.
         self.QV = QVBoxLayout()
 
         # Adds horizontal layouts, textbrowser and checkbox to create tab1.
         self.QV.addLayout(self.QH2)
-        self.QV.addWidget(self.checkbox)
+        self.QV.addLayout(self.QH3)
         self.QV.addWidget(self.textbrowser, 1)
         self.QV.addLayout(self.QH)
 
