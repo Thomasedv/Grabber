@@ -86,8 +86,6 @@ class GUI(QWidget):
     def build_gui(self):
         """Generates the GUI elements, and hooks everything up."""
         # TODO: Separate the GUI elements into their own class/file.
-        # TODO: Seperate the QProcess to own class/file.
-
         # Denotes if the process(youtube-dl) is running.
         self.RUNNING = False
         # Denotes if the textfile is saved.
@@ -601,7 +599,6 @@ class GUI(QWidget):
         self.main_tab.show()
         # Connect after show!!
         self.main_tab.resizedByUser.connect(self.resize_contents)
-        # TODO: When pressing abort, ask if you wanna stop just this download or all if there are more in queue
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
 
     def item_removed(self, item: QTreeWidgetItem, index):
@@ -609,20 +606,16 @@ class GUI(QWidget):
         del self.settings['Settings'][item.data(0, 0)]['options'][index]
         option = self.settings['Settings'][item.data(0, 0)]['active option']
         option -= 1 if option > 0 else 0
-        print(item.childCount())
         if not item.childCount():
             item.setCheckState(0, Qt.Unchecked)
             self.need_parameters.append(item.data(0, 32))
         self.write_setting(self.settings)
 
-    def design_option_dialog(self):
+    def design_option_dialog(self, name, description):
         """
         Creates dialog for user input
-
-        TODO: Add the parameter info to the dialog, for better context of what's the expected input.
-
         """
-        dialog = Dialog(self.main_tab)
+        dialog = Dialog(self.main_tab, name, description)
         if dialog.exec_() == QDialog.Accepted:
             return dialog.option.text()
         return None
@@ -636,7 +629,7 @@ class GUI(QWidget):
         elif '{}' in self.settings['Settings'][item.data(0, 32)]['command']:
 
             item.treeWidget().blockSignals(True)
-            parameter = self.design_option_dialog()
+            parameter = self.design_option_dialog(item.text(0), item.toolTip(0))
 
             if parameter:
                 new_option = ParameterTree.make_option(parameter.strip(),
@@ -1364,7 +1357,7 @@ class GUI(QWidget):
                 if result == QMessageBox.Yes:
                     item.treeWidget().blockSignals(True)
 
-                    title = self.design_option_dialog()
+                    title = self.design_option_dialog(item.text(0), item.toolTip(0))
                     if title:
                         ParameterTree.make_option(title, item, True, 1, None, None, 0)
 
