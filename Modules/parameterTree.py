@@ -99,7 +99,7 @@ class ParameterTree(QTreeWidget):
         menu.exec_(QCursor.pos())
 
     def del_option(self, parent: QTreeWidgetItem, child: QTreeWidgetItem):
-        self.itemRemoved.emit(parent, parent.indexOfChild(child))
+
         self.blockSignals(True)
         parent.removeChild(child)
 
@@ -113,6 +113,7 @@ class ParameterTree(QTreeWidget):
             parent.child(0).setCheckState(0, Qt.Checked)
 
         self.blockSignals(False)
+        self.itemRemoved.emit(parent, parent.indexOfChild(child))
         self.update_size()
 
     def move_widget(self, item: QTreeWidgetItem):

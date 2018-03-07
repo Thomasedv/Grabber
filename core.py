@@ -609,6 +609,10 @@ class GUI(QWidget):
         del self.settings['Settings'][item.data(0, 0)]['options'][index]
         option = self.settings['Settings'][item.data(0, 0)]['active option']
         option -= 1 if option > 0 else 0
+        print(item.childCount())
+        if not item.childCount():
+            item.setCheckState(0, Qt.Unchecked)
+            self.need_parameters.append(item.data(0, 32))
         self.write_setting(self.settings)
 
     def design_option_dialog(self):
@@ -1256,7 +1260,7 @@ class GUI(QWidget):
                 missing_settings[section] = []
 
         for setting, option in self.settings['Settings'].items():
-            # setting: The name of the settting, like "Ignore errors"
+            # setting: The name of the setting, like "Ignore errors"
             # option: The dict which contains the base keys.
             # key (Define below): is a key in the base settings
 
@@ -1466,7 +1470,13 @@ class GUI(QWidget):
     def update_youtube_dl(self):
         self.tab1.textbrowser.clear()
         self.main_tab.setCurrentIndex(0)
-        self.start(self.youtube_dl_path, ['-U'])
+        download_item = Download(self.program_workdir, self.youtube_dl_path, ['-U', '--encoding', 'utf-8'], self)
+        download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
+        download_item.stateChanged.connect(self.program_state_changed)
+
+        self.tab1.start_btn.setDisabled(True)
+        self.queue.append(download_item)
+        self.queue_handler()
 
     def queue_handler(self, process_finished=False):
         if not self.RUNNING or process_finished:
@@ -1493,9 +1503,10 @@ class GUI(QWidget):
     # When the current download is started/stopped then this runs.
     def program_state_changed(self, new_state):
         if new_state == QProcess.NotRunning:
+            self.active_download.disconnect()
             self.queue_handler(process_finished=True)
         elif new_state == QProcess.Running:
-            self.tab1.textbrowser.append(color_text('Starting a download:\n', 'lawngreen', 'normal', sections=(0, 8)))
+            self.tab1.textbrowser.append(color_text('Starting...\n', 'lawngreen', 'normal', sections=(0, 8)))
 
         return
 
@@ -1591,6 +1602,7 @@ class GUI(QWidget):
         if self.ffmpeg_path is not None:
             command += ['--ffmpeg-location', self.ffmpeg_path]
 
+
         download_item = Download(self.program_workdir, self.youtube_dl_path, command, self)
         download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
         download_item.stateChanged.connect(self.program_state_changed)
@@ -1603,6 +1615,9 @@ class GUI(QWidget):
         if len(self.queue):
             result = self.alert_message('Stop all?', 'Stop all pending downloads too?', '', True, True)
             if result == QMessageBox.Yes:
+                for i in self.queue:
+                    i.disconnect()
+                    del i
                 self.queue.clear()
                 self.active_download.kill()
                 self.tab1.textbrowser.append('Cancelling all downloads...')
@@ -1685,7 +1700,7 @@ class GUI(QWidget):
     # And disables the lineEdit if the textbox is checked.
     # Stop button is set to disabled, since no process is running.
     def allow_start(self):
-        self.tab1.stop_btn.setDisabled(self.RUNNING)
+        self.tab1.stop_btn.setDisabled(not self.RUNNING)
         self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
         self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '')
 
