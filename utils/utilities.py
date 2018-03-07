@@ -64,5 +64,13 @@ def format_in_list(command, option):
     return split_command
 
 
+class SettingsError(Exception):
+    pass
+
+
+class ArgumentError(Exception):
+    pass
+
+
 if __name__ == '__main__':
     print(color_text('rests valued', sections=(2, 5)))

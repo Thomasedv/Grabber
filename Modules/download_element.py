@@ -1,8 +1,6 @@
 from PyQt5.QtCore import QProcess
 
-
-class ArgumentError(Exception):
-    pass
+from utils.utilities import ArgumentError
 
 
 class Download(QProcess):

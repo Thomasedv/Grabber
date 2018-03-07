@@ -1,7 +1,10 @@
-import sys
 import json
-from core import GUI, SettingsError
+import sys
+
 from PyQt5.QtWidgets import QApplication, QMessageBox
+
+from core import GUI
+from utils.utilities import SettingsError
 
 
 def main():
@@ -19,7 +22,7 @@ def main():
         except (SettingsError, json.decoder.JSONDecodeError) as e:
             warning = QMessageBox.warning(None,
                                           'Corrupt settings',
-                                          ''.join([str(e),'\nRestore default settings?']),
+                                          ''.join([str(e), '\nRestore default settings?']),
                                           buttons=QMessageBox.Yes | QMessageBox.No)
             if warning == QMessageBox.Yes:
                 GUI.write_default_settings(True)

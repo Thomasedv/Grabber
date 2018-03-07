@@ -55,7 +55,6 @@ class ParameterTree(QTreeWidget):
         self.itemChanged.connect(self.check_dependency)
 
     def contextMenu(self):
-        # TODO: Implement remove option.
 
         item = self.selectedItems()[0]
         if len(self.selectedItems()) != 1:

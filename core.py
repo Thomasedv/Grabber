@@ -16,7 +16,7 @@ from Modules.download_element import Download
 from Modules.download_tab import MainTab
 from Modules.parameterTree import ParameterTree
 from Modules.tabWidget import Tabwidget
-from utils.utilities import path_shortener, color_text, format_in_list
+from utils.utilities import path_shortener, color_text, format_in_list, SettingsError
 
 
 class GUI(QWidget):
@@ -1595,7 +1595,6 @@ class GUI(QWidget):
         if self.ffmpeg_path is not None:
             command += ['--ffmpeg-location', self.ffmpeg_path]
 
-
         download_item = Download(self.program_workdir, self.youtube_dl_path, command, self)
         download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
         download_item.stateChanged.connect(self.program_state_changed)
@@ -1825,10 +1824,6 @@ class GUI(QWidget):
         self.tab1.lineedit.selectAll()
 
 
-class SettingsError(Exception):
-    pass
-
-
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication, QMessageBox
 
@@ -1837,7 +1832,7 @@ if __name__ == '__main__':
             app = QApplication(sys.argv)
             qProcess = GUI()
 
-            EXIT_CODE = app.exec_()
+            EXIT_CODE = app.exec()
             app = None
 
             if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
