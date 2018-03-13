@@ -1727,6 +1727,7 @@ class GUI(QWidget):
                     self.load_text_from_file()
 
     def save_text_to_file(self):
+        # TODO: Do proper path check before trying to open file handler.
         if not self.tab4_txt_lineedit.text() == '':
             with open(self.tab4_txt_lineedit.text(), 'w') as f:
                 for line in self.tab3_textedit.toPlainText():
@@ -1746,7 +1747,7 @@ class GUI(QWidget):
                     with open(save_path[0], 'w') as f:
                         for line in self.tab3_textedit.toPlainText():
                             f.write(line)
-                            self.update_setting(self.settings, 'Other stuff', 'multidl_txt', save_path[0])
+                    self.update_setting(self.settings, 'Other stuff', 'multidl_txt', save_path[0])
 
                     self.tab4_txt_lineedit.setText(save_path[0])
                     self.tab3_saveButton.setDisabled(True)
