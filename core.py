@@ -96,17 +96,9 @@ class GUI(QWidget):
         self.license_shown = False
 
         # Downloda queue
-        self.queue = deque()  # TODO: Move to init!
+        self.queue = deque()
 
         self.active_download = None
-
-        # Used later for checking the text feed from youtuibne-dl.
-        # TODO: See what can be done with this part of the code. Why have this here?
-        self.replace_dict = {
-            '[ffmpeg] ': '',
-            '[youtube] ': ''
-        }
-        self.substrs = sorted(self.replace_dict, key=len, reverse=True)
 
         ## Stylesheet of widget!
         self.style = f"""
@@ -153,9 +145,8 @@ class GUI(QWidget):
                         QTabBar::tab {{
                             color: rgb(186,186,186);
                             background-color: #606060;
-                            border-top-left-radius: 5px;
-                            border-top-right-radius: 5px;
                             border-bottom: none;
+                            border-left: 1px solid #484848;
                             min-width: 15ex;
                             min-height: 7ex;
                         }}
@@ -727,12 +718,12 @@ class GUI(QWidget):
 
     def download_name_handler(self):
         """ Formats download names and removes the naming string for ytdl. """
-        # TODO: Reforamt code to not save the naming sting to the settings, rather append it on download start.
         for item in (*self.tab2_options.topLevelItems(), *self.tab2_favorites.topLevelItems()):
             if item.data(0, 32) == 'Download location':
                 item.treeWidget().blockSignals(True)
                 for number in range(item.childCount()):
                     item.child(number).setData(0, 0, path_shortener(item.child(number).data(0, 0)))
+                    item.child(number).setToolTip(0, self.settings['Settings']['Download location']['options'][number])
                 if item.checkState(0) == Qt.Checked:
                     for number in range(item.childCount()):
                         if item.child(number).checkState(0) == Qt.Checked:
@@ -798,9 +789,6 @@ class GUI(QWidget):
                 self.settings['Settings']['Download location']['options'] = [full_path]
             else:
                 self.settings['Settings']['Download location']['options'].insert(0, full_path)
-
-            if item.childCount() >= 3:
-                item.removeChild(item.child(3))
 
             item.treeWidget().update_size()
 
@@ -1625,14 +1613,19 @@ class GUI(QWidget):
                 self.alert_message('Alert', 'stop was called withou without and active process!', '')
 
     def cmdoutput(self, info):
+        replace_dict = {
+            '[ffmpeg] ': '',
+            '[youtube] ': ''
+        }
+        substrs = sorted(replace_dict, key=len, reverse=True)
         if info.startswith('ERROR'):
             self.Errors += 1
             info = info.replace('ERROR', '<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>')
         info = re.sub(r'\s+$', '', info, 0, re.M)
         info = re.sub(' +', ' ', info)
-        regexp = re.compile('|'.join(map(re.escape, self.substrs)))
+        regexp = re.compile('|'.join(map(re.escape, substrs)))
 
-        return regexp.sub(lambda match: self.replace_dict[match.group(0)], info)
+        return regexp.sub(lambda match: replace_dict[match.group(0)], info)
 
     # appends youtube-dl output to tab1.textbrowser.
     def read_stdoutput(self, download_item: Download):
