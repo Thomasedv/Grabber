@@ -16,7 +16,7 @@ from Modules.download_element import Download
 from Modules.download_tab import MainTab
 from Modules.parameterTree import ParameterTree
 from Modules.tabWidget import Tabwidget
-from utils.utilities import path_shortener, color_text, format_in_list, SettingsError
+from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError
 
 
 class GUI(QWidget):
@@ -561,7 +561,8 @@ class GUI(QWidget):
         # Sets the styling for the GUI, everything from buttons to anything. ##
         self.main_tab.setStyleSheet(self.style)
         # Set window title.
-        self.main_tab.setWindowTitle('GUI')
+        self.main_tab.setWindowTitle('Grabber')
+        self.main_tab.setWindowIcon(self.windowIcon)
         # Set base size.
         self.main_tab.setMinimumWidth(340)
         self.main_tab.setMinimumHeight(200)
@@ -1217,13 +1218,13 @@ class GUI(QWidget):
         """ Checks the setttings for errors or missing data. """
 
         base_sections = ['Profiles', 'Favorites', 'Settings', 'Other stuff']
-        # TODO: Check if fully abandonded list. Remove if so.
-        base_settings = ['Convert to audio',
-                         'Add thumbnail',
-                         'Ignore errors',
-                         'Download location',
-                         'Strict file names',
-                         'Keep archive']
+        # TODO: Check if fully abandoned list. Remove if so.
+        # base_settings = ['Convert to audio',
+        #                  'Add thumbnail',
+        #                  'Ignore errors',
+        #                  'Download location',
+        #                  'Strict file names',
+        #                  'Keep archive']
         base_keys = ['command',
                      'dependency',
                      'options',
@@ -1465,12 +1466,16 @@ class GUI(QWidget):
                 download = self.queue.popleft()
                 self.tab1.queue_label.setText(f'Items in queue: {len(self.queue):5}')
                 self.active_download = download
-                download.start_dl()
+                try:
+                    download.start_dl()
+                except ArgumentError:
+                    self.Errors += 1
+                    self.tab1.textbrowser.append(color_text('DOWNLOAD FAILED!\nYuotube-dl is missing!\n'))
+                    return self.queue_handler(process_finished=True)
 
                 self.set_running(True)
             else:
                 self.set_running(False)
-                self.tab1.textbrowser.append('\nDone\n')
                 self.tab1.textbrowser.append(f'Error count: '
                                              f'{self.Errors if self.Errors ==0 else color_text(str(self.Errors),"darkorange","bold")}.')
                 self.Errors = 0
@@ -1485,6 +1490,7 @@ class GUI(QWidget):
     def program_state_changed(self, new_state):
         if new_state == QProcess.NotRunning:
             self.active_download.disconnect()
+            self.tab1.textbrowser.append('\nDone\n')
             self.queue_handler(process_finished=True)
         elif new_state == QProcess.Running:
             self.tab1.textbrowser.append(color_text('Starting...\n', 'lawngreen', 'normal', sections=(0, 8)))
@@ -1586,10 +1592,12 @@ class GUI(QWidget):
         download_item = Download(self.program_workdir, self.youtube_dl_path, command, self)
         download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
         download_item.stateChanged.connect(self.program_state_changed)
-
-        self.tab1.start_btn.setDisabled(True)
-        self.queue.append(download_item)
-        self.queue_handler()
+        try:
+            self.tab1.start_btn.setDisabled(True)
+            self.queue.append(download_item)
+            self.queue_handler()
+        except Exception:
+            traceback.print_exc()
 
     def stop_download(self):
         if len(self.queue):

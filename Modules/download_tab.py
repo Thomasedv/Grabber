@@ -22,7 +22,6 @@ class MainTab(QWidget):
 
         self.queue_label = QLabel('Items in queue:   0')
 
-
         # TextEdit creation, for showing status messages, and the youtube-dl output.
         self.textbrowser = QTextBrowser()
 
