@@ -25,7 +25,7 @@ def main():
                                           ''.join([str(e), '\nRestore default settings?']),
                                           buttons=QMessageBox.Yes | QMessageBox.No)
             if warning == QMessageBox.Yes:
-                GUI.write_default_settings(True)
+                GUI.get_settings(True)
                 app = None
                 continue
             break

@@ -46,7 +46,7 @@ class GUI(QWidget):
 
     def initial_checks(self):
         """Loads settings and finds necessary files. Checks the setting file for errors."""
-        self.settings = self.write_default_settings(reset=False)
+        self.settings = self.get_settings(reset=False)
 
         # Find resources.
         # Find youtube-dl
@@ -58,7 +58,7 @@ class GUI(QWidget):
 
         self.local_dl_path = ''.join([self.workDir, '/DL/'])
 
-        self.check_settings_integrity()
+        self.validate_settings()
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
         # Use replace('\\', '/') on path.
         self.icon_list = []
@@ -223,7 +223,7 @@ class GUI(QWidget):
                         QPushButton:disabled {{
                             border: 1px solid #303030;
                             background-color: transparent;
-                            color: grey;
+                            color: #303030;
                         }}
                         QPushButton:pressed {{
                             background-color: #101010;
@@ -265,7 +265,6 @@ class GUI(QWidget):
                         QTreeWidget::indicator:unchecked {{
                             image: url({self.unchecked_icon});
                         }}
-
                         """
 
         ## Set font for tab 4.
@@ -333,7 +332,7 @@ class GUI(QWidget):
         self.tab2_favorites.favorite = True
 
         self.tab2_download_option = self.find_download_widget()
-        self.custom_options()  # TODO: Refactor name to custom_option
+        self.custom_option()
 
         self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
 
@@ -704,7 +703,7 @@ class GUI(QWidget):
         # noinspection PyCallByClass
         QProcess.startDetached('explorer {}'.format(self.tab2_download_lineedit.toolTip().replace("/", "\\")))
 
-    def custom_options(self):
+    def custom_option(self):
         """Creates a custom option for the parameterTree that is favorite. """
         self.tab2_favorites.blockSignals(True)
 
@@ -761,11 +760,10 @@ class GUI(QWidget):
                 full_path += '/'
             short_path = path_shortener(full_path)
             names = [item.child(i).data(0, 0) for i in range(item.childCount())]
-            # TODO: Remove the added thing to full_path below
+
             if short_path in names and full_path in self.settings['Settings']['Download location']['options']:
                 self.alert_message('Warning', 'Option already exists!', '', question=False)
                 return
-            print('-' * 50)
 
             item.treeWidget().blockSignals(True)
 
@@ -804,7 +802,6 @@ class GUI(QWidget):
 
             self.write_setting(self.settings)
         except Exception as error:
-            print(error)
             traceback.print_exc()
 
     @staticmethod
@@ -819,8 +816,8 @@ class GUI(QWidget):
         return os.path.join(base_path, relative_path)
 
     @staticmethod
-    def write_default_settings(reset=False):
-        """ Reads settings, or writes them in absent, or if instructed to. """
+    def get_settings(reset=False):
+        """ Reads settings, or writes them if absent, or if instructed to using reset. """
         if reset:
             settings = dict()
             settings['Profiles'] = {}
@@ -1212,19 +1209,12 @@ class GUI(QWidget):
                 with open('Settings.json', 'r') as f:
                     return json.load(f)
             else:
-                return GUI.write_default_settings(reset=True)
+                return GUI.get_settings(reset=True)
 
-    def check_settings_integrity(self):
+    def validate_settings(self):
         """ Checks the setttings for errors or missing data. """
 
         base_sections = ['Profiles', 'Favorites', 'Settings', 'Other stuff']
-        # TODO: Check if fully abandoned list. Remove if so.
-        # base_settings = ['Convert to audio',
-        #                  'Add thumbnail',
-        #                  'Ignore errors',
-        #                  'Download location',
-        #                  'Strict file names',
-        #                  'Keep archive']
         base_keys = ['command',
                      'dependency',
                      'options',
@@ -1246,18 +1236,19 @@ class GUI(QWidget):
             # option: The dict which contains the base keys.
             # key (Define below): is a key in the base settings
 
-            # print(setting)
-            # print(option)
             for key in base_keys:
                 # Check if all base keys are in the options.
+
                 if key not in option.keys():
                     # Check if the current setting has already logged a missing key
                     # If it hasn't, create an entry in the missing_settings dict, as a list.
                     # If it's there, then add the key to the missing list.
+
                     if setting not in missing_settings.keys():
                         missing_settings[setting] = [key]
                     else:
                         missing_settings[setting].append(key)
+
                 # Check if the current setting is missing options for the command, when needed.
                 # Disable the setting by default. Possibly alert the user.
                 elif key == 'command':
@@ -1268,17 +1259,6 @@ class GUI(QWidget):
                                 self.settings['Settings'][setting]['state'] = False
                                 # Add to a list over options to add setting to.
                                 self.need_parameters.append(setting)
-
-            #
-            # if option not in self.settings['Settings']:
-            #     missing_settings[option] = []
-            # else:
-            #     for key in base_keys:
-            #         if key not in self.settings['Settings'][option]:
-            #             if option not in missing_settings.keys():
-            #                 missing_settings[option] = [key]
-            #             else:
-            #                 missing_settings[option].append(key)
 
         if missing_settings:
             raise SettingsError('\n'.join(['Settings file is corrupt/missing:',
@@ -1302,21 +1282,29 @@ class GUI(QWidget):
         # Catch if the setting is missing for needed options.
         except KeyError as error:
             raise SettingsError(f'{setting} is missing a needed option {error}.')
-        # Catches mutiple type errors.
+        # Catches multiple type errors.
         except TypeError as error:
             raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
 
         self.write_setting(self.settings)
 
     def update_setting(self, diction: dict, section: str, key: str, value):
+        """Updates the specified settings in the settings, section, and key given.
+        TODO: Remove need to pass the settings dictionary, since it's a instance variable.
+        """
+
         diction[section][key] = value
         self.write_setting(diction)
 
     def update_parameters(self, diction, setting, state):
+        """Changes the state of a setting to enabled/disabled."""
         diction['Settings'][setting]['state'] = state
         self.write_setting(diction)
 
     def update_options(self, diction, setting, index):
+        """Sets the current index of a setting with an option.
+        TODO: Possibly check if the option has an mutliple options?
+        """
         if setting in diction['Settings'].keys():
             diction['Settings'][setting]['active option'] = index
         self.write_setting(diction)
@@ -1330,15 +1318,17 @@ class GUI(QWidget):
                                     question=True)
 
         if result == QMessageBox.Yes:
-            self.write_default_settings(reset=True)
+            self.get_settings(reset=True)
             qApp.exit(self.EXIT_CODE_REBOOT)
 
     @staticmethod
     def write_setting(diction):
+        """Saves the settings to json file."""
         with open('Settings.json', 'w') as f:
             json.dump(diction, f, indent=4, sort_keys=True)
 
     def parameter_updater(self, item: QTreeWidgetItem):
+        """Handles updating the options for a parameter."""
         if item.data(0, 33) == 0:
             if item.data(0, 32) in self.need_parameters:
                 result = self.alert_message('Warning!', 'This parameter needs an option!', 'There are no options!\n'
@@ -1397,6 +1387,7 @@ class GUI(QWidget):
 
     @staticmethod
     def locate_program_path(program):
+        """Used to find execuables."""
         def is_exe(fpath):
             return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -1847,7 +1838,7 @@ if __name__ == '__main__':
 
             app = None
             if A == QMessageBox.Yes:
-                GUI.write_default_settings(True)
+                GUI.get_settings(True)
                 continue
             else:
                 break
