@@ -45,8 +45,10 @@ class ParameterTree(QTreeWidget):
         # self.headerItem().setResizeMode(QHeaderView.ResizeToContents)
 
         # self.setItemWidget()
-        if type(profile) is dict:
+        if isinstance(profile, dict):
             self.load_profile(profile)
+        else:
+            raise TypeError(f'Expected dict, not type {type(profile)}')
 
         self.setSortingEnabled(True)
         self.sortByColumn(0, Qt.AscendingOrder)
@@ -121,7 +123,9 @@ class ParameterTree(QTreeWidget):
 
     def load_profile(self, profile: dict):
         self.blockSignals(True)
+        self.setSortingEnabled(False)
         self.clear()
+
         for name, settings in profile.items():
             parent = self.make_option(name, self, settings['state'], 0, settings['tooltip'], settings['dependency'])
             if settings['options']:
@@ -135,6 +139,8 @@ class ParameterTree(QTreeWidget):
 
         self.hock_dependency()
         self.update_size()
+        self.setSortingEnabled(True)
+        self.sortByColumn(0, Qt.AscendingOrder)
         self.blockSignals(False)
 
     def hock_dependency(self):

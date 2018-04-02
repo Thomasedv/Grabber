@@ -11,11 +11,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTex
     QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
     QFrame, QDialog
 
-from Modules.dialog import Dialog
-from Modules.download_element import Download
-from Modules.download_tab import MainTab
-from Modules.parameterTree import ParameterTree
-from Modules.tabWidget import Tabwidget
+from Modules import Dialog, Download, MainTab, ParameterTree, Tabwidget
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError
 
 
