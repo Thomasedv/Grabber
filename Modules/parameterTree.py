@@ -58,9 +58,9 @@ class ParameterTree(QTreeWidget):
 
     def contextMenu(self):
 
-        item = self.selectedItems()[0]
-        if len(self.selectedItems()) != 1:
-            print('Unexpected item(s) given.')
+        item = self.selectedItems()
+        if not item:
+            return None
 
         menu = QMenu(self)
 

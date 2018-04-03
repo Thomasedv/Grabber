@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, QHBoxLayout, QVBoxLayout, QComboBox
 
 from Modules.lineEdit import LineEdit
 
@@ -20,6 +20,11 @@ class MainTab(QWidget):
         self.label = QLabel("Url: ")
         self.lineedit = LineEdit()
 
+        self.profile_label = QLabel('Current profile:')
+        self.profile_dropdown = QComboBox()
+        self.profile_dropdown.addItem('Testgsdfdsgsfdgsd 1')
+
+        self.profile_dropdown.addItem('TEST 2')
         self.queue_label = QLabel('Items in queue:   0')
 
         # TextEdit creation, for showing status messages, and the youtube-dl output.
@@ -56,6 +61,8 @@ class MainTab(QWidget):
         self.QH3 = QHBoxLayout()
         self.QH3.addWidget(self.checkbox)
         self.QH3.addStretch(1)
+        self.QH3.addWidget(self.profile_label)
+        self.QH3.addWidget(self.profile_dropdown)
         self.QH3.addWidget(self.queue_label)
 
         # Creates vertical box for tab1.
