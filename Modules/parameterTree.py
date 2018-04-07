@@ -56,17 +56,18 @@ class ParameterTree(QTreeWidget):
         self.itemChanged.connect(self.make_exclusive)
         self.itemChanged.connect(self.check_dependency)
 
-    def contextMenu(self):
+    def contextMenu(self, event):
 
-        item = self.selectedItems()
-        if not item:
+        item = self.itemAt(event)
+
+        if item is None:
             return None
 
         menu = QMenu(self)
 
-        add_option = None
         remove_option = None
         move_action = None
+        take_item = None
 
         if item.data(0, 33) == 0:
             take_item = item
@@ -75,11 +76,11 @@ class ParameterTree(QTreeWidget):
 
             remove_option = QAction('Remove option')
             remove_option.triggered.connect(lambda: self.del_option(take_item, item))
-
         elif item.data(0, 33) == 2:
             take_item = item
         else:
-            raise Exception('No item selected or data in data(0, 33) is not correct.')
+            print('Something went wrong!')
+            return
 
         add_option = QAction('Add option')
         add_option.triggered.connect(lambda: self.addOption.emit(take_item))
@@ -240,6 +241,7 @@ class ParameterTree(QTreeWidget):
         child_size = 15 * sum(
             [1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
         parent_size = 20 * self.topLevelItemCount()
+
         # Unhandled lengths when the program exceeds the window size. Might implement a max factor, and allow scrolling.
         # Future cases might implement two ParameterTrees side by side, for better use of space and usability.
         if ParameterTree.max_size < (child_size + parent_size):

@@ -16,8 +16,8 @@ def main():
             EXIT_CODE = app.exec_()
             app = None
 
-            if not (EXIT_CODE == GUI.EXIT_CODE_REBOOT):
-                break
+            if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
+                continue
 
         except (SettingsError, json.decoder.JSONDecodeError) as e:
             warning = QMessageBox.warning(None,
@@ -28,7 +28,8 @@ def main():
                 GUI.get_settings(True)
                 app = None
                 continue
-            break
+
+        break
 
 
 if __name__ == '__main__':

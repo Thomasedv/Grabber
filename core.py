@@ -46,10 +46,10 @@ class GUI(QWidget):
         QApplication.setEffectEnabled(Qt.UI_AnimateCombo, False)
         # Find resources.
         # Find youtube-dl
+        self.workDir = os.getcwd().replace('\\', '/')
         self.youtube_dl_path = self.locate_program_path('youtube-dl.exe')
         self.ffmpeg_path = self.locate_program_path('ffmpeg.exe')
         self.program_workdir = self.get_program_working_directory().replace('\\', '/')
-        self.workDir = os.getcwd().replace('\\', '/')
         self.license_path = self.resource_path('LICENSE')
 
         self.local_dl_path = ''.join([self.workDir, '/DL/'])
@@ -607,7 +607,11 @@ class GUI(QWidget):
                                                     'or make sure it\'s in the same folder as this program. '
                                                     'Then close and reopen this program.', 'darkorange', 'bold'))
 
-        # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
+        # if self.ffmpeg_path is None:
+        #     self.tab1.textbrowser.append(color_text('\nNo ffmpeg.exe found! Add to path, '
+        #                                             'or make sure it\'s in the same folder as this program. '
+        #                                             'Then close and reopen this program.', 'darkorange', 'bold'))
+        # # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
         self.download_name_handler()
         # Ensures widets are in correct state at startup and when tab1.lineedit is changed.
         self.allow_start()
@@ -1231,8 +1235,11 @@ class GUI(QWidget):
                            "(regex):\n\"(?P<artist>.+?) - (?P<title>.+)\""
             }
 
-            with open('Settings.json', 'w') as f:
-                json.dump(settings, f, indent=4, sort_keys=True)
+            try:
+                with open('Settings.json', 'w') as f:
+                    json.dump(settings, f, indent=4, sort_keys=True)
+            except PermissionError:
+                QMessageBox.warning('Permission error for setting!')
             return settings
         else:
             if os.path.isfile('Settings.json'):
@@ -1415,8 +1422,7 @@ class GUI(QWidget):
             self.settings['Other stuff']['custom']['state'] = item.checkState(0) == Qt.Checked
             self.write_setting(self.settings)
 
-    @staticmethod
-    def locate_program_path(program):
+    def locate_program_path(self, program):
         """Used to find execuables."""
         def is_exe(fpath):
             return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -1425,9 +1431,9 @@ class GUI(QWidget):
             path = path.strip('"')
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
-                return exe_file
+                return os.path.abspath(exe_file)
         if os.path.isfile(program):
-            return program
+            return os.path.join(self.workDir, program)
         return None
 
     def dir_info(self):
@@ -1435,6 +1441,7 @@ class GUI(QWidget):
         file_dir = os.path.dirname(os.path.abspath(__file__))
 
         debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
+                 color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
                  color_text('Filedir:'), file_dir,
                  color_text('Workdir:'), self.workDir,
                  color_text('Youtube-dl working directory:'), self.program_workdir,
