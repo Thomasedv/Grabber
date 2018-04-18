@@ -1,12 +1,13 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, QHBoxLayout, QVBoxLayout, QComboBox
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, \
+    QHBoxLayout, QVBoxLayout, QComboBox
 
 from Modules.lineEdit import LineEdit
 
 
 class MainTab(QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent=parent)
 
         # Starts the program (Youtube-dl)
@@ -21,10 +22,19 @@ class MainTab(QWidget):
         self.lineedit = LineEdit()
 
         self.profile_label = QLabel('Current profile:')
-        self.profile_dropdown = QComboBox()
-        self.profile_dropdown.addItem('Testgsdfdsgsfdgsd 1')
 
-        self.profile_dropdown.addItem('TEST 2')
+        self.profile_dropdown = QComboBox()
+        self.profile_dropdown.setFixedWidth(100)
+
+        if settings['Profiles']:
+            for profile in settings['Profiles'].keys():
+                self.profile_dropdown.addItem(profile)
+            current_profile = settings['Other stuff']['current_profile']
+            self.profile_dropdown.setCurrentText(current_profile if current_profile else 'Custom')
+        else:
+            self.profile_dropdown.setDisabled(True)
+            self.profile_dropdown.addItem('None')
+
         self.queue_label = QLabel('Items in queue:   0')
 
         # TextEdit creation, for showing status messages, and the youtube-dl output.
@@ -79,10 +89,11 @@ class MainTab(QWidget):
 
 if __name__ == '__main__':
     # Only visual aspects work here!!
-    from PyQt5.QtWidgets import QApplication
     import sys
+    from PyQt5.QtWidgets import QApplication
+    from utils.utilities import get_base_settings
 
     app = QApplication(sys.argv)
-    gui = MainTab()
+    gui = MainTab(get_base_settings())
     gui.show()
     app.exec_()
