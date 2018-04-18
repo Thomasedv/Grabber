@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import re
@@ -135,6 +136,7 @@ class GUI(QWidget):
         # Starts downloading
         self.tab1.lineedit.returnPressed.connect(self.tab1.start_btn.click)
         self.tab1.profile_dropdown.currentTextChanged.connect(self.load_profile)
+        self.tab1.profile_dropdown.deleteItem.connect(self.delete_profile)
 
         self.tab1.save_profile = QPushButton('Save P')
         self.tab1.save_profile.clicked.connect(self.save_profile)
@@ -650,11 +652,13 @@ class GUI(QWidget):
             if result != QMessageBox.Yes:
                 return
 
-        self.settings['Profiles'][profile_name] = self.settings['Settings'].copy()
+        self.settings['Profiles'][profile_name] = copy.deepcopy(self.settings['Settings'])
 
         self.tab1.profile_dropdown.blockSignals(True)
         self.tab1.profile_dropdown.setDisabled(False)
-        self.tab1.profile_dropdown.addItem(profile_name)
+
+        if self.tab1.profile_dropdown.findText(profile_name) == -1:
+            self.tab1.profile_dropdown.addItem(profile_name)
         self.tab1.profile_dropdown.setCurrentText(profile_name)
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('None'))
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('Custom'))
@@ -666,10 +670,11 @@ class GUI(QWidget):
 
     def load_profile(self, *args):
         profile_name = self.tab1.profile_dropdown.currentText()
+
         if profile_name in ('None', 'Custom'):
             return
-        self.settings['Settings'] = self.settings['Profiles'][profile_name].copy()
 
+        self.settings['Settings'] = copy.deepcopy(self.settings['Profiles'][profile_name])
         options = {k: v for k, v in self.settings['Settings'].items() if k not in self.settings['Favorites']}
         favorites = {i: self.settings['Settings'][i] for i in self.settings['Favorites']}
 
@@ -677,14 +682,27 @@ class GUI(QWidget):
         self.tab2_favorites.load_profile(favorites)
 
         self.tab1.profile_dropdown.blockSignals(True)
-        self.tab1.profile_dropdown.addItem(profile_name)
-        self.tab1.profile_dropdown.setCurrentText(profile_name)
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('None'))
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('Custom'))
         self.tab1.profile_dropdown.blockSignals(False)
 
         self.write_setting(self.settings)
 
+    def delete_profile(self):
+        index = self.tab1.profile_dropdown.currentIndex()
+        text = self.tab1.profile_dropdown.currentText()
+        if text in ('Custom', 'None'):
+            return
+
+        del self.settings['Profiles'][text]
+        self.settings['Other stuff']['current_profile'] = ''
+        self.tab1.profile_dropdown.blockSignals(True)
+        self.tab1.profile_dropdown.removeItem(index)
+        self.tab1.profile_dropdown.addItem('Custom')
+        self.tab1.profile_dropdown.setCurrentText('Custom')
+        self.tab1.profile_dropdown.blockSignals(False)
+
+        self.write_setting(self.settings)
 
     def item_removed(self, item: QTreeWidgetItem, index):
         """Parent who had child removed. Updates settings and numbering of data 35"""
@@ -1057,7 +1075,7 @@ class GUI(QWidget):
         if 'Custom' != self.tab1.profile_dropdown.currentText():
             self.tab1.profile_dropdown.addItem('Custom')
             self.tab1.profile_dropdown.setCurrentText('Custom')
-
+            self.settings['Other stuff']['current_profile'] = ''
 
         if item.data(0, 33) == 0:
             if item.data(0, 32) in self.need_parameters:

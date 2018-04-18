@@ -1,7 +1,8 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, \
-    QHBoxLayout, QVBoxLayout, QComboBox
+    QHBoxLayout, QVBoxLayout
 
+from Modules.dropdown_widget import DropDown
 from Modules.lineEdit import LineEdit
 
 
@@ -23,7 +24,7 @@ class MainTab(QWidget):
 
         self.profile_label = QLabel('Current profile:')
 
-        self.profile_dropdown = QComboBox()
+        self.profile_dropdown = DropDown(self)
         self.profile_dropdown.setFixedWidth(100)
 
         if settings['Profiles']:
