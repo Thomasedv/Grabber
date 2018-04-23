@@ -31,7 +31,11 @@ class MainTab(QWidget):
             for profile in settings['Profiles'].keys():
                 self.profile_dropdown.addItem(profile)
             current_profile = settings['Other stuff']['current_profile']
-            self.profile_dropdown.setCurrentText(current_profile if current_profile else 'Custom')
+            if current_profile:
+                self.profile_dropdown.setCurrentText(current_profile)
+            else:
+                self.profile_dropdown.addItem('Custom')
+                self.profile_dropdown.setCurrentText('Custom')
         else:
             self.profile_dropdown.setDisabled(True)
             self.profile_dropdown.addItem('None')

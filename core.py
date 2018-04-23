@@ -3,7 +3,6 @@ import json
 import os
 import re
 import sys
-import traceback
 from collections import deque
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
@@ -13,7 +12,8 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTex
     QFrame, QDialog, QApplication, QMessageBox
 
 from Modules import Dialog, Download, MainTab, ParameterTree, Tabwidget
-from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError, get_base_settings
+from utils.filehandler import FileHandler
+from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError
 
 
 class GUI(QWidget):
@@ -44,17 +44,20 @@ class GUI(QWidget):
 
     def initial_checks(self):
         """Loads settings and finds necessary files. Checks the setting file for errors."""
-        self.settings = self.get_settings(reset=False)
         QApplication.setEffectEnabled(Qt.UI_AnimateCombo, False)
+
+        self.file_handler = FileHandler()
+        self.settings = self.file_handler.load_settings()
+
         # Find resources.
         # Find youtube-dl
-        self.workDir = os.getcwd().replace('\\', '/')
-        self.youtube_dl_path = self.locate_program_path('youtube-dl.exe')
-        self.ffmpeg_path = self.locate_program_path('ffmpeg.exe')
-        self.program_workdir = self.get_program_working_directory().replace('\\', '/')
-        self.license_path = self.resource_path('LICENSE')
 
-        self.local_dl_path = ''.join([self.workDir, '/DL/'])
+        self.youtube_dl_path = self.file_handler.find_exe('youtube-dl.exe')
+        self.ffmpeg_path = self.file_handler.find_exe('ffmpeg.exe')
+        self.program_workdir = self.file_handler.work_dir
+        self.license_path = self.file_handler.find_file('LICENSE')
+
+        self.local_dl_path = ''.join([self.file_handler.work_dir, '/DL/'])
 
         self.validate_settings()
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
@@ -62,12 +65,13 @@ class GUI(QWidget):
         self.icon_list = []
 
         # Find icon paths
-        self.unchecked_icon = self.resource_path('GUI\\Icon_unchecked.ico').replace('\\', '/')
-        self.checked_icon = self.resource_path('GUI\\Icon_checked.ico').replace('\\', '/')
-        self.alert_icon = self.resource_path('GUI\\Alert.ico').replace('\\', '/')
-        self.window_icon = self.resource_path('GUI\\YTDLGUI.ico').replace('\\', '/')
-        self.down_arrow_icon = self.resource_path('GUI\\down-arrow2.ico').replace('\\', '/')
-        self.down_arrow_icon_clicked = self.resource_path('GUI\\down-arrow2-clicked.ico').replace('\\', '/')
+        self.unchecked_icon = self.file_handler.find_file('GUI\\Icon_unchecked.ico')
+        self.checked_icon = self.file_handler.find_file('GUI\\Icon_checked.ico')
+        self.alert_icon = self.file_handler.find_file('GUI\\Alert.ico')
+        self.window_icon = self.file_handler.find_file('GUI\\YTDLGUI.ico')
+        self.down_arrow_icon = self.file_handler.find_file('GUI\\down-arrow2.ico')
+        self.down_arrow_icon_clicked = self.file_handler.find_file('GUI\\down-arrow2-clicked.ico')
+
         # Adding icons to list. For debug purposes.
         self.icon_list.append(self.unchecked_icon)
         self.icon_list.append(self.checked_icon)
@@ -652,8 +656,6 @@ class GUI(QWidget):
             if result != QMessageBox.Yes:
                 return
 
-        self.settings['Profiles'][profile_name] = copy.deepcopy(self.settings['Settings'])
-
         self.tab1.profile_dropdown.blockSignals(True)
         self.tab1.profile_dropdown.setDisabled(False)
 
@@ -664,17 +666,20 @@ class GUI(QWidget):
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('Custom'))
         self.tab1.profile_dropdown.blockSignals(False)
 
+        self.settings['Profiles'][profile_name] = copy.deepcopy(self.settings['Settings'])
         self.settings['Other stuff']['current_profile'] = profile_name
 
-        self.write_setting(self.settings)
+        self.file_handler.save_settings(self.settings)
 
-    def load_profile(self, *args):
+    def load_profile(self):
         profile_name = self.tab1.profile_dropdown.currentText()
 
         if profile_name in ('None', 'Custom'):
             return
 
         self.settings['Settings'] = copy.deepcopy(self.settings['Profiles'][profile_name])
+        self.settings['Other stuff']['current_profile'] = profile_name
+
         options = {k: v for k, v in self.settings['Settings'].items() if k not in self.settings['Favorites']}
         favorites = {i: self.settings['Settings'][i] for i in self.settings['Favorites']}
 
@@ -686,7 +691,7 @@ class GUI(QWidget):
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('Custom'))
         self.tab1.profile_dropdown.blockSignals(False)
 
-        self.write_setting(self.settings)
+        self.file_handler.save_settings(self.settings)
 
     def delete_profile(self):
         index = self.tab1.profile_dropdown.currentIndex()
@@ -696,13 +701,14 @@ class GUI(QWidget):
 
         del self.settings['Profiles'][text]
         self.settings['Other stuff']['current_profile'] = ''
+
         self.tab1.profile_dropdown.blockSignals(True)
         self.tab1.profile_dropdown.removeItem(index)
         self.tab1.profile_dropdown.addItem('Custom')
         self.tab1.profile_dropdown.setCurrentText('Custom')
         self.tab1.profile_dropdown.blockSignals(False)
 
-        self.write_setting(self.settings)
+        self.file_handler.save_settings(self.settings)
 
     def item_removed(self, item: QTreeWidgetItem, index):
         """Parent who had child removed. Updates settings and numbering of data 35"""
@@ -712,7 +718,8 @@ class GUI(QWidget):
         if not item.childCount():
             item.setCheckState(0, Qt.Unchecked)
             self.need_parameters.append(item.data(0, 32))
-        self.write_setting(self.settings)
+
+        self.file_handler.save_settings(self.settings)
 
     def design_option_dialog(self, name, description):
         """
@@ -729,6 +736,7 @@ class GUI(QWidget):
         """
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
+
         elif '{}' in self.settings['Settings'][item.data(0, 32)]['command']:
 
             item.treeWidget().blockSignals(True)
@@ -747,6 +755,7 @@ class GUI(QWidget):
                 item.insertChild(0, move)
 
                 self.settings['Settings'][item.data(0, 32)]['options'].insert(0, parameter)
+
                 for i in range(len(self.settings['Settings'][item.data(0, 32)]['options'])):
                     item.child(i).setData(0, 35, i)
                     if i == 0:
@@ -759,7 +768,7 @@ class GUI(QWidget):
 
                 item.treeWidget().update_size()
 
-                self.write_setting(self.settings)
+                self.file_handler.save_settings(self.settings)
             item.treeWidget().blockSignals(False)
 
         else:
@@ -780,7 +789,8 @@ class GUI(QWidget):
             self.settings['Favorites'].append(item.data(0, 0))
         self.tab2_favorites.update_size()
         self.tab2_options.update_size()
-        self.write_setting(self.settings)
+
+        self.file_handler.save_settings(self.settings)
 
         if item.checkState(0) == Qt.Checked:
             item.setExpanded(True)
@@ -831,26 +841,25 @@ class GUI(QWidget):
 
     def download_name_handler(self):
         """ Formats download names and removes the naming string for ytdl. """
-        for item in (*self.tab2_options.topLevelItems(), *self.tab2_favorites.topLevelItems()):
-            if item.data(0, 32) == 'Download location':
-                item.treeWidget().blockSignals(True)
-                for number in range(item.childCount()):
-                    item.child(number).setData(0, 0, path_shortener(item.child(number).data(0, 0)))
-                    item.child(number).setToolTip(0, self.settings['Settings']['Download location']['options'][number])
-                if item.checkState(0) == Qt.Checked:
-                    for number in range(item.childCount()):
-                        if item.child(number).checkState(0) == Qt.Checked:
-                            self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
-                            break
-                    else:
-                        print('WARNING! No selected download item, this should not happen.... ')
-                        print('You messed with the settings... didn\'t you?!')
-                        # raise SettingsError('Error, no active option!')
-                else:
-                    self.tab2_download_lineedit.setText(path_shortener(self.local_dl_path))
-                    self.tab2_download_lineedit.setToolTip(self.local_dl_path)
-                item.treeWidget().blockSignals(False)
-                break
+        item = self.tab2_download_option
+
+        item.treeWidget().blockSignals(True)
+        for number in range(item.childCount()):
+            item.child(number).setData(0, 0, path_shortener(item.child(number).data(0, 0)))
+            item.child(number).setToolTip(0, self.settings['Settings']['Download location']['options'][number])
+        if item.checkState(0) == Qt.Checked:
+            for number in range(item.childCount()):
+                if item.child(number).checkState(0) == Qt.Checked:
+                    self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
+                    break
+            else:
+                print('WARNING! No selected download item, this should not happen.... ')
+                print('You messed with the settings... didn\'t you?!')
+                # raise SettingsError('Error, no active option!')
+        else:
+            self.tab2_download_lineedit.setText(path_shortener(self.local_dl_path))
+            self.tab2_download_lineedit.setToolTip(self.local_dl_path)
+        item.treeWidget().blockSignals(False)
 
     def find_download_widget(self):
         """ Finds the download widget. """
@@ -867,55 +876,56 @@ class GUI(QWidget):
         """ Handles the download options. """
         # Adds new dl location to the tree and settings. Removes oldest one, if there is more than 3.
         # Remove try/except later.
-        try:
-            item = self.tab2_download_option
-            if not full_path.endswith('/'):
-                full_path += '/'
-            short_path = path_shortener(full_path)
-            names = [item.child(i).data(0, 0) for i in range(item.childCount())]
 
-            if short_path in names and full_path in self.settings['Settings']['Download location']['options']:
-                self.alert_message('Warning', 'Option already exists!', '', question=False)
-                return
+        item = self.tab2_download_option
 
-            item.treeWidget().blockSignals(True)
+        if not full_path.endswith('/'):
+            full_path += '/'
+        short_path = path_shortener(full_path)
+        names = [item.child(i).data(0, 0) for i in range(item.childCount())]
 
-            sub = ParameterTree.make_option(name=full_path,
-                                            parent=item,
-                                            checkstate=False,
-                                            level=1,
-                                            tooltip=full_path,
-                                            dependency=None,
-                                            subindex=None)
-            sub.setData(0, 0, short_path)
-            # print('sorting enabled?', item.treeWidget().isSortingEnabled())
-            moving_sub = item.takeChild(item.indexOfChild(sub))
+        if short_path in names and full_path in self.settings['Settings']['Download location']['options']:
+            self.alert_message('Warning', 'Option already exists!', '', question=False)
+            return
 
-            item.insertChild(0, moving_sub)
+        item.treeWidget().blockSignals(True)
 
-            for number in range(item.childCount()):
-                item.child(number).setData(0, 35, number)
-                print(item.child(number).data(0, 0))
+        sub = ParameterTree.make_option(name=full_path,
+                                        parent=item,
+                                        checkstate=False,
+                                        level=1,
+                                        tooltip=full_path,
+                                        dependency=None,
+                                        subindex=None)
+        sub.setData(0, 0, short_path)
+        # print('sorting enabled?', item.treeWidget().isSortingEnabled())
 
-            if self.settings['Settings']['Download location']['options'] is None:
-                self.settings['Settings']['Download location']['options'] = [full_path]
-            else:
-                self.settings['Settings']['Download location']['options'].insert(0, full_path)
+        # Take item from one tree and insert in another.
+        moving_sub = item.takeChild(item.indexOfChild(sub))
+        item.insertChild(0, moving_sub)
 
-            item.treeWidget().update_size()
+        # Renumber the items, to give then the right index.
+        for number in range(item.childCount()):
+            item.child(number).setData(0, 35, number)
+            print(item.child(number).data(0, 0))
 
-            item.treeWidget().setSortingEnabled(True)
-            item.treeWidget().blockSignals(False)
+        if self.settings['Settings']['Download location']['options'] is None:
+            self.settings['Settings']['Download location']['options'] = [full_path]
+        else:
+            self.settings['Settings']['Download location']['options'].insert(0, full_path)
 
-            # self.tab2_download_lineedit.setText(location)
-            # self.tab2_download_lineedit.setToolTip(tooltip)
+        item.treeWidget().update_size()
 
-            item.setCheckState(0, Qt.Checked)
-            sub.setCheckState(0, Qt.Checked)
+        item.treeWidget().setSortingEnabled(True)
+        item.treeWidget().blockSignals(False)
 
-            self.write_setting(self.settings)
-        except Exception as error:
-            traceback.print_exc()
+        # self.tab2_download_lineedit.setText(location)
+        # self.tab2_download_lineedit.setToolTip(tooltip)
+
+        item.setCheckState(0, Qt.Checked)
+        sub.setCheckState(0, Qt.Checked)
+
+        self.file_handler.save_settings(self.settings)
 
     @staticmethod
     def resource_path(relative_path):
@@ -927,24 +937,6 @@ class GUI(QWidget):
             base_path = os.path.abspath(".")
 
         return os.path.join(base_path, relative_path)
-
-    @staticmethod
-    def get_settings(reset=False):
-        """ Reads settings, or writes them if absent, or if instructed to using reset. """
-        if reset:
-            settings = get_base_settings()
-            try:
-                with open('Settings.json', 'w') as f:
-                    json.dump(settings, f, indent=4, sort_keys=True)
-            except PermissionError:
-                QMessageBox.warning('Permission error for setting!')
-            return settings
-        else:
-            if os.path.isfile('Settings.json'):
-                with open('Settings.json', 'r') as f:
-                    return json.load(f)
-            else:
-                return GUI.get_settings(reset=True)
 
     def validate_settings(self):
         """ Checks the setttings for errors or missing data. """
@@ -968,7 +960,6 @@ class GUI(QWidget):
                 missing_settings[section] = []
 
         # Checks if any of the Other stuff options are gone.
-
 
         for setting, option in self.settings['Settings'].items():
             # setting: The name of the setting, like "Ignore errors"
@@ -1029,28 +1020,14 @@ class GUI(QWidget):
         except TypeError as error:
             raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
 
-        self.write_setting(self.settings)
+        self.file_handler.save_settings(self.settings)
 
-    def update_setting(self, diction: dict, section: str, key: str, value):
+    def update_setting(self, section: str, key: str, value):
         """Updates the specified settings in the settings, section, and key given.
         TODO: Remove need to pass the settings dictionary, since it's a instance variable.
         """
-
-        diction[section][key] = value
-        self.write_setting(diction)
-
-    def update_parameters(self, diction, setting, state):
-        """Changes the state of a setting to enabled/disabled."""
-        diction['Settings'][setting]['state'] = state
-        self.write_setting(diction)
-
-    def update_options(self, diction, setting, index):
-        """Sets the current index of a setting with an option.
-        TODO: Possibly check if the option has an mutliple options?
-        """
-        if setting in diction['Settings'].keys():
-            diction['Settings'][setting]['active option'] = index
-        self.write_setting(diction)
+        self.settings[section][key] = value
+        self.file_handler.save_settings(self.settings)
 
     def reset_settings(self):
         result = self.alert_message('Warning!',
@@ -1061,16 +1038,10 @@ class GUI(QWidget):
                                     question=True)
 
         if result == QMessageBox.Yes:
-            self.get_settings(reset=True)
-            qApp.exit(self.EXIT_CODE_REBOOT)
+            self.file_handler.load_settings(reset=True)
+            qApp.exit(GUI.EXIT_CODE_REBOOT)
 
-    @staticmethod
-    def write_setting(diction):
-        """Saves the settings to json file."""
-        with open('Settings.json', 'w') as f:
-            json.dump(diction, f, indent=4, sort_keys=True)
-
-    def parameter_updater(self, item: QTreeWidgetItem):
+    def parameter_updater(self, item: QTreeWidgetItem, col, save=True):
         """Handles updating the options for a parameter."""
         if 'Custom' != self.tab1.profile_dropdown.currentText():
             self.tab1.profile_dropdown.addItem('Custom')
@@ -1087,10 +1058,8 @@ class GUI(QWidget):
                     title = self.design_option_dialog(item.text(0), item.toolTip(0))
                     if title:
                         ParameterTree.make_option(title, item, True, 1, None, None, 0)
-
                         self.need_parameters.remove(item.data(0, 32))
-                        self.update_setting(self.settings['Settings'], item.data(0, 32), 'options', [title])
-
+                        self.settings['Settings'][item.data(0, 32)]['options'] = [title]
                     else:
                         item.setCheckState(0, Qt.Unchecked)
 
@@ -1100,53 +1069,55 @@ class GUI(QWidget):
                     item.treeWidget().blockSignals(True)
                     item.setCheckState(0, Qt.Unchecked)
                     item.treeWidget().blockSignals(False)
+
             if item.checkState(0) == Qt.Checked:
-                self.update_parameters(self.settings, item.data(0, 32), True)
+                self.settings['Settings'][item.data(0, 32)]['state'] = True
                 if item.data(0, 32) == 'Download location':
                     for i in range(item.childCount()):
-                        self.parameter_updater(item.child(i))
+                        self.parameter_updater(item.child(i), save=False)
+
             else:
-                self.update_parameters(self.settings, item.data(0, 32), False)
+                self.settings['Settings'][item.data(0, 32)]['state'] = False
                 if item.data(0, 32) == 'Download location':
                     self.tab2_download_lineedit.setText('DL')
                     self.tab2_download_lineedit.setToolTip('DL')
 
         elif item.data(0, 33) == 1:
-            self.update_options(self.settings, item.parent().data(0, 32), item.data(0, 35))
+            # Settings['Settings'][Name of setting]['active option']] = index of child
+            self.settings['Settings'][item.parent().data(0, 32)]['active option'] = item.data(0, 35)
             if item.parent().data(0, 32) == 'Download location':
                 if item.checkState(0) == Qt.Checked:
                     self.tab2_download_lineedit.setText(item.data(0, 0))
-                    print('item data 32', item.data(0, 32))
                     self.tab2_download_lineedit.setToolTip(item.data(0, 32).replace('%(title)s.%(ext)s', ''))
 
         elif item.data(0, 33) == 2:
             # Handles custom options.
-            # print('item is custom')
-            # print(str(item.data(0,0)))
-            # print(str(item.checkState(0) == Qt.Checked))
             if item.data(0, 0) in ('', ' '):
                 item.setData(0, 0, 'Custom command double click to change')
                 item.setCheckState(0, Qt.Unchecked)
             elif item.data(0, 0) in ('custom', 'Custom'):
                 item.setCheckState(0, Qt.Unchecked)
+
             self.settings['Other stuff']['custom']['command'] = item.data(0, 0)
             self.settings['Other stuff']['custom']['state'] = item.checkState(0) == Qt.Checked
-            self.write_setting(self.settings)
 
-    def locate_program_path(self, program):
-        """Used to find execuables."""
+        if save:
+            self.file_handler.save_settings(self.settings)
 
-        def is_exe(fpath):
-            return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return os.path.abspath(exe_file)
-        if os.path.isfile(program):
-            return os.path.join(self.workDir, program)
-        return None
+    # def locate_program_path(self, program):
+    #     """Used to find execuables."""
+    #
+    #     def is_exe(fpath):
+    #         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+    #
+    #     for path in os.environ["PATH"].split(os.pathsep):
+    #         path = path.strip('"')
+    #         exe_file = os.path.join(path, program)
+    #         if is_exe(exe_file):
+    #             return os.path.abspath(exe_file)
+    #     if os.path.isfile(program):
+    #         return os.path.join(self.workDir, program)
+    #     return None
 
     def dir_info(self):
 
@@ -1155,7 +1126,7 @@ class GUI(QWidget):
         debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
                  color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
                  color_text('Filedir:'), file_dir,
-                 color_text('Workdir:'), self.workDir,
+                 color_text('Workdir:'), os.getcwd(),
                  color_text('Youtube-dl working directory:'), self.program_workdir,
                  color_text('\nIcon paths:'), *self.icon_list]
 
@@ -1179,17 +1150,10 @@ class GUI(QWidget):
 
         self.main_tab.setCurrentIndex(0)
 
-    def get_program_working_directory(self):
-        try:
-            work_dir = sys._MEIPASS
-        except AttributeError:
-            work_dir = os.path.abspath('.')
-
-        return work_dir
-
     def update_youtube_dl(self):
         self.tab1.textbrowser.clear()
         self.main_tab.setCurrentIndex(0)
+
         download_item = Download(self.program_workdir, self.youtube_dl_path, ['-U', '--encoding', 'utf-8'], self)
         download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
         download_item.stateChanged.connect(self.program_state_changed)
@@ -1248,7 +1212,7 @@ class GUI(QWidget):
                                         caption='Select textfile with video links')[0]
         if location == '':
             pass
-        elif os.path.isfile(location):
+        elif self.file_handler.is_file(location):
             if not self.SAVED:
                 result = self.alert_message('Warning!',
                                             'Selecting new textfile,'
@@ -1257,16 +1221,19 @@ class GUI(QWidget):
                                             question=True)
 
                 if result == QMessageBox.Yes:
-                    self.update_setting(self.settings, 'Other stuff', 'multidl_txt', location)
+                    self.settings['Other stuff']['multidl_txt'] = location
                     self.tab4_txt_lineedit.setText(location)
                     self.SAVED = True
                     self.load_text_from_file()
 
+                    self.file_handler.save_settings(self.settings)
             else:
-                self.update_setting(self.settings, 'Other stuff', 'multidl_txt', location)
+                self.settings['Other stuff']['multidl_txt'] = location
                 self.tab4_txt_lineedit.setText(location)
                 self.SAVED = True
                 self.load_text_from_file()
+
+                self.file_handler.save_settings(self.settings)
         else:
             self.alert_message('Error!', 'Could not find file!', '')
             # Check if the checkbox is toggled, and disables the line edit if it is.
@@ -1306,7 +1273,7 @@ class GUI(QWidget):
             elif parameter == 'Keep archive':
                 if options['state']:
                     add = format_in_list(options['command'],
-                                         os.path.join(self.workDir, options['options'][options['active option']]))
+                                         os.path.join(os.getcwd(), options['options'][options['active option']]))
                     command += add
             else:
                 if options['state']:
@@ -1330,15 +1297,13 @@ class GUI(QWidget):
         download_item = Download(self.program_workdir, self.youtube_dl_path, command, self)
         download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
         download_item.stateChanged.connect(self.program_state_changed)
-        try:
-            self.tab1.start_btn.setDisabled(True)
-            self.queue.append(download_item)
-            self.queue_handler()
-        except Exception:
-            traceback.print_exc()
+
+        self.tab1.start_btn.setDisabled(True)
+        self.queue.append(download_item)
+        self.queue_handler()
 
     def stop_download(self):
-        if len(self.queue):
+        if self.queue:
             result = self.alert_message('Stop all?', 'Stop all pending downloads too?', '', True, True)
             if result == QMessageBox.Yes:
                 for i in self.queue:
@@ -1356,7 +1321,7 @@ class GUI(QWidget):
             if self.active_download is not None:
                 self.active_download.kill()
             else:
-                self.alert_message('Alert', 'stop was called withou without and active process!', '')
+                self.alert_message('Alert', 'stop was called without without an active process!', '')
 
     def cmdoutput(self, info):
         replace_dict = {
@@ -1437,15 +1402,17 @@ class GUI(QWidget):
 
     def load_text_from_file(self):
         if self.tab3_textedit.toPlainText() or (not self.tab3_saveButton.isEnabled()) or self.SAVED:
-            if os.path.isfile(self.settings['Other stuff']['multidl_txt']):
+            content = self.file_handler.read_textfile(self.settings['Other stuff']['multidl_txt'])
+            if content is not None:
                 self.tab3_textedit.clear()
-                with open(self.tab4_txt_lineedit.text(), 'r') as f:
-                    for line in f.readlines():
-                        self.tab3_textedit.append(line.strip())
+                for line in content.split():
+                    self.tab3_textedit.append(line.strip())
+
                 self.tab3_textedit.append('')
                 self.tab3_textedit.setFocus()
                 self.tab3_saveButton.setDisabled(True)
                 self.SAVED = True
+
             else:
                 if self.tab4_txt_lineedit.text() == '':
                     warning = 'No textfile selected!'
@@ -1468,9 +1435,8 @@ class GUI(QWidget):
     def save_text_to_file(self):
         # TODO: Do proper path check before trying to open file handler.
         if self.settings['Other stuff']['multidl_txt']:
-            with open(self.settings['Other stuff']['multidl_txt'], 'w') as f:
-                for line in self.tab3_textedit.toPlainText():
-                    f.write(line)
+            self.file_handler.write_textfile(self.settings['Other stuff']['multidl_txt'],
+                                             self.tab3_textedit.toPlainText())
             self.tab3_saveButton.setDisabled(True)
             self.SAVED = True
         else:
@@ -1482,11 +1448,10 @@ class GUI(QWidget):
             if result == QMessageBox.Yes:
                 save_path = QFileDialog.getSaveFileName(parent=self.main_tab, caption='Save as', filter='*.txt')
                 if not save_path[0] == '':
-
-                    with open(save_path[0], 'w') as f:
-                        for line in self.tab3_textedit.toPlainText():
-                            f.write(line)
-                    self.update_setting(self.settings, 'Other stuff', 'multidl_txt', save_path[0])
+                    self.file_handler.write_textfile(save_path[0],
+                                                     self.tab3_textedit.toPlainText())
+                    self.settings['Other stuff']['multidl_txt'] = save_path[0]
+                    self.file_handler.save_settings(self.settings)
 
                     self.tab4_txt_lineedit.setText(self.settings['Other stuff']['multidl_txt'])
                     self.tab3_saveButton.setDisabled(True)
@@ -1526,7 +1491,7 @@ class GUI(QWidget):
             self.sendClose.emit()
         else:
             result = self.alert_message('Unsaved changes in list!',
-                                        'Save?',
+                                        'The download list has unsaved changes!',
                                         'Do you want to save before exiting?',
                                         question=True,
                                         allow_cancel=True)
