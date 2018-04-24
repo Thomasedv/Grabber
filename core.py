@@ -1504,11 +1504,12 @@ class GUI(QWidget):
                 self.sendClose.emit()
 
     def read_license(self):
+        # TODO: Refactor code, keep string for UI out of code.
         if not self.license_shown:
             self.tab4_abouttext_textedit.clear()
-            with open(self.license_path, 'r') as f:
-                for line in f.readlines():
-                    self.tab4_abouttext_textedit.append(line.strip())
+            content = self.file_handler.read_textfile(self.license_path)
+            self.tab4_abouttext_textedit.append(content)
+
             self.license_shown = True
         else:
             self.tab4_abouttext_textedit.setText('In-development (on my free time) version of a Youtube-dl GUI. \n'
