@@ -6,6 +6,9 @@ Utilities for Grabber.
 def path_shortener(full_path: str):
     """ Formats a path to a shorter version, for cleaner UI."""
 
+    # Convert to standard style, use / not \\
+    full_path = full_path.replace('\\', '/')
+
     if full_path[-1] != '/':
         full_path = ''.join([full_path, '/'])
 

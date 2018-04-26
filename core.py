@@ -23,6 +23,10 @@ class GUI(QWidget):
     sendClose = pyqtSignal()
     EXIT_CODE_REBOOT = -123456789
 
+    # TODO: Move to QMainWindow, to take advantage of status bar at top/bottom.
+    # TODO: Create more modern square stylesheet, as well as keep the current one with rounded corners in style.
+    # TODO: Remove red text on the profilewidget disabled state. Also tune style.
+
     def __init__(self):
         """
         GUI that wraps a youtube-dl.exe to download videos and more.
@@ -1003,7 +1007,7 @@ class GUI(QWidget):
 
         if not self.settings['Settings']['Download location']['options']:
             # Checks for a download setting, set the current path to that.
-            self.settings['Settings']['Download location']['options'] = [self.workDir + '/DL/']
+            self.settings['Settings']['Download location']['options'] = [self.file_handler.work_dir + '/DL/']
 
         try:
             # Checks if the active option is valid, if not reset to the first item.
@@ -1126,7 +1130,7 @@ class GUI(QWidget):
         debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
                  color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
                  color_text('Filedir:'), file_dir,
-                 color_text('Workdir:'), os.getcwd(),
+                 color_text('Workdir:'), self.file_handler.work_dir,
                  color_text('Youtube-dl working directory:'), self.program_workdir,
                  color_text('\nIcon paths:'), *self.icon_list]
 
@@ -1478,7 +1482,7 @@ class GUI(QWidget):
         self.SAVED = False
 
     def confirm(self):
-        if self.RUNNING or len(self.queue):
+        if self.RUNNING or self.queue:
             result = self.alert_message('Want to quit?',
                                         'Still downloading!',
                                         'Do you want to close without letting youtube-dl finish? '

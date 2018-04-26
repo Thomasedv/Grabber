@@ -7,10 +7,17 @@ from .utilities import get_base_settings
 
 
 class FileHandler:
+    """
+    A class to handle finding/loading/saving to files. So, IO operations.
+    """
 
     def __init__(self, settings='settings.json'):
         self.settings_path = settings
         self.work_dir = os.getcwd()
+
+        # TODO: Perform saving in a thread
+        # TODO: implement a timed save, to avoid multiple saves a second.
+        # For example at intervals 5, 10 or 20 seconds.
 
     def find_file(self, relative_path, exist=True):
         """ Get absolute path to resource, works for dev and for PyInstaller """
