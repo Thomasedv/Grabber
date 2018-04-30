@@ -542,7 +542,10 @@ class GUI(MainWindow):
                                     outline-width: 0px;
                                     selection-background-color: blue;
                                 }}      
-
+                                QTreeView::branch {{
+                                    border-image: none;    
+                                }}
+                                
                                 QTreeWidget::item {{
                                     height: 16px;
                                 }}
@@ -588,7 +591,7 @@ class GUI(MainWindow):
                                     background: none;
                                 }}                        
                                 QComboBox::disabled {{
-                                    color: red;
+                                    color: #303030;
                                 }}
 
                                 """
