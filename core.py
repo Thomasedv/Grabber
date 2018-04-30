@@ -9,14 +9,14 @@ from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
     QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
-    QFrame, QDialog, QApplication, QMessageBox
+    QFrame, QDialog, QApplication, QMessageBox, QTabWidget
 
-from Modules import Dialog, Download, MainTab, ParameterTree, Tabwidget
+from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError
 
 
-class GUI(QWidget):
+class GUI(MainWindow):
     """
     Runnable class that makes a wrapper for youtube-dl.
     """
@@ -122,9 +122,10 @@ class GUI(QWidget):
 
         ### Main widget. This will be the ones that holds everything.
         ## Create top level tab widget system for the UI.
-        self.main_tab = Tabwidget()
-        self.main_tab.onclose.connect(self.confirm)
-        self.sendClose.connect(self.main_tab.closeE)
+        self.main_tab = QTabWidget(self)
+
+        self.onclose.connect(self.confirm)
+        self.sendClose.connect(self.closeE)
 
         ## Connecting stuff for tab 1.
 
@@ -396,10 +397,7 @@ class GUI(QWidget):
 
         ### Future tab creation here! Currently 4 tabs already.
 
-        ## TEST TAB ##
-        if __name__ == '__main__':
-            # Only shows if core.py is run, not when main.py is.
-            pass
+
         self.style = f"""
                                 QWidget {{
                                     background-color: #484848;
@@ -594,6 +592,213 @@ class GUI(QWidget):
                                 }}
 
                                 """
+
+        self.new_style = f"""
+                                QWidget {{
+                                    background-color: #484848;
+                                    color: white;
+                                }}
+                                QMainWindow {{
+                                    background-color: #303030;
+                                    color: red;
+                                }}
+                                
+                                QMenu::separator {{
+                                    height: 2px;
+                                }}
+                                QFrame#line {{
+                                    color: #303030;
+                                }}
+
+                                QTabWidget::pane {{
+                                    border: none;
+                                }}
+
+                                QMenu::item {{
+                                    border: none;
+                                    padding: 3px 20px 3px 5px
+                                }}
+
+                                QMenu {{
+                                    border: 1px solid #303030;
+                                }}
+
+                                QMenu::item:selected {{
+                                    background-color: #303030;
+                                }}
+
+                                QMenu::item:disabled {{
+                                    color: #808080;
+                                }}
+
+                                QTabWidget {{
+                                    background-color: #303030;
+                                }}
+
+                                QTabBar {{
+                                    
+                                    background-color: #313131;
+                                }}
+
+                                QTabBar::tab {{
+                                    color: rgb(186,186,186);
+                                    background-color: #606060;
+                                    border-bottom: none;
+                                    border-left: 1px solid #484848;
+                                    min-width: 15ex;
+                                    min-height: 7ex;
+                                }}
+
+                                QTabBar::tab:selected {{
+                                    color: white;
+                                    background-color: #484848;
+                                }}
+                                QTabBar::tab:!selected {{
+                                    margin-top: 6px;
+                                }}
+
+                                QTabWidget::tab-bar {{
+                                    border-top: 1px solid #505050;
+                                    color: red;
+                                    background-color: red;
+                                }}
+
+                                QLineEdit {{
+                                    background-color: #303030;
+                                    color: rgb(186,186,186);
+                                    border-radius: 0px;
+                                    padding: 0 3px;
+                                }}
+                                
+                                QLineEdit:disabled {{
+                                    background-color: #303030;
+                                    color: #505050;
+                                    border-radius: none;
+                                }}
+                                
+                                QTextEdit {{
+                                    background-color: #484848;
+                                    color: rgb(186,186,186);
+                                    border: red solid 1px;
+                                }}
+
+                                QTextEdit#TextFileEdit {{
+                                    background-color: #303030;
+                                    color: rgb(186,186,186);
+                                    border: red solid 1px;
+                                    border-radius: 2px;
+                                }}
+                                
+                                QScrollBar::vertical {{
+                                    border: none;
+                                    background-color: rgba(255,255,255,0);
+                                    width: 10px;
+                                    margin: 0px 0px 1px 0px;
+                                }}
+
+                                QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
+                                    border: none;
+                                    background: none;
+                                }}
+
+                                QScrollBar::handle:vertical {{
+                                    background: #303030;
+                                    color: red;
+                                    min-height: 20px;
+                                    border-radius: 5px;
+                                }}
+
+                                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
+                                    background: none;
+                                }}
+
+                                QPushButton {{
+                                    background-color: #303030;
+                                    color: white;
+                                    border: 1px solid transparent;
+                                    border-radius: none;
+                                    width: 60px;
+                                    height: 20px;
+                                }}
+
+                                QPushButton:disabled {{
+                                    border: 1px solid #303030;
+                                    background-color: transparent;
+                                    color: #757575;
+                                }}
+                                
+                                QPushButton:pressed {{
+                                    background-color: #101010;
+                                    color: white;
+                                }}
+
+                                QCheckBox::indicator:unchecked {{
+                                    image: url({self.unchecked_icon});
+                                }}
+
+                                QCheckBox::indicator:checked {{
+                                    image: url({self.checked_icon});
+                                }}
+
+                                QTreeWidget {{
+                                    selection-color: red;
+                                    border: none;
+                                    outline: none;
+                                    outline-width: 0px;
+                                    selection-background-color: blue;
+                                }}      
+
+                                QTreeWidget::item {{
+                                    height: 16px;
+                                }}
+
+                                QTreeWidget::item:disabled {{
+                                    color: grey;
+                                }}
+
+                                QTreeWidget::item:hover, QTreeWidget::item:selected {{
+                                    background-color: transparent;
+                                    color: white;
+                                }}
+
+                                QTreeWidget::indicator:checked {{
+                                    image: url({self.checked_icon});
+                                }}
+                                QTreeWidget::indicator:unchecked {{
+                                    image: url({self.unchecked_icon});
+                                }}
+
+                                QComboBox {{
+                                    border: 1px solid #303030;
+                                    border-radius: 0px;
+                                    background-color: #303030;
+                                    color: rgb(186,186,186);
+                                    padding-right: 5px;
+                                    padding-left: 5px;
+                                }}
+                                
+                                QComboBox::down-arrow {{
+                                    border-image: url({self.down_arrow_icon});
+                                    height: {self.tab1.profile_dropdown.iconSize().height()}px;
+                                    width: {self.tab1.profile_dropdown.iconSize().width()}px;
+                                }}
+
+                                QComboBox::down-arrow::on {{
+                                    image: url({self.down_arrow_icon_clicked});
+                                    height: {self.tab1.profile_dropdown.iconSize().height()}px;
+                                    width: {self.tab1.profile_dropdown.iconSize().width()}px;
+                                    
+                                }}
+                                QComboBox::drop-down {{
+                                    border: 0px;
+                                    background: none;
+                                }}                        
+                                
+                                QComboBox::disabled {{
+                                    color: red;
+                                }}
+                                """
+
         ### Configuration main widget.
         # Adds tabs to the tab widget, and names the tabs.
         self.main_tab.addTab(self.tab1, 'Main')
@@ -601,16 +806,16 @@ class GUI(QWidget):
         self.main_tab.addTab(self.tab3, 'List')
         self.main_tab.addTab(self.tab4, 'About')
         # Sets the styling for the GUI, everything from buttons to anything. ##
-        self.main_tab.setStyleSheet(self.style)
+        self.setStyleSheet(self.new_style)
         # Set window title.
-        self.main_tab.setWindowTitle('Grabber')
-        self.main_tab.setWindowIcon(self.windowIcon)
+        self.setWindowTitle('Grabber')
+        self.setWindowIcon(self.windowIcon)
         # Set base size.
-        self.main_tab.setMinimumWidth(340)
-        self.main_tab.setMinimumHeight(200)
+        self.setMinimumWidth(340)
+        self.setMinimumHeight(200)
 
         if self.settings['Other stuff']['select_on_focus']:
-            self.main_tab.gotfocus.connect(self.window_focus_event)
+            self.gotfocus.connect(self.window_focus_event)
         else:
             self.tab1.lineedit.setFocus()
 
@@ -634,9 +839,14 @@ class GUI(QWidget):
         # Ensures widets are in correct state at startup and when tab1.lineedit is changed.
         self.allow_start()
         # Shows the main window.
-        self.main_tab.show()
+        self.setCentralWidget(self.main_tab)
+
+        self.show()
+
+        # self.main_tab.show() # Old method.
+
         # Connect after show!!
-        self.main_tab.resizedByUser.connect(self.resize_contents)
+        self.resizedByUser.connect(self.resize_contents)
         # To make sure the window is updated on first enter
         # if resized before tab2 is shown, i'll be blank.
         self.main_tab.currentChanged.connect(self.resize_contents)
