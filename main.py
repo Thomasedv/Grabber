@@ -1,7 +1,11 @@
-import sys
 import json
-from core import GUI, SettingsError, QMessageBox
-from PyQt5.QtWidgets import QApplication
+import sys
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMessageBox
+
+from core import GUI
+from utils.utilities import SettingsError
 
 
 def main():
@@ -13,19 +17,25 @@ def main():
             EXIT_CODE = app.exec_()
             app = None
 
-            if not (EXIT_CODE == GUI.EXIT_CODE_REBOOT):
-                break
+            if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
+                continue
 
         except (SettingsError, json.decoder.JSONDecodeError) as e:
             warning = QMessageBox.warning(None,
                                           'Corrupt settings',
-                                          ''.join([str(e),'\nRestore default settings?']),
+                                          ''.join([str(e), '\nRestore default settings?']),
                                           buttons=QMessageBox.Yes | QMessageBox.No)
             if warning == QMessageBox.Yes:
-                GUI.write_default_settings(True)
+                GUI.get_settings(True)
                 app = None
                 continue
-            break
+
+        break
+
 
 if __name__ == '__main__':
+    # TODO: Test on high DPI screen.
+    # TODO: Get a high DPI screen...
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     main()
