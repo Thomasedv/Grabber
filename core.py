@@ -137,7 +137,7 @@ class GUI(MainWindow):
         # Stop button kills the process, aka youtube-dl.
         self.tab1.stop_btn.clicked.connect(self.stop_download)
         # Close button closes the window/process.
-        self.tab1.close_btn.clicked.connect(self.main_tab.close)
+        self.tab1.close_btn.clicked.connect(self.close)
         # When the check button is checked or unchecked, calls function checked.
         self.tab1.checkbox.stateChanged.connect(self.allow_start)
         # Connects actions to text changes and adds action to when you press Enter.
@@ -1011,7 +1011,7 @@ class GUI(MainWindow):
 
         else:
             self.alert_message('Error!', 'The specified option does not take arguments!', None)
-            print('Doesn\'t have an option')
+            # print('Doesn\'t have an option')
 
     def move_item(self, item: QTreeWidgetItem, favorite: bool):
         """ Move an time to or from the favorites tree. """
@@ -1039,8 +1039,8 @@ class GUI(MainWindow):
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""
 
-        size = self.main_tab.height() - (self.frame.height() + self.tab2_download_lineedit.height()
-                                         + self.tab2_favlabel.height() + self.main_tab.tabBar().height() + 40)
+        size = self.height() - (self.frame.height() + self.tab2_download_lineedit.height()
+                                + self.tab2_favlabel.height() + self.main_tab.tabBar().height() + 40)
         ParameterTree.max_size = size
         self.tab2_options.setFixedHeight(size)
         self.tab2_favorites.setFixedHeight(size)
@@ -1091,6 +1091,7 @@ class GUI(MainWindow):
                     self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
                     break
             else:
+                # TODO: Add error handling here
                 print('WARNING! No selected download item, this should not happen.... ')
                 print('You messed with the settings... didn\'t you?!')
                 # raise SettingsError('Error, no active option!')
@@ -1145,7 +1146,7 @@ class GUI(MainWindow):
         # Renumber the items, to give then the right index.
         for number in range(item.childCount()):
             item.child(number).setData(0, 35, number)
-            print(item.child(number).data(0, 0))
+            # print(item.child(number).data(0, 0))
 
         if self.settings['Settings']['Download location']['options'] is None:
             self.settings['Settings']['Download location']['options'] = [full_path]

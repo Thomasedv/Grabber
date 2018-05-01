@@ -81,6 +81,7 @@ base_settings['Favorites'] = []
 base_settings['Settings'] = {}
 base_settings['Other stuff'] = {
     'multidl_txt': '',
+    'current_profile': '',
     'select_on_focus': True,
     'show_collapse_arrows': False,
     'custom': {

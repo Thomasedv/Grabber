@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import traceback
 
 from .utilities import get_base_settings
 
@@ -31,14 +30,14 @@ class FileHandler:
 
         if exist:
             if self.is_file(path):
-                print(f'Returning existing path: {path}')
+                # print(f'Returning existing path: {path}')
                 return path
             else:
-                print(f'No found: {relative_path}')
+                # print(f'No found: {relative_path}')
                 return None
 
         else:
-            print(f'Returning path: {path}')
+            # print(f'Returning path: {path}')
             return path
 
     def save_settings(self, settings):
@@ -48,9 +47,9 @@ class FileHandler:
                 return True
         except (OSError, IOError) as e:
             # TODO: Logging!
-            print('Failed to save settings!')
-            print(f'Error given:\n{e}')
-            traceback.print_exc()
+            # print('Failed to save settings!')
+            # print(f'Error given:\n{e}')
+            # traceback.print_exc()
             return False
 
     def load_settings(self, reset=False):
@@ -76,13 +75,13 @@ class FileHandler:
             path = path.strip('"')
             exe_file = os.path.join(path, program)
             if self.is_file(exe_file):
-                print(f'Returning existing exe: {os.path.abspath(exe_file)}')
+                # print(f'Returning existing exe: {os.path.abspath(exe_file)}')
                 return os.path.abspath(exe_file)
         # TODO: Check if not covered by path above!
         if os.path.isfile(program):
-            print(f'Returning existing isfile exe: {os.path.join(self.work_dir, program)}')
+            # print(f'Returning existing isfile exe: {os.path.join(self.work_dir, program)}')
             return os.path.join(self.work_dir, program)
-        print(f'No found: {program}')
+        # print(f'No found: {program}')
         return None
 
     def read_textfile(self, path):
