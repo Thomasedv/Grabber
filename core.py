@@ -175,6 +175,7 @@ class GUI(MainWindow):
             # Should not be reachable anymore!
             self.tab2_download_lineedit.setText('DL')
             self.tab2_download_lineedit.setToolTip('Default download location.')
+        self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
 
         # Sets up the parameter tree.
         self.tab2_options = ParameterTree(options)
@@ -182,8 +183,6 @@ class GUI(MainWindow):
         self.tab2_favorites.favorite = True
 
         self.tab2_download_option = self.find_download_widget()
-        self.custom_option()
-        self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
 
         if self.settings['Other stuff']['show_collapse_arrows']:
             self.tab2_options.setRootIsDecorated(True)
@@ -279,6 +278,9 @@ class GUI(MainWindow):
 
         self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
         self.tab2_save_profile_btn.clicked.connect(self.save_profile)
+
+        # Creates custom option.
+        self.custom_option()
 
         ### Tab 3.
 
@@ -975,12 +977,18 @@ class GUI(MainWindow):
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
 
+        # TODO: Standardise setting an parameter to checked, and updating to expanded state.
         elif '{}' in self.settings['Settings'][item.data(0, 32)]['command']:
 
             item.treeWidget().blockSignals(True)
             parameter = self.design_option_dialog(item.text(0), item.toolTip(0))
 
             if parameter:
+                if parameter in self.settings['Settings'][item.data(0, 32)]['options']:
+                    self.alert_message('Error', 'That option already exsists!', '')
+                    item.treeWidget().blockSignals(False)
+                    return
+
                 new_option = ParameterTree.make_option(parameter.strip(),
                                                        item,
                                                        True,
@@ -997,16 +1005,18 @@ class GUI(MainWindow):
                 for i in range(len(self.settings['Settings'][item.data(0, 32)]['options'])):
                     item.child(i).setData(0, 35, i)
                     if i == 0:
-
                         item.child(i).setCheckState(0, Qt.Checked)
                         item.child(i).setFlags(item.flags() ^ Qt.ItemIsUserCheckable)
                     else:
                         item.child(i).setCheckState(0, Qt.Unchecked)
                         item.child(i).setFlags(item.flags() | Qt.ItemIsUserCheckable)
 
+                item.setCheckState(0, Qt.Checked)
+                item.setExpanded(True)
                 item.treeWidget().update_size()
 
                 self.file_handler.save_settings(self.settings)
+
             item.treeWidget().blockSignals(False)
 
         else:
@@ -1160,6 +1170,7 @@ class GUI(MainWindow):
 
         # self.tab2_download_lineedit.setText(location)
         # self.tab2_download_lineedit.setToolTip(tooltip)
+        self.need_parameters.remove(item.data(0, 0))
 
         item.setCheckState(0, Qt.Checked)
         sub.setCheckState(0, Qt.Checked)
@@ -1275,7 +1286,7 @@ class GUI(MainWindow):
             self.file_handler.load_settings(reset=True)
             qApp.exit(GUI.EXIT_CODE_REBOOT)
 
-    def parameter_updater(self, item: QTreeWidgetItem, col, save=True):
+    def parameter_updater(self, item: QTreeWidgetItem, col=None, save=True):
         """Handles updating the options for a parameter."""
         if 'Custom' != self.tab1.profile_dropdown.currentText():
             self.tab1.profile_dropdown.addItem('Custom')
@@ -1286,23 +1297,13 @@ class GUI(MainWindow):
             if item.data(0, 32) in self.need_parameters:
                 result = self.alert_message('Warning!', 'This parameter needs an option!', 'There are no options!\n'
                                                                                            'Would you make one?', True)
+
+                item.treeWidget().blockSignals(True)
+                item.setCheckState(0, Qt.Unchecked)
+                item.treeWidget().blockSignals(False)
+
                 if result == QMessageBox.Yes:
-                    item.treeWidget().blockSignals(True)
-
-                    title = self.design_option_dialog(item.text(0), item.toolTip(0))
-                    if title:
-                        ParameterTree.make_option(title, item, True, 1, None, None, 0)
-                        self.need_parameters.remove(item.data(0, 32))
-                        self.settings['Settings'][item.data(0, 32)]['options'] = [title]
-                    else:
-                        item.setCheckState(0, Qt.Unchecked)
-
-                    item.treeWidget().blockSignals(False)
-
-                else:
-                    item.treeWidget().blockSignals(True)
-                    item.setCheckState(0, Qt.Unchecked)
-                    item.treeWidget().blockSignals(False)
+                    self.add_option(item)
 
             if item.checkState(0) == Qt.Checked:
                 self.settings['Settings'][item.data(0, 32)]['state'] = True
@@ -1318,6 +1319,7 @@ class GUI(MainWindow):
 
         elif item.data(0, 33) == 1:
             # Settings['Settings'][Name of setting]['active option']] = index of child
+            print('asd')
             self.settings['Settings'][item.parent().data(0, 32)]['active option'] = item.data(0, 35)
             if item.parent().data(0, 32) == 'Download location':
                 if item.checkState(0) == Qt.Checked:
@@ -1519,7 +1521,7 @@ class GUI(MainWindow):
 
         if self.settings['Other stuff']['custom']['state']:
             if self.settings['Other stuff']['custom']['command'] not in (
-                    'Custom command double click to change', 'Custom'):
+                    'Custom command double click to change', 'Custom', ''):
                 command += self.settings['Other stuff']['custom']['command'].split()
 
         # Sets encoding to utf-8, allowing better character support in output stream.
@@ -1693,7 +1695,7 @@ class GUI(MainWindow):
 
     def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
 
-        warning_window = QMessageBox(parent=self.main_tab)
+        warning_window = QMessageBox(parent=self)
         warning_window.setText(text)
         warning_window.setIcon(QMessageBox.Warning)
         warning_window.setWindowTitle(title)
