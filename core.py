@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTex
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from utils.filehandler import FileHandler
-from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError
+from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError, get_base_setting
 
 
 class GUI(MainWindow):
@@ -147,16 +147,14 @@ class GUI(MainWindow):
         self.tab1.profile_dropdown.currentTextChanged.connect(self.load_profile)
         self.tab1.profile_dropdown.deleteItem.connect(self.delete_profile)
 
-        self.tab1.save_profile = QPushButton('Save P')
-        self.tab1.save_profile.clicked.connect(self.save_profile)
-        self.tab1.QH.addWidget(self.tab1.save_profile)
-
-
         ### Tab 2
         #  Building widget tab 2.
 
         # Button for browsing download location.
         self.tab2_browse_btn = QPushButton('Browse')
+
+        self.tab2_save_profile_btn = QPushButton('Save Profile')
+        self.tab2_save_profile_btn.resize(self.tab2_save_profile_btn.sizeHint())
 
         # Label for the lineEdit.
         self.tab2_download_label = QLabel('Download to:')
@@ -185,8 +183,14 @@ class GUI(MainWindow):
 
         self.tab2_download_option = self.find_download_widget()
         self.custom_option()
-
         self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
+
+        if self.settings['Other stuff']['show_collapse_arrows']:
+            self.tab2_options.setRootIsDecorated(True)
+            self.tab2_favorites.setRootIsDecorated(True)
+        else:
+            self.tab2_options.setRootIsDecorated(False)
+            self.tab2_favorites.setRootIsDecorated(False)
 
         # Menu creation for tab2_download_lineedit
         menu = QMenu()
@@ -209,7 +213,7 @@ class GUI(MainWindow):
         self.tab2_QH.addWidget(self.tab2_download_label)
         self.tab2_QH.addWidget(self.tab2_download_lineedit)
         self.tab2_QH.addWidget(self.tab2_browse_btn)
-
+        self.tab2_QH.addWidget(self.tab2_save_profile_btn)
         # Vertical layout creation
         self.tab2_QV = QVBoxLayout()
         # Adds the dl layout to the vertical one.
@@ -274,6 +278,7 @@ class GUI(MainWindow):
         self.tab2_favorites.addOption.connect(self.add_option)
 
         self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
+        self.tab2_save_profile_btn.clicked.connect(self.save_profile)
 
         ### Tab 3.
 
@@ -397,204 +402,203 @@ class GUI(MainWindow):
 
         ### Future tab creation here! Currently 4 tabs already.
 
-
-        self.style = f"""
-                                QWidget {{
-                                    background-color: #484848;
-                                    color: white;
-                                }}
-                                QMenu::separator {{
-                                    height: 2px;
-                                }}
-                                QFrame#line {{
-                                    color: #303030;
-                                }}
-
-                                QTabWidget::pane {{
-                                    border: none;
-                                }}
-
-                                QMenu::item {{
-                                    border: none;
-                                    padding: 3px 20px 3px 5px
-                                }}
-
-                                QMenu {{
-                                    border: 1px solid #303030;
-                                }}
-
-                                QMenu::item:selected {{
-                                    background-color: #303030;
-                                }}
-
-                                QMenu::item:disabled {{
-                                    color: #808080;
-                                }}
-
-                                QTabWidget {{
-                                    background-color: #303030;
-                                }}
-
-                                QTabBar {{
-                                    background-color: #313131;
-                                }}
-
-                                QTabBar::tab {{
-                                    color: rgb(186,186,186);
-                                    background-color: #606060;
-                                    border-bottom: none;
-                                    border-left: 1px solid #484848;
-                                    min-width: 15ex;
-                                    min-height: 7ex;
-                                }}
-
-                                QTabBar::tab:selected {{
-                                    color: white;
-                                    background-color: #484848;
-                                }}
-                                QTabBar::tab:!selected {{
-                                    margin-top: 6px;
-                                }}
-
-                                QTabWidget::tab-bar {{
-                                    border-top: 1px solid #505050;
-                                }}
-
-                                QLineEdit {{
-                                    background-color: #303030;
-                                    color: rgb(186,186,186);
-                                    border-radius: 5px;
-                                    padding: 0 3px;
-
-                                }}
-                                QLineEdit:disabled {{
-                                    background-color: #303030;
-                                    color: #505050;
-                                    border-radius: 5px;
-                                }}
-
-                                QTextEdit {{
-                                    background-color: #484848;
-                                    color: rgb(186,186,186);
-                                    border: none;
-                                }}
-
-                                QTextEdit#TextFileEdit {{
-                                    background-color: #303030;
-                                    color: rgb(186,186,186);
-                                    border-radius: 5px;
-                                }}
-
-                                QScrollBar:vertical {{
-                                    border: none;
-                                    background-color: rgba(255,255,255,0);
-                                    width: 10px;
-                                    margin: 0px 0px 1px 0px;
-                                }}
-
-                                QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
-                                    border: none;
-                                    background: none;
-                                }}
-
-                                QScrollBar::handle:vertical {{
-                                    background: #303030;
-                                    color: red;
-                                    min-height: 20px;
-                                    border-radius: 5px;
-                                }}
-
-                                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
-                                    background: none;
-                                }}
-
-                                QPushButton {{
-                                    background-color: #303030;
-                                    color: white;
-                                    border: 1px solid transparent;
-                                    border-radius: 5px;
-                                    width: 60px;
-                                    height: 20px;
-                                }}
-
-                                QPushButton:disabled {{
-                                    border: 1px solid #303030;
-                                    background-color: transparent;
-                                    color: #303030;
-                                }}
-                                QPushButton:pressed {{
-                                    background-color: #101010;
-                                    color: white;
-                                }}
-
-                                QCheckBox::indicator:unchecked {{
-                                    image: url({self.unchecked_icon});
-                                }}
-
-                                QCheckBox::indicator:checked {{
-                                    image: url({self.checked_icon});
-                                }}
-
-                                QTreeWidget {{
-                                    selection-color: red;
-                                    border: none;
-                                    outline: none;
-                                    outline-width: 0px;
-                                    selection-background-color: blue;
-                                }}      
-                                QTreeView::branch {{
-                                    border-image: none;    
-                                }}
-                                
-                                QTreeWidget::item {{
-                                    height: 16px;
-                                }}
-
-                                QTreeWidget::item:disabled {{
-                                    color: grey;
-                                }}
-
-                                QTreeWidget::item:hover, QTreeWidget::item:selected {{
-                                    background-color: transparent;
-                                    color: white;
-                                }}
-
-                                QTreeWidget::indicator:checked {{
-                                    image: url({self.checked_icon});
-                                }}
-                                QTreeWidget::indicator:unchecked {{
-                                    image: url({self.unchecked_icon});
-                                }}
-
-                                QComboBox {{
-                                    border: 1px solid #303030;
-                                    border-radius: 5px;
-                                    color: rgb(186,186,186);
-                                    padding-right: 5px;
-                                    padding-left: 5px;
-                                }}
-                                
-                                QComboBox::down-arrow {{
-                                    border-image: url({self.down_arrow_icon});
-                                    height: {self.tab1.profile_dropdown.iconSize().height()}px;
-                                    width: {self.tab1.profile_dropdown.iconSize().width()}px;
-                                }}
-
-                                QComboBox::down-arrow::on {{
-                                    image: url({self.down_arrow_icon_clicked});
-                                    height: {self.tab1.profile_dropdown.iconSize().height()}px;
-                                    width: {self.tab1.profile_dropdown.iconSize().width()}px;
-                                    
-                                }}
-                                QComboBox::drop-down {{
-                                    border: 0px;
-                                    background: none;
-                                }}                        
-                                QComboBox::disabled {{
-                                    color: #303030;
-                                }}
-
-                                """
+        # self.style = f"""
+        #                         QWidget {{
+        #                             background-color: #484848;
+        #                             color: white;
+        #                         }}
+        #                         QMenu::separator {{
+        #                             height: 2px;
+        #                         }}
+        #                         QFrame#line {{
+        #                             color: #303030;
+        #                         }}
+        #
+        #                         QTabWidget::pane {{
+        #                             border: none;
+        #                         }}
+        #
+        #                         QMenu::item {{
+        #                             border: none;
+        #                             padding: 3px 20px 3px 5px
+        #                         }}
+        #
+        #                         QMenu {{
+        #                             border: 1px solid #303030;
+        #                         }}
+        #
+        #                         QMenu::item:selected {{
+        #                             background-color: #303030;
+        #                         }}
+        #
+        #                         QMenu::item:disabled {{
+        #                             color: #808080;
+        #                         }}
+        #
+        #                         QTabWidget {{
+        #                             background-color: #303030;
+        #                         }}
+        #
+        #                         QTabBar {{
+        #                             background-color: #313131;
+        #                         }}
+        #
+        #                         QTabBar::tab {{
+        #                             color: rgb(186,186,186);
+        #                             background-color: #606060;
+        #                             border-bottom: none;
+        #                             border-left: 1px solid #484848;
+        #                             min-width: 15ex;
+        #                             min-height: 7ex;
+        #                         }}
+        #
+        #                         QTabBar::tab:selected {{
+        #                             color: white;
+        #                             background-color: #484848;
+        #                         }}
+        #                         QTabBar::tab:!selected {{
+        #                             margin-top: 6px;
+        #                         }}
+        #
+        #                         QTabWidget::tab-bar {{
+        #                             border-top: 1px solid #505050;
+        #                         }}
+        #
+        #                         QLineEdit {{
+        #                             background-color: #303030;
+        #                             color: rgb(186,186,186);
+        #                             border-radius: 5px;
+        #                             padding: 0 3px;
+        #
+        #                         }}
+        #                         QLineEdit:disabled {{
+        #                             background-color: #303030;
+        #                             color: #505050;
+        #                             border-radius: 5px;
+        #                         }}
+        #
+        #                         QTextEdit {{
+        #                             background-color: #484848;
+        #                             color: rgb(186,186,186);
+        #                             border: none;
+        #                         }}
+        #
+        #                         QTextEdit#TextFileEdit {{
+        #                             background-color: #303030;
+        #                             color: rgb(186,186,186);
+        #                             border-radius: 5px;
+        #                         }}
+        #
+        #                         QScrollBar:vertical {{
+        #                             border: none;
+        #                             background-color: rgba(255,255,255,0);
+        #                             width: 10px;
+        #                             margin: 0px 0px 1px 0px;
+        #                         }}
+        #
+        #                         QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
+        #                             border: none;
+        #                             background: none;
+        #                         }}
+        #
+        #                         QScrollBar::handle:vertical {{
+        #                             background: #303030;
+        #                             color: red;
+        #                             min-height: 20px;
+        #                             border-radius: 5px;
+        #                         }}
+        #
+        #                         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
+        #                             background: none;
+        #                         }}
+        #
+        #                         QPushButton {{
+        #                             background-color: #303030;
+        #                             color: white;
+        #                             border: 1px solid transparent;
+        #                             border-radius: 5px;
+        #                             width: 60px;
+        #                             height: 20px;
+        #                         }}
+        #
+        #                         QPushButton:disabled {{
+        #                             border: 1px solid #303030;
+        #                             background-color: transparent;
+        #                             color: #303030;
+        #                         }}
+        #                         QPushButton:pressed {{
+        #                             background-color: #101010;
+        #                             color: white;
+        #                         }}
+        #
+        #                         QCheckBox::indicator:unchecked {{
+        #                             image: url({self.unchecked_icon});
+        #                         }}
+        #
+        #                         QCheckBox::indicator:checked {{
+        #                             image: url({self.checked_icon});
+        #                         }}
+        #
+        #                         QTreeWidget {{
+        #                             selection-color: red;
+        #                             border: none;
+        #                             outline: none;
+        #                             outline-width: 0px;
+        #                             selection-background-color: blue;
+        #                         }}
+        #                         QTreeWdiget::branch {{
+        #                             border-image: none;
+        #                         }}
+        #
+        #                         QTreeWidget::item {{
+        #                             height: 16px;
+        #                         }}
+        #
+        #                         QTreeWidget::item:disabled {{
+        #                             color: grey;
+        #                         }}
+        #
+        #                         QTreeWidget::item:hover, QTreeWidget::item:selected {{
+        #                             background-color: transparent;
+        #                             color: white;
+        #                         }}
+        #
+        #                         QTreeWidget::indicator:checked {{
+        #                             image: url({self.checked_icon});
+        #                         }}
+        #                         QTreeWidget::indicator:unchecked {{
+        #                             image: url({self.unchecked_icon});
+        #                         }}
+        #
+        #                         QComboBox {{
+        #                             border: 1px solid #303030;
+        #                             border-radius: 5px;
+        #                             color: rgb(186,186,186);
+        #                             padding-right: 5px;
+        #                             padding-left: 5px;
+        #                         }}
+        #
+        #                         QComboBox::down-arrow {{
+        #                             border-image: url({self.down_arrow_icon});
+        #                             height: {self.tab1.profile_dropdown.iconSize().height()}px;
+        #                             width: {self.tab1.profile_dropdown.iconSize().width()}px;
+        #                         }}
+        #
+        #                         QComboBox::down-arrow::on {{
+        #                             image: url({self.down_arrow_icon_clicked});
+        #                             height: {self.tab1.profile_dropdown.iconSize().height()}px;
+        #                             width: {self.tab1.profile_dropdown.iconSize().width()}px;
+        #
+        #                         }}
+        #                         QComboBox::drop-down {{
+        #                             border: 0px;
+        #                             background: none;
+        #                         }}
+        #                         QComboBox::disabled {{
+        #                             color: #303030;
+        #                         }}
+        #
+        #                         """
 
         self.new_style = f"""
                                 QWidget {{
@@ -750,7 +754,23 @@ class GUI(MainWindow):
                                     outline-width: 0px;
                                     selection-background-color: blue;
                                 }}      
-
+                                
+                                QTreeWidget::branch {{
+                                    border-image: none 0;    
+                                }}
+                                
+                                QTreeWidget::branch:has-siblings:!adjoins-item {{
+                                    border-image: none 0;
+                                }}
+                                
+                                QTreeWidget::branch:has-siblings:adjoins-item {{
+                                    border-image: none 0;
+                                }}
+                                
+                                QTreeWidget::branch:!has-children:!has-siblings:adjoins-item {{
+                                    border-image: none 0;
+                                }}
+                                
                                 QTreeWidget::item {{
                                     height: 16px;
                                 }}
@@ -798,7 +818,7 @@ class GUI(MainWindow):
                                 }}                        
                                 
                                 QComboBox::disabled {{
-                                    color: red;
+                                    color: #484848;
                                 }}
                                 """
 
@@ -843,6 +863,7 @@ class GUI(MainWindow):
         self.allow_start()
         # Shows the main window.
         self.setCentralWidget(self.main_tab)
+
 
         self.show()
 
@@ -1214,9 +1235,10 @@ class GUI(MainWindow):
                                              else f"{key}" for key, value in missing_settings.items()],
                                            '-' * 20]))
 
-        for key in ['select_on_focus', 'multidl_txt', 'current_profile']:
+        # TODO: Use get_base_setting to replace missing options or corrupt ones.
+        for key in ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows']:
             if key not in self.settings['Other stuff']:
-                self.settings['Other stuff'][key] = ''
+                self.settings['Other stuff'][key] = get_base_setting('Other stuff', key)
 
         if not self.settings['Settings']['Download location']['options']:
             # Checks for a download setting, set the current path to that.
@@ -1224,6 +1246,7 @@ class GUI(MainWindow):
 
         try:
             # Checks if the active option is valid, if not reset to the first item.
+            # TODO: Refactor to look better, items, and possibly replace the long references with value['something']
             for setting in self.settings['Settings'].keys():
                 if self.settings['Settings'][setting]['options'] is not None:
                     # Check if active option is a valid number.
@@ -1237,13 +1260,6 @@ class GUI(MainWindow):
         except TypeError as error:
             raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
 
-        self.file_handler.save_settings(self.settings)
-
-    def update_setting(self, section: str, key: str, value):
-        """Updates the specified settings in the settings, section, and key given.
-        TODO: Remove need to pass the settings dictionary, since it's a instance variable.
-        """
-        self.settings[section][key] = value
         self.file_handler.save_settings(self.settings)
 
     def reset_settings(self):
