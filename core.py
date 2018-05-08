@@ -401,7 +401,7 @@ class GUI(MainWindow):
         self.tab4_test_btn.clicked.connect(self.reset_settings)
         self.tab4_license_btn.clicked.connect(self.read_license)
         self.tab4_txt_location_btn.clicked.connect(self.textfile_dialog)
-
+        # TODO: Clean up this old style format. Save somewhere useful.
         ### Future tab creation here! Currently 4 tabs already.
 
         # self.style = f"""
@@ -866,7 +866,6 @@ class GUI(MainWindow):
         # Shows the main window.
         self.setCentralWidget(self.main_tab)
 
-
         self.show()
 
         # self.main_tab.show() # Old method.
@@ -1319,7 +1318,6 @@ class GUI(MainWindow):
 
         elif item.data(0, 33) == 1:
             # Settings['Settings'][Name of setting]['active option']] = index of child
-            print('asd')
             self.settings['Settings'][item.parent().data(0, 32)]['active option'] = item.data(0, 35)
             if item.parent().data(0, 32) == 'Download location':
                 if item.checkState(0) == Qt.Checked:
@@ -1714,6 +1712,10 @@ class GUI(MainWindow):
         self.SAVED = False
 
     def confirm(self):
+        # Ensures that the settings are saved properly before exiting!
+        self.file_handler.force_save = True
+        self.file_handler.save_settings(self.settings)
+
         if self.RUNNING or self.queue:
             result = self.alert_message('Want to quit?',
                                         'Still downloading!',
@@ -1724,6 +1726,7 @@ class GUI(MainWindow):
                 return None
 
         if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
+
             self.sendClose.emit()
         else:
             result = self.alert_message('Unsaved changes in list!',
