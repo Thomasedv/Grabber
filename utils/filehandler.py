@@ -24,6 +24,7 @@ def threaded(func):
      This decorator requires being used in an instance which has a threadpool instance.
      """
     cooldown_time = {}
+
     timer = QTimer()
     timer.setInterval(5000)
     timer.setSingleShot(True)
@@ -34,10 +35,10 @@ def threaded(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-
         timer = cooldown_time[func.__name__]
 
         worker = Task(func, self, *args, **kwargs)
+
         if timer.receivers(timer.timeout):
             timer.disconnect()
 
@@ -45,6 +46,7 @@ def threaded(func):
             timer.stop()
             self.threadpool.start(worker)
             self.threadpool.waitForDone()
+            return
 
         if timer.isActive():
             # TODO: Find a way to make sure saving happens when the user closes the program.

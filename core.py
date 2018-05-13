@@ -1713,8 +1713,6 @@ class GUI(MainWindow):
 
     def confirm(self):
         # Ensures that the settings are saved properly before exiting!
-        self.file_handler.force_save = True
-        self.file_handler.save_settings(self.settings)
 
         if self.RUNNING or self.queue:
             result = self.alert_message('Want to quit?',
@@ -1726,8 +1724,12 @@ class GUI(MainWindow):
                 return None
 
         if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
+            self.file_handler.force_save = True
+            self.file_handler.save_settings(self.settings)
 
+            self.hide()
             self.sendClose.emit()
+
         else:
             result = self.alert_message('Unsaved changes in list!',
                                         'The download list has unsaved changes!',
@@ -1736,10 +1738,19 @@ class GUI(MainWindow):
                                         allow_cancel=True)
             if result == QMessageBox.Yes:
                 self.save_text_to_file()
+
+                self.file_handler.force_save = True
+                self.file_handler.save_settings(self.settings)
+                self.hide()
                 self.sendClose.emit()
+
             elif result == QMessageBox.Cancel:
-                pass
+                return
+
             else:
+                self.file_handler.force_save = True
+                self.file_handler.save_settings(self.settings)
+                self.hide()
                 self.sendClose.emit()
 
     def read_license(self):
