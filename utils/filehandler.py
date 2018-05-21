@@ -9,7 +9,7 @@ from .task import Task
 from .utilities import get_base_settings
 
 
-def threaded(func):
+def threaded_cooldown(func):
     """ A decorator that makes it so the decorate function will run
      in a thread, but prevents the same function from being rerun for a given time.
      After give time, the last call not performed will be executed.
@@ -30,12 +30,12 @@ def threaded(func):
     timer.setSingleShot(True)
     timer.setTimerType(Qt.VeryCoarseTimer)
 
-    if func.__name__ not in cooldown_time:
-        cooldown_time[func.__name__] = timer
+    if id(func) not in cooldown_time:
+        cooldown_time[id(func)] = timer
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        timer = cooldown_time[func.__name__]
+        timer = cooldown_time[id(func)]
 
         worker = Task(func, self, *args, **kwargs)
 
@@ -49,8 +49,6 @@ def threaded(func):
             return
 
         if timer.isActive():
-            # TODO: Find a way to make sure saving happens when the user closes the program.
-
             timer.timeout.connect(partial(self.threadpool.start, worker))
             timer.start()
             return
@@ -62,6 +60,7 @@ def threaded(func):
     return wrapper
 
 
+# TODO: Introduce threaded saving, without the timer. For things the user manually saves.
 class FileHandler:
     """
     A class to handle finding/loading/saving to files. So, IO operations.
@@ -100,7 +99,7 @@ class FileHandler:
             # print(f'Returning path: {path}')
             return path
 
-    @threaded
+    @threaded_cooldown
     def save_settings(self, settings):
         try:
             with open(self.settings_path, 'w') as f:

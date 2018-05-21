@@ -36,5 +36,5 @@ Current to do list:
 * Add general error handling when stuff goes wrong, especially read/write errors if there are some. 
 * ~~Upload first release executable. (Built with PyInstaller)~~ Done!
 * Learn to do testing...
-* Add hide fram taskbar. (So only a icon in bottom right corner, potentially pop-up when done downloading.) 
+* Add hide from taskbar. (So only a icon in bottom right corner, potentially pop-up when done downloading.)
 * Add custom profiles. 

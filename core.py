@@ -25,8 +25,6 @@ class GUI(MainWindow):
     EXIT_CODE_REBOOT = -123456789
 
     # TODO: Move to QMainWindow, to take advantage of status bar at top/bottom.
-    # TODO: Create more modern square stylesheet, as well as keep the current one with rounded corners in style.
-    # TODO: Remove red text on the profilewidget disabled state. Also tune style.
 
     def __init__(self):
         """
@@ -402,7 +400,7 @@ class GUI(MainWindow):
         self.tab4_test_btn.clicked.connect(self.reset_settings)
         self.tab4_license_btn.clicked.connect(self.read_license)
         self.tab4_txt_location_btn.clicked.connect(self.textfile_dialog)
-        # TODO: Clean up this old style format. Save somewhere useful.
+
         ### Future tab creation here! Currently 4 tabs already.
 
         self.style_with_options = f"""
@@ -1256,7 +1254,7 @@ class GUI(MainWindow):
                 self.SAVED = True
 
             else:
-                if self.tab4_txt_lineedit.text() == '':
+                if self.tab4_txt_lineedit.text():
                     warning = 'No textfile selected!'
                 else:
                     warning = 'Could not find file!'
@@ -1289,7 +1287,7 @@ class GUI(MainWindow):
 
             if result == QMessageBox.Yes:
                 save_path = QFileDialog.getSaveFileName(parent=self.main_tab, caption='Save as', filter='*.txt')
-                if not save_path[0] == '':
+                if not save_path[0]:
                     self.file_handler.write_textfile(save_path[0],
                                                      self.tab3_textedit.toPlainText())
                     self.settings['Other stuff']['multidl_txt'] = save_path[0]
