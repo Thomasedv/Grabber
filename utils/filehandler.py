@@ -30,8 +30,7 @@ def threaded_cooldown(func):
     timer.setSingleShot(True)
     timer.setTimerType(Qt.VeryCoarseTimer)
 
-    if id(func) not in cooldown_time:
-        cooldown_time[id(func)] = timer
+    cooldown_time[id(func)] = timer
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
