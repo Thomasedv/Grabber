@@ -34,6 +34,13 @@ def threaded_cooldown(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
+
+        if not hasattr(self, 'threadpool'):
+            raise AttributeError(f'{self.__class__.__name__} instance does not have a threadpool attribute.')
+
+        if not hasattr(self, 'force_save'):
+            raise AttributeError(f'{self.__class__.__name__} instance does not have a force_save attribute.')
+
         timer = cooldown_time[id(func)]
 
         worker = Task(func, self, *args, **kwargs)
@@ -59,13 +66,34 @@ def threaded_cooldown(func):
     return wrapper
 
 
-# TODO: Introduce threaded saving, without the timer. For things the user manually saves.
+def threaded(func):
+    """
+    Gives a function to a Task object, and then gives it to a thraed for execuution,
+    to avoid using the main loop.
+    """
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not hasattr(self, 'threadpool'):
+            raise AttributeError(f'{self.__class__.__name__} instance does not have a threadpool attribute.')
+
+        worker = Task(func, self, *args, **kwargs)
+
+        self.threadpool.start(worker)
+        return
+
+    return wrapper
+
 class FileHandler:
     """
     A class to handle finding/loading/saving to files. So, IO operations.
     """
 
+    # TODO: Implement logging, since returned values from threaded functions are discarded.
+    # Need to know if errors hanppen!
+
     def __init__(self, settings='settings.json'):
+
         self.settings_path = settings
         self.work_dir = os.getcwd()
 
@@ -157,14 +185,16 @@ class FileHandler:
         else:
             return None
 
+    @threaded
     def write_textfile(self, path, content):
-
         if self.is_file(path):
             try:
                 with open(path, 'w') as f:
                     f.write(content)
                 return True
             except (OSError, IOError) as e:
+                print('Error! ', e)
                 return False
         else:
+            print('Error!')
             return False

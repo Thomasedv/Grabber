@@ -457,6 +457,10 @@ class GUI(MainWindow):
         self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3_textedit)
         self.shortcut.activated.connect(self.tab3_saveButton.click)
 
+        # TODO: Hook up to button, or change output to somewhere the user can get it.
+        self.trigger_queue_print = QShortcut(QKeySequence('Ctrl+P'), self)
+        self.trigger_queue_print.activated.connect(self.print_queue)
+
         # Check for youtube
         if self.youtube_dl_path is None:
             self.tab4_update_btn.setDisabled(True)
@@ -514,12 +518,32 @@ class GUI(MainWindow):
 
         self.file_handler.save_settings(self.settings)
 
+    def get_current_setting(self, setting: str):
+        """
+        Retrieves the current setting from self.settings, and the active option if the setting has one.
+        """
+        _setting_dict = self.settings['Settings'][setting]
+
+        state = _setting_dict['state']
+
+        if '{}' in _setting_dict['command']:
+            option = _setting_dict['options'][_setting_dict['active option']]
+        else:
+            option = None
+
+        return state, option
+
+    def set_current_setting(self, setting, state):
+        # TODO: Refactor code to change settings with get/set current setting options.
+        pass
+
     def load_profile(self):
         profile_name = self.tab1.profile_dropdown.currentText()
 
         if profile_name in ('None', 'Custom'):
             return
-
+        # TODO: Instead of completely replacing the Settingsdict, maybe update it.
+        # TODO: Make sure download location is kept between profiles, for easier use of profiles.
         self.settings['Settings'] = copy.deepcopy(self.settings['Profiles'][profile_name])
         self.settings['Other stuff']['current_profile'] = profile_name
 
@@ -528,6 +552,12 @@ class GUI(MainWindow):
 
         self.tab2_options.load_profile(options)
         self.tab2_favorites.load_profile(favorites)
+
+        # Update Download_lineeit in tab2.
+        state, option = self.get_current_setting('Download location')
+
+        self.tab2_download_lineedit.setText(path_shortener(option) if state else 'DLs')
+        self.tab2_download_lineedit.setToolTip(option if state else 'DLs')
 
         self.tab1.profile_dropdown.blockSignals(True)
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('None'))
@@ -775,12 +805,21 @@ class GUI(MainWindow):
 
         # self.tab2_download_lineedit.setText(location)
         # self.tab2_download_lineedit.setToolTip(tooltip)
-        self.need_parameters.remove(item.data(0, 0))
+        try:
+            self.need_parameters.remove(item.data(0, 0))
+        except ValueError:
+            pass
 
         item.setCheckState(0, Qt.Checked)
         sub.setCheckState(0, Qt.Checked)
 
         self.file_handler.save_settings(self.settings)
+
+    def print_queue(self):
+        self.tab1.textbrowser.append('Active process: ' +
+                                     str(self.active_download.commands if self.active_download is not None else None))
+        for process in self.queue:
+            self.tab1.textbrowser.append(str(process.commands))
 
     @staticmethod
     def resource_path(relative_path):
@@ -928,7 +967,7 @@ class GUI(MainWindow):
             if item.parent().data(0, 32) == 'Download location':
                 if item.checkState(0) == Qt.Checked:
                     self.tab2_download_lineedit.setText(item.data(0, 0))
-                    self.tab2_download_lineedit.setToolTip(item.data(0, 32).replace('%(title)s.%(ext)s', ''))
+                    self.tab2_download_lineedit.setToolTip(item.data(0, 32))
 
         elif item.data(0, 33) == 2:
             # Handles custom options.
@@ -943,21 +982,6 @@ class GUI(MainWindow):
 
         if save:
             self.file_handler.save_settings(self.settings)
-
-    # def locate_program_path(self, program):
-    #     """Used to find execuables."""
-    #
-    #     def is_exe(fpath):
-    #         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-    #
-    #     for path in os.environ["PATH"].split(os.pathsep):
-    #         path = path.strip('"')
-    #         exe_file = os.path.join(path, program)
-    #         if is_exe(exe_file):
-    #             return os.path.abspath(exe_file)
-    #     if os.path.isfile(program):
-    #         return os.path.join(self.workDir, program)
-    #     return None
 
     def dir_info(self):
 
@@ -1002,6 +1026,12 @@ class GUI(MainWindow):
         self.queue.append(download_item)
         self.queue_handler()
 
+    def restart_current_downlaod(self):
+        # TODO: Trigger this make trigger for restarting download!
+        self.tab1.textbrowser.append(color_text('Restarting download!', weight='normal'))
+        self.active_download.kill()
+        self.active_download.start()
+
     def queue_handler(self, process_finished=False):
         if not self.RUNNING or process_finished:
             if self.queue:
@@ -1018,6 +1048,7 @@ class GUI(MainWindow):
                 self.set_running(True)
             else:
                 self.set_running(False)
+                self.active_download = None
                 self.tab1.textbrowser.append(f'Error count: '
                                              f'{self.Errors if self.Errors ==0 else color_text(str(self.Errors),"darkorange","bold")}.')
                 self.Errors = 0
@@ -1041,10 +1072,14 @@ class GUI(MainWindow):
 
     def savefile_dialog(self):
         location = QFileDialog.getExistingDirectory(parent=self.main_tab)
+
         if location == '':
             pass
         elif os.path.exists(location):
             self.download_option_handler(location)
+        else:
+            self.alert_message('Error', 'Could not find the specified folder.'
+                                        '\nReport this on githib if it keeps happening.')
 
     def textfile_dialog(self):
         location = \
@@ -1200,7 +1235,7 @@ class GUI(MainWindow):
         last_line = self.tab1.textbrowser.textCursor().selectedText()
 
         # Check if a percentage has already been placed.
-        if "%" in last_line and 'ETA' in last_line:
+        if "%" in last_line and 'ETA' in last_line and "%" in text:
             self.tab1.textbrowser.textCursor().removeSelectedText()
             self.tab1.textbrowser.textCursor().deletePreviousChar()
             # Last line of text
@@ -1212,7 +1247,7 @@ class GUI(MainWindow):
                 self.tab1.textbrowser.append('')
 
         else:
-            if "%" in text and 'ETA' in text:
+            if ("%" in text and 'ETA' in text) or '100% of ' in text:
                 # Last line of text
                 self.tab1.textbrowser.append(color_text(text.split("[download]")[-1][1:],
                                                         color='lawngreen',
@@ -1220,6 +1255,7 @@ class GUI(MainWindow):
                                                         sections=(0, 5)))
             elif '[download]' in text:
                 self.tab1.textbrowser.append(''.join([text.replace('[download] ', ''), '\n']))
+
             else:
                 self.tab1.textbrowser.append(''.join([text, '\n']))
 
@@ -1273,12 +1309,14 @@ class GUI(MainWindow):
                     self.load_text_from_file()
 
     def save_text_to_file(self):
-        # TODO: Do proper path check before trying to open file handler.
+        # TODO: Implement Ctrl+L for loading of files.
         if self.settings['Other stuff']['multidl_txt']:
             self.file_handler.write_textfile(self.settings['Other stuff']['multidl_txt'],
                                              self.tab3_textedit.toPlainText())
+
             self.tab3_saveButton.setDisabled(True)
             self.SAVED = True
+
         else:
             result = self.alert_message('Warning!',
                                         'No textfile selected!',
