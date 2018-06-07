@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTex
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError, get_base_setting, \
-    stylesheet
+    stylesheet, get_win_accent_color
 
 
 class GUI(MainWindow):
@@ -402,8 +402,21 @@ class GUI(MainWindow):
         self.tab4_txt_location_btn.clicked.connect(self.textfile_dialog)
 
         ### Future tab creation here! Currently 4 tabs already.
+        if self.settings['Other stuff']['use_win_accent']:
+            try:
+                bg_color = get_win_accent_color()
+            except (OSError, PermissionError):
+                bg_color = '#303030'
+        else:
+            bg_color = '#303030'
 
         self.style_with_options = f"""
+                                QMainWindow {{
+                                    background-color: {bg_color};
+                                }}
+                                QTabBar {{
+                                    background-color: {bg_color};
+                                }}
                                 QCheckBox::indicator:unchecked {{
                                     image: url({self.unchecked_icon});
                                 }}
@@ -892,7 +905,7 @@ class GUI(MainWindow):
                                            '-' * 20]))
 
         # TODO: Use get_base_setting to replace missing options or corrupt ones.
-        for key in ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows']:
+        for key in ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows', 'use_win_accent']:
             if key not in self.settings['Other stuff']:
                 self.settings['Other stuff'][key] = get_base_setting('Other stuff', key)
 

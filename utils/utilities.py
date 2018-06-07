@@ -2,7 +2,7 @@
 Utilities for Grabber.
 """
 import copy
-
+from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
 def path_shortener(full_path: str):
     """ Formats a path to a shorter version, for cleaner UI."""
@@ -74,6 +74,23 @@ class SettingsError(Exception):
 
 class ArgumentError(Exception):
     pass
+
+
+def get_win_accent_color():
+    """
+    Return the Windows 10 accent color used by the user in a HEX format
+    """
+    # Open the registry
+    registry = ConnectRegistry(None, HKEY_CURRENT_USER)
+    key = OpenKey(registry, r'Software\Microsoft\Windows\DWM')
+    key_value = QueryValueEx(key, 'AccentColor')
+    accent_int = key_value[0]
+    accent_hex = hex(accent_int)  # Remove FF offset and convert to HEX again
+    accent_hex = str(accent_hex)[4:]  # Remove prefix and suffix
+
+    accent = accent_hex[4:6] + accent_hex[2:4] + accent_hex[0:2]
+
+    return '#' + accent
 
 
 stylesheet = f"""
@@ -282,6 +299,7 @@ base_settings['Other stuff'] = {
     'current_profile': '',
     'select_on_focus': True,
     'show_collapse_arrows': False,
+    'use_win_accent': False,
     'custom': {
         "command": "Custom",
         "state": False,
