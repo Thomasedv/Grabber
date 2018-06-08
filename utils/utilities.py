@@ -512,7 +512,7 @@ base_settings['Settings']['Retry rate'] = {
     "active option": 0,
     "command": "--retries {}",
     "dependency": None,
-    "options": ['Implement later', 10, 15],
+    "options": [10, 15],
     "state": False,
     "tooltip": "Number of retries (default is 10), or \"infinite\"."
 }
@@ -604,7 +604,7 @@ base_settings['Settings']['Video format'] = {
     "active option": 0,
     "command": "--format {}",
     "dependency": None,
-    "options": ["Implement later"],
+    "options": [],
     "state": False,
     "tooltip": "Video format code."
 }
