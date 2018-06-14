@@ -23,14 +23,11 @@ def threaded_cooldown(func):
 
      This decorator requires being used in an instance which has a threadpool instance.
      """
-    cooldown_time = {}
 
     timer = QTimer()
     timer.setInterval(5000)
     timer.setSingleShot(True)
     timer.setTimerType(Qt.VeryCoarseTimer)
-
-    cooldown_time[id(func)] = timer
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -40,8 +37,6 @@ def threaded_cooldown(func):
 
         if not hasattr(self, 'force_save'):
             raise AttributeError(f'{self.__class__.__name__} instance does not have a force_save attribute.')
-
-        timer = cooldown_time[id(func)]
 
         worker = Task(func, self, *args, **kwargs)
 
@@ -83,6 +78,7 @@ def threaded(func):
         return
 
     return wrapper
+
 
 class FileHandler:
     """
