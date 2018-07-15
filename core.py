@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTex
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from utils.filehandler import FileHandler
-from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError, get_base_setting, \
+from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_base_setting, \
     stylesheet, get_win_accent_color
 
 
@@ -23,8 +23,6 @@ class GUI(MainWindow):
     """
     sendClose = pyqtSignal()
     EXIT_CODE_REBOOT = -123456789
-
-    # TODO: Move to QMainWindow, to take advantage of status bar at top/bottom.
 
     def __init__(self):
         """
@@ -1053,7 +1051,7 @@ class GUI(MainWindow):
                 self.active_download = download
                 try:
                     download.start_dl()
-                except ArgumentError:
+                except TypeError:
                     self.Errors += 1
                     self.tab1.textbrowser.append(color_text('DOWNLOAD FAILED!\nYuotube-dl is missing!\n'))
                     return self.queue_handler(process_finished=True)

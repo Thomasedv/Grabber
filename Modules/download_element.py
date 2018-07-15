@@ -1,7 +1,5 @@
 from PyQt5.QtCore import QProcess
 
-from utils.utilities import ArgumentError
-
 
 class Download(QProcess):
     def __init__(self, working_dir: str, program_path: str, commands: list, parent=None):
@@ -18,7 +16,7 @@ class Download(QProcess):
 
     def start_dl(self):
         if self.program_path is None:
-            raise ArgumentError()
+            raise TypeError('Missing youtube-dl path.')
 
         self.start(self.program_path, self.commands)
 
