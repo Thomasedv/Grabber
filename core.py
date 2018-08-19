@@ -674,18 +674,19 @@ class GUI(MainWindow):
 
     def move_item(self, item: QTreeWidgetItem, favorite: bool):
         """ Move an time to or from the favorites tree. """
-        # print(favorite)
-        self.blockSignals(True)
+
         if favorite:
-            self.tab2_options.addTopLevelItem(item)
-            # print('remove')
+            tree = self.tab2_options
             self.settings['Favorites'].remove(item.data(0, 0))
         else:
-            # print(favorite)
-            self.tab2_favorites.addTopLevelItem(item)
+            tree = self.tab2_favorites
             self.settings['Favorites'].append(item.data(0, 0))
-        self.tab2_favorites.update_size()
+
+        tree.blockSignals(True)
+        tree.addTopLevelItem(item)
+
         self.tab2_options.update_size()
+        self.tab2_favorites.update_size()
 
         self.file_handler.save_settings(self.settings)
 
@@ -693,7 +694,8 @@ class GUI(MainWindow):
             item.setExpanded(True)
         else:
             item.setExpanded(False)
-        self.blockSignals(False)
+
+        tree.blockSignals(False)
 
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""

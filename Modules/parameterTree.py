@@ -38,6 +38,7 @@ class ParameterTree(QTreeWidget):
         # self.setHeaderHidden(True)
         self.setRootIsDecorated(False)
         self.setHeaderHidden(True)
+        # self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenu)
 
@@ -119,7 +120,9 @@ class ParameterTree(QTreeWidget):
         self.update_size()
 
     def move_widget(self, item: QTreeWidgetItem):
+        self.blockSignals(True)
         taken_item = self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+        self.blockSignals(False)
         self.move_request.emit(taken_item, self.favorite)
 
     def load_profile(self, profile: dict):

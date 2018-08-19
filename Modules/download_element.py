@@ -19,6 +19,9 @@ class Download(QProcess):
     def start_dl(self):
         if self.program_path is None:
             raise ArgumentError()
+        # TODO: Handler errors with starting youtube-dl
+
+        self.errorOccurred.connect(lambda: print('error', self.error()))
 
         self.start(self.program_path, self.commands)
 
