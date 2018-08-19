@@ -72,10 +72,6 @@ class SettingsError(Exception):
     pass
 
 
-class ArgumentError(Exception):
-    pass
-
-
 def get_win_accent_color():
     """
     Return the Windows 10 accent color used by the user in a HEX format
