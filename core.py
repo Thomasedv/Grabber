@@ -278,7 +278,7 @@ class GUI(MainWindow):
         self.tab2_save_profile_btn.clicked.connect(self.save_profile)
 
         # Creates custom option.
-        self.custom_option()
+        # self.custom_option()
 
         ### Tab 3.
 
@@ -565,11 +565,13 @@ class GUI(MainWindow):
         self.tab2_options.load_profile(options)
         self.tab2_favorites.load_profile(favorites)
 
-        # Update Download_lineeit in tab2.
-        state, option = self.get_current_setting('Download location') # Use this method more?!
+        self.download_name_handler()
 
-        self.tab2_download_lineedit.setText(path_shortener(option) if state else 'DLs')
-        self.tab2_download_lineedit.setToolTip(option if state else 'DLs')
+        # Update Download_lineeit in tab2.
+        # state, option = self.get_current_setting('Download location') # Use this method more?!
+        #
+        # self.tab2_download_lineedit.setText(path_shortener(option) if state else 'DLs')
+        # self.tab2_download_lineedit.setToolTip(option if state else 'DLs')
 
         self.tab1.profile_dropdown.blockSignals(True)
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('None'))
