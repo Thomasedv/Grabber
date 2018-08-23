@@ -554,6 +554,7 @@ class GUI(MainWindow):
 
         if profile_name in ('None', 'Custom'):
             return
+
         # TODO: Instead of completely replacing the Settingsdict, maybe update it.
         # TODO: Make sure download location is kept between profiles, for easier use of profiles.
         self.settings['Settings'] = copy.deepcopy(self.settings['Profiles'][profile_name])
@@ -565,13 +566,8 @@ class GUI(MainWindow):
         self.tab2_options.load_profile(options)
         self.tab2_favorites.load_profile(favorites)
 
+        self.tab2_download_option = self.find_download_widget()
         self.download_name_handler()
-
-        # Update Download_lineeit in tab2.
-        # state, option = self.get_current_setting('Download location') # Use this method more?!
-        #
-        # self.tab2_download_lineedit.setText(path_shortener(option) if state else 'DLs')
-        # self.tab2_download_lineedit.setToolTip(option if state else 'DLs')
 
         self.tab1.profile_dropdown.blockSignals(True)
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('None'))
