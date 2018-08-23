@@ -29,7 +29,7 @@ class GUI(MainWindow):
         GUI that wraps a youtube-dl.exe to download videos and more.
         """
         # TODO: Add some animations! Most notably when adding download.
-        super(GUI, self).__init__()
+        super().__init__()
 
         # starts checks
         self.initial_checks()
@@ -58,13 +58,14 @@ class GUI(MainWindow):
         self.program_workdir = self.file_handler.work_dir
         self.license_path = self.file_handler.find_file('LICENSE')
 
-        self.local_dl_path = ''.join([self.file_handler.work_dir, '/DL/'])
+        self.local_dl_path = self.file_handler.work_dir + '/DL/'
 
         self.validate_settings()
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
         # Use replace('\\', '/') on path.
         self.icon_list = []
 
+        # TODO: Turn into dict comprehension??
         # Find icon paths
         self.unchecked_icon = self.file_handler.find_file('GUI\\Icon_unchecked.ico')
         self.checked_icon = self.file_handler.find_file('GUI\\Icon_checked.ico')
@@ -565,7 +566,7 @@ class GUI(MainWindow):
         self.tab2_favorites.load_profile(favorites)
 
         # Update Download_lineeit in tab2.
-        state, option = self.get_current_setting('Download location')
+        state, option = self.get_current_setting('Download location') # Use this method more?!
 
         self.tab2_download_lineedit.setText(path_shortener(option) if state else 'DLs')
         self.tab2_download_lineedit.setToolTip(option if state else 'DLs')
@@ -742,7 +743,10 @@ class GUI(MainWindow):
 
         item.treeWidget().blockSignals(True)
         for number in range(item.childCount()):
-            item.child(number).setToolTip(0, self.settings['Settings']['Download location']['options'][number])
+            path = self.settings['Settings']['Download location']['options'][number]
+            item.child(number).setToolTip(0, path)
+            item.child(number).setText(0, path_shortener(path))
+
         if item.checkState(0) == Qt.Checked:
             for number in range(item.childCount()):
                 if item.child(number).checkState(0) == Qt.Checked:
@@ -847,14 +851,14 @@ class GUI(MainWindow):
 
     def validate_settings(self):
         """ Checks the setttings for errors or missing data. """
-
+        # TODO: Move to FileHandler?
         base_sections = ['Profiles', 'Favorites', 'Settings', 'Other stuff']
         base_keys = ['command',
                      'dependency',
                      'options',
                      'state',
                      'tooltip']
-
+        # Add active option? above
         if not self.settings:
             raise SettingsError('Empty settings file!')
 
@@ -908,10 +912,12 @@ class GUI(MainWindow):
         for key in ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows', 'use_win_accent']:
             if key not in self.settings['Other stuff']:
                 self.settings['Other stuff'][key] = get_base_setting('Other stuff', key)
+                # TODO: Use this for all key lookups, and similar methods for sections.
 
         if not self.settings['Settings']['Download location']['options']:
             # Checks for a download setting, set the current path to that.
-            self.settings['Settings']['Download location']['options'] = [self.file_handler.work_dir + '/DL/']
+            path = self.file_handler.work_dir + '/DL/'
+            self.settings['Settings']['Download location']['options'] = [path]
 
         try:
             # Checks if the active option is valid, if not reset to the first item.
@@ -971,8 +977,8 @@ class GUI(MainWindow):
             else:
                 self.settings['Settings'][item.data(0, 32)]['state'] = False
                 if item.data(0, 32) == 'Download location':
-                    self.tab2_download_lineedit.setText('DL')
-                    self.tab2_download_lineedit.setToolTip('DL')
+                    self.tab2_download_lineedit.setText(path_shortener(self.local_dl_path))
+                    self.tab2_download_lineedit.setToolTip(self.local_dl_path)
 
         elif item.data(0, 33) == 1:
             # Settings['Settings'][Name of setting]['active option']] = index of child
@@ -998,7 +1004,7 @@ class GUI(MainWindow):
 
     def dir_info(self):
 
-        file_dir = os.path.dirname(os.path.abspath(__file__))
+        file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
         debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
                  color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
@@ -1015,12 +1021,12 @@ class GUI(MainWindow):
         for i in self.icon_list:
             if i is not None:
                 try:
-                    if os.path.isfile(str(i)):
+                    if self.file_handler.is_file(str(i)):
                         self.tab1.textbrowser.append(''.join(['Found: ', os.path.split(i)[1]]))
                     else:
                         self.tab1.textbrowser.append(''.join(['Missing in:', i]))
                 except IndexError:
-                    if os.path.isfile(str(i)):
+                    if self.file_handler.is_file(str(i)):
                         self.tab1.textbrowser.append(''.join(['Found: ', i]))
                     else:
                         self.tab1.textbrowser.append(''.join(['Missing in:', i]))
@@ -1039,7 +1045,7 @@ class GUI(MainWindow):
         self.queue.append(download_item)
         self.queue_handler()
 
-    def restart_current_downlaod(self):
+    def restart_current_download(self):
         # TODO: Trigger this make trigger for restarting download!
         self.tab1.textbrowser.append(color_text('Restarting download!', weight='normal'))
         self.active_download.kill()
@@ -1453,7 +1459,7 @@ if __name__ == '__main__':
 
             app = None
             if A == QMessageBox.Yes:
-                GUI.get_settings(True)
+                FileHandler().load_settings(True)
                 continue
             else:
                 break

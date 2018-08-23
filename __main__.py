@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from core import GUI
 from utils.utilities import SettingsError
+from utils.filehandler import FileHandler
 
 
 def main():
@@ -26,8 +27,8 @@ def main():
                                           ''.join([str(e), '\nRestore default settings?']),
                                           buttons=QMessageBox.Yes | QMessageBox.No)
             if warning == QMessageBox.Yes:
-                GUI.get_settings(True)
-                app = None
+                FileHandler().load_settings(True)
+                app = None  # Ensures the app instance is properly removed!
                 continue
 
         break

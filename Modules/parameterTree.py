@@ -149,12 +149,15 @@ class ParameterTree(QTreeWidget):
 
     def hock_dependency(self):
         top_level_names = []
+
         for item in self.topLevelItems():
+
             # Create a list if top level items, their dependent and the QModelIndex of said item.
+
             top_level_names.append([item.data(0, 32), item.data(0, 34), self.indexFromItem(item)])
 
         # Locate matches, and store in dict
-
+        # TODO: Make readable
         indices = {t[0]: i for i, t in enumerate(top_level_names)}
         for index, (first, second, third) in enumerate(top_level_names):
             if second in indices:
@@ -181,6 +184,7 @@ class ParameterTree(QTreeWidget):
         :param item: changed item from QTreeWidget (paramTree)
         :type item: QTreeWidget
         """
+
         if item.data(0, 33) == 0 and item.data(0, 37):
             for i in item.data(0, 37):
                 if item.checkState(0) == Qt.Unchecked:
@@ -338,9 +342,9 @@ if __name__ == '__main__':
                 "command": "-o {}",
                 "dependency": None,
                 "options": [
-                    "D:/Music/DL/%(title)s.%(ext)s",
-                    "C:/Users/Clint Oris/Downloads/%(title)s.%(ext)s",
-                    "D:/Music/%(title)s.%(ext)s"
+                    "D:/Music/DL/",
+                    "C:/Users/Clint Oris/Downloads/",
+                    "D:/Music/"
                 ],
                 "state": True,
                 "tooltip": "Select download location."

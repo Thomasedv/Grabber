@@ -91,7 +91,7 @@ class FileHandler:
     def __init__(self, settings='settings.json'):
 
         self.settings_path = settings
-        self.work_dir = os.getcwd()
+        self.work_dir = os.getcwd().replace('\\', '/')
 
         # TODO: Perform saving in a threadpool with runnable
         # TODO: implement a timed save, to avoid multiple saves a second.
@@ -100,7 +100,8 @@ class FileHandler:
         self.threadpool = QThreadPool()
         self.threadpool.setMaxThreadCount(1)
 
-    def find_file(self, relative_path, exist=True):
+    @staticmethod
+    def find_file(relative_path, exist=True):
         """ Get absolute path to resource, works for dev and for PyInstaller """
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
@@ -111,7 +112,7 @@ class FileHandler:
         path = os.path.join(base_path, relative_path).replace('\\', '/')
 
         if exist:
-            if self.is_file(path):
+            if FileHandler.is_file(path):
                 # print(f'Returning existing path: {path}')
                 return path
             else:
@@ -142,7 +143,7 @@ class FileHandler:
             self.save_settings(settings)
             return settings
         else:
-            if self.is_file(self.settings_path):
+            if FileHandler.is_file(self.settings_path):
                 with open(self.settings_path, 'r') as f:
                     return json.load(f)
             else:
@@ -150,19 +151,18 @@ class FileHandler:
 
     @staticmethod
     def is_file(path):
-
         return os.path.isfile(path) and os.access(path, os.X_OK)
 
     def find_exe(self, program):
         """Used to find executables."""
         local_path = os.path.join(self.work_dir, program)
-        if self.is_file(local_path):
+        if FileHandler.is_file(local_path):
             # print(f'Returning existing isfile exe: {os.path.join(self.work_dir, program)}')
             return local_path
         for path in os.environ["PATH"].split(os.pathsep):
             path = path.strip('"')
             exe_file = os.path.join(path, program)
-            if self.is_file(exe_file):
+            if FileHandler.is_file(exe_file):
                 # print(f'Returning existing exe: {os.path.abspath(exe_file)}')
                 return os.path.abspath(exe_file)
         # TODO: Check if not covered by path above!
@@ -170,8 +170,9 @@ class FileHandler:
         # print(f'No found: {program}')
         return None
 
-    def read_textfile(self, path):
-        if self.is_file(path):
+    @staticmethod
+    def read_textfile(path):
+        if FileHandler.is_file(path):
             try:
                 with open(path, 'r') as f:
                     content = f.read()
@@ -183,7 +184,8 @@ class FileHandler:
 
     @threaded
     def write_textfile(self, path, content):
-        if self.is_file(path):
+        # TODO: Warn user on error. Need smart simple method to send message from threadpool.
+        if FileHandler.is_file(path):
             try:
                 with open(path, 'w') as f:
                     f.write(content)
