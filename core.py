@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTex
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from utils.filehandler import FileHandler
-from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, ArgumentError, get_base_setting
+from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_base_setting, \
+    stylesheet, get_win_accent_color
 
 
 class GUI(MainWindow):
@@ -23,16 +24,12 @@ class GUI(MainWindow):
     sendClose = pyqtSignal()
     EXIT_CODE_REBOOT = -123456789
 
-    # TODO: Move to QMainWindow, to take advantage of status bar at top/bottom.
-    # TODO: Create more modern square stylesheet, as well as keep the current one with rounded corners in style.
-    # TODO: Remove red text on the profilewidget disabled state. Also tune style.
-
     def __init__(self):
         """
         GUI that wraps a youtube-dl.exe to download videos and more.
         """
         # TODO: Add some animations! Most notably when adding download.
-        super(GUI, self).__init__()
+        super().__init__()
 
         # starts checks
         self.initial_checks()
@@ -61,13 +58,14 @@ class GUI(MainWindow):
         self.program_workdir = self.file_handler.work_dir
         self.license_path = self.file_handler.find_file('LICENSE')
 
-        self.local_dl_path = ''.join([self.file_handler.work_dir, '/DL/'])
+        self.local_dl_path = self.file_handler.work_dir + '/DL/'
 
         self.validate_settings()
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
         # Use replace('\\', '/') on path.
         self.icon_list = []
 
+        # TODO: Turn into dict comprehension??
         # Find icon paths
         self.unchecked_icon = self.file_handler.find_file('GUI\\Icon_unchecked.ico')
         self.checked_icon = self.file_handler.find_file('GUI\\Icon_checked.ico')
@@ -403,344 +401,21 @@ class GUI(MainWindow):
         self.tab4_txt_location_btn.clicked.connect(self.textfile_dialog)
 
         ### Future tab creation here! Currently 4 tabs already.
+        if self.settings['Other stuff']['use_win_accent']:
+            try:
+                bg_color = get_win_accent_color()
+            except (OSError, PermissionError):
+                bg_color = '#303030'
+        else:
+            bg_color = '#303030'
 
-        # self.style = f"""
-        #                         QWidget {{
-        #                             background-color: #484848;
-        #                             color: white;
-        #                         }}
-        #                         QMenu::separator {{
-        #                             height: 2px;
-        #                         }}
-        #                         QFrame#line {{
-        #                             color: #303030;
-        #                         }}
-        #
-        #                         QTabWidget::pane {{
-        #                             border: none;
-        #                         }}
-        #
-        #                         QMenu::item {{
-        #                             border: none;
-        #                             padding: 3px 20px 3px 5px
-        #                         }}
-        #
-        #                         QMenu {{
-        #                             border: 1px solid #303030;
-        #                         }}
-        #
-        #                         QMenu::item:selected {{
-        #                             background-color: #303030;
-        #                         }}
-        #
-        #                         QMenu::item:disabled {{
-        #                             color: #808080;
-        #                         }}
-        #
-        #                         QTabWidget {{
-        #                             background-color: #303030;
-        #                         }}
-        #
-        #                         QTabBar {{
-        #                             background-color: #313131;
-        #                         }}
-        #
-        #                         QTabBar::tab {{
-        #                             color: rgb(186,186,186);
-        #                             background-color: #606060;
-        #                             border-bottom: none;
-        #                             border-left: 1px solid #484848;
-        #                             min-width: 15ex;
-        #                             min-height: 7ex;
-        #                         }}
-        #
-        #                         QTabBar::tab:selected {{
-        #                             color: white;
-        #                             background-color: #484848;
-        #                         }}
-        #                         QTabBar::tab:!selected {{
-        #                             margin-top: 6px;
-        #                         }}
-        #
-        #                         QTabWidget::tab-bar {{
-        #                             border-top: 1px solid #505050;
-        #                         }}
-        #
-        #                         QLineEdit {{
-        #                             background-color: #303030;
-        #                             color: rgb(186,186,186);
-        #                             border-radius: 5px;
-        #                             padding: 0 3px;
-        #
-        #                         }}
-        #                         QLineEdit:disabled {{
-        #                             background-color: #303030;
-        #                             color: #505050;
-        #                             border-radius: 5px;
-        #                         }}
-        #
-        #                         QTextEdit {{
-        #                             background-color: #484848;
-        #                             color: rgb(186,186,186);
-        #                             border: none;
-        #                         }}
-        #
-        #                         QTextEdit#TextFileEdit {{
-        #                             background-color: #303030;
-        #                             color: rgb(186,186,186);
-        #                             border-radius: 5px;
-        #                         }}
-        #
-        #                         QScrollBar:vertical {{
-        #                             border: none;
-        #                             background-color: rgba(255,255,255,0);
-        #                             width: 10px;
-        #                             margin: 0px 0px 1px 0px;
-        #                         }}
-        #
-        #                         QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
-        #                             border: none;
-        #                             background: none;
-        #                         }}
-        #
-        #                         QScrollBar::handle:vertical {{
-        #                             background: #303030;
-        #                             color: red;
-        #                             min-height: 20px;
-        #                             border-radius: 5px;
-        #                         }}
-        #
-        #                         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
-        #                             background: none;
-        #                         }}
-        #
-        #                         QPushButton {{
-        #                             background-color: #303030;
-        #                             color: white;
-        #                             border: 1px solid transparent;
-        #                             border-radius: 5px;
-        #                             width: 60px;
-        #                             height: 20px;
-        #                         }}
-        #
-        #                         QPushButton:disabled {{
-        #                             border: 1px solid #303030;
-        #                             background-color: transparent;
-        #                             color: #303030;
-        #                         }}
-        #                         QPushButton:pressed {{
-        #                             background-color: #101010;
-        #                             color: white;
-        #                         }}
-        #
-        #                         QCheckBox::indicator:unchecked {{
-        #                             image: url({self.unchecked_icon});
-        #                         }}
-        #
-        #                         QCheckBox::indicator:checked {{
-        #                             image: url({self.checked_icon});
-        #                         }}
-        #
-        #                         QTreeWidget {{
-        #                             selection-color: red;
-        #                             border: none;
-        #                             outline: none;
-        #                             outline-width: 0px;
-        #                             selection-background-color: blue;
-        #                         }}
-        #                         QTreeWdiget::branch {{
-        #                             border-image: none;
-        #                         }}
-        #
-        #                         QTreeWidget::item {{
-        #                             height: 16px;
-        #                         }}
-        #
-        #                         QTreeWidget::item:disabled {{
-        #                             color: grey;
-        #                         }}
-        #
-        #                         QTreeWidget::item:hover, QTreeWidget::item:selected {{
-        #                             background-color: transparent;
-        #                             color: white;
-        #                         }}
-        #
-        #                         QTreeWidget::indicator:checked {{
-        #                             image: url({self.checked_icon});
-        #                         }}
-        #                         QTreeWidget::indicator:unchecked {{
-        #                             image: url({self.unchecked_icon});
-        #                         }}
-        #
-        #                         QComboBox {{
-        #                             border: 1px solid #303030;
-        #                             border-radius: 5px;
-        #                             color: rgb(186,186,186);
-        #                             padding-right: 5px;
-        #                             padding-left: 5px;
-        #                         }}
-        #
-        #                         QComboBox::down-arrow {{
-        #                             border-image: url({self.down_arrow_icon});
-        #                             height: {self.tab1.profile_dropdown.iconSize().height()}px;
-        #                             width: {self.tab1.profile_dropdown.iconSize().width()}px;
-        #                         }}
-        #
-        #                         QComboBox::down-arrow::on {{
-        #                             image: url({self.down_arrow_icon_clicked});
-        #                             height: {self.tab1.profile_dropdown.iconSize().height()}px;
-        #                             width: {self.tab1.profile_dropdown.iconSize().width()}px;
-        #
-        #                         }}
-        #                         QComboBox::drop-down {{
-        #                             border: 0px;
-        #                             background: none;
-        #                         }}
-        #                         QComboBox::disabled {{
-        #                             color: #303030;
-        #                         }}
-        #
-        #                         """
-
-        self.new_style = f"""
-                                QWidget {{
-                                    background-color: #484848;
-                                    color: white;
-                                }}
+        self.style_with_options = f"""
                                 QMainWindow {{
-                                    background-color: #303030;
-                                    color: red;
+                                    background-color: {bg_color};
                                 }}
-                                
-                                QMenu::separator {{
-                                    height: 2px;
-                                }}
-                                QFrame#line {{
-                                    color: #303030;
-                                }}
-
-                                QTabWidget::pane {{
-                                    border: none;
-                                }}
-
-                                QMenu::item {{
-                                    border: none;
-                                    padding: 3px 20px 3px 5px
-                                }}
-
-                                QMenu {{
-                                    border: 1px solid #303030;
-                                }}
-
-                                QMenu::item:selected {{
-                                    background-color: #303030;
-                                }}
-
-                                QMenu::item:disabled {{
-                                    color: #808080;
-                                }}
-
-                                QTabWidget {{
-                                    background-color: #303030;
-                                }}
-
                                 QTabBar {{
-                                    
-                                    background-color: #313131;
+                                    background-color: {bg_color};
                                 }}
-
-                                QTabBar::tab {{
-                                    color: rgb(186,186,186);
-                                    background-color: #606060;
-                                    border-bottom: none;
-                                    border-left: 1px solid #484848;
-                                    min-width: 15ex;
-                                    min-height: 7ex;
-                                }}
-
-                                QTabBar::tab:selected {{
-                                    color: white;
-                                    background-color: #484848;
-                                }}
-                                QTabBar::tab:!selected {{
-                                    margin-top: 6px;
-                                }}
-
-                                QTabWidget::tab-bar {{
-                                    border-top: 1px solid #505050;
-                                    color: red;
-                                    background-color: red;
-                                }}
-
-                                QLineEdit {{
-                                    background-color: #303030;
-                                    color: rgb(186,186,186);
-                                    border-radius: 0px;
-                                    padding: 0 3px;
-                                }}
-                                
-                                QLineEdit:disabled {{
-                                    background-color: #303030;
-                                    color: #505050;
-                                    border-radius: none;
-                                }}
-                                
-                                QTextEdit {{
-                                    background-color: #484848;
-                                    color: rgb(186,186,186);
-                                    border: red solid 1px;
-                                }}
-
-                                QTextEdit#TextFileEdit {{
-                                    background-color: #303030;
-                                    color: rgb(186,186,186);
-                                    border: red solid 1px;
-                                    border-radius: 2px;
-                                }}
-                                
-                                QScrollBar::vertical {{
-                                    border: none;
-                                    background-color: rgba(255,255,255,0);
-                                    width: 10px;
-                                    margin: 0px 0px 1px 0px;
-                                }}
-
-                                QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
-                                    border: none;
-                                    background: none;
-                                }}
-
-                                QScrollBar::handle:vertical {{
-                                    background: #303030;
-                                    color: red;
-                                    min-height: 20px;
-                                    border-radius: 5px;
-                                }}
-
-                                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
-                                    background: none;
-                                }}
-
-                                QPushButton {{
-                                    background-color: #303030;
-                                    color: white;
-                                    border: 1px solid transparent;
-                                    border-radius: none;
-                                    width: 60px;
-                                    height: 20px;
-                                }}
-
-                                QPushButton:disabled {{
-                                    border: 1px solid #303030;
-                                    background-color: transparent;
-                                    color: #757575;
-                                }}
-                                
-                                QPushButton:pressed {{
-                                    background-color: #101010;
-                                    color: white;
-                                }}
-
                                 QCheckBox::indicator:unchecked {{
                                     image: url({self.unchecked_icon});
                                 }}
@@ -748,60 +423,6 @@ class GUI(MainWindow):
                                 QCheckBox::indicator:checked {{
                                     image: url({self.checked_icon});
                                 }}
-
-                                QTreeWidget {{
-                                    selection-color: red;
-                                    border: none;
-                                    outline: none;
-                                    outline-width: 0px;
-                                    selection-background-color: blue;
-                                }}      
-                                
-                                QTreeWidget::branch {{
-                                    border-image: none 0;    
-                                }}
-                                
-                                QTreeWidget::branch:has-siblings:!adjoins-item {{
-                                    border-image: none 0;
-                                }}
-                                
-                                QTreeWidget::branch:has-siblings:adjoins-item {{
-                                    border-image: none 0;
-                                }}
-                                
-                                QTreeWidget::branch:!has-children:!has-siblings:adjoins-item {{
-                                    border-image: none 0;
-                                }}
-                                
-                                QTreeWidget::item {{
-                                    height: 16px;
-                                }}
-
-                                QTreeWidget::item:disabled {{
-                                    color: grey;
-                                }}
-
-                                QTreeWidget::item:hover, QTreeWidget::item:selected {{
-                                    background-color: transparent;
-                                    color: white;
-                                }}
-
-                                QTreeWidget::indicator:checked {{
-                                    image: url({self.checked_icon});
-                                }}
-                                QTreeWidget::indicator:unchecked {{
-                                    image: url({self.unchecked_icon});
-                                }}
-
-                                QComboBox {{
-                                    border: 1px solid #303030;
-                                    border-radius: 0px;
-                                    background-color: #303030;
-                                    color: rgb(186,186,186);
-                                    padding-right: 5px;
-                                    padding-left: 5px;
-                                }}
-                                
                                 QComboBox::down-arrow {{
                                     border-image: url({self.down_arrow_icon});
                                     height: {self.tab1.profile_dropdown.iconSize().height()}px;
@@ -814,16 +435,15 @@ class GUI(MainWindow):
                                     width: {self.tab1.profile_dropdown.iconSize().width()}px;
                                     
                                 }}
-                                QComboBox::drop-down {{
-                                    border: 0px;
-                                    background: none;
-                                }}                        
                                 
-                                QComboBox::disabled {{
-                                    color: #484848;
+                                QTreeWidget::indicator:checked {{
+                                    image: url({self.checked_icon});
+                                }}
+                                
+                                QTreeWidget::indicator:unchecked {{
+                                    image: url({self.unchecked_icon});
                                 }}
                                 """
-
         ### Configuration main widget.
         # Adds tabs to the tab widget, and names the tabs.
         self.main_tab.addTab(self.tab1, 'Main')
@@ -831,7 +451,8 @@ class GUI(MainWindow):
         self.main_tab.addTab(self.tab3, 'List')
         self.main_tab.addTab(self.tab4, 'About')
         # Sets the styling for the GUI, everything from buttons to anything. ##
-        self.setStyleSheet(self.new_style)
+        self.setStyleSheet(stylesheet + self.style_with_options)
+
         # Set window title.
         self.setWindowTitle('Grabber')
         self.setWindowIcon(self.windowIcon)
@@ -848,24 +469,22 @@ class GUI(MainWindow):
         self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3_textedit)
         self.shortcut.activated.connect(self.tab3_saveButton.click)
 
+        # TODO: Hook up to button, or change output to somewhere the user can get it.
+        self.trigger_queue_print = QShortcut(QKeySequence('Ctrl+P'), self)
+        self.trigger_queue_print.activated.connect(self.print_queue)
+
         # Check for youtube
         if self.youtube_dl_path is None:
             self.tab4_update_btn.setDisabled(True)
             self.tab1.textbrowser.append(color_text('\nNo youtube-dl.exe found! Add to path, '
                                                     'or make sure it\'s in the same folder as this program. '
                                                     'Then close and reopen this program.', 'darkorange', 'bold'))
-
-        # if self.ffmpeg_path is None:
-        #     self.tab1.textbrowser.append(color_text('\nNo ffmpeg.exe found! Add to path, '
-        #                                             'or make sure it\'s in the same folder as this program. '
-        #                                             'Then close and reopen this program.', 'darkorange', 'bold'))
-        # # Renames items for download paths, adds tooltip. Essentially handles how the widget looks at startup.
+        # Sets the download items tooltips to the full file path.
         self.download_name_handler()
         # Ensures widets are in correct state at startup and when tab1.lineedit is changed.
         self.allow_start()
         # Shows the main window.
         self.setCentralWidget(self.main_tab)
-
 
         self.show()
 
@@ -911,12 +530,32 @@ class GUI(MainWindow):
 
         self.file_handler.save_settings(self.settings)
 
+    def get_current_setting(self, setting: str):
+        """
+        Retrieves the current setting from self.settings, and the active option if the setting has one.
+        """
+        _setting_dict = self.settings['Settings'][setting]
+
+        state = _setting_dict['state']
+
+        if '{}' in _setting_dict['command']:
+            option = _setting_dict['options'][_setting_dict['active option']]
+        else:
+            option = None
+
+        return state, option
+
+    def set_current_setting(self, setting, state):
+        # TODO: Refactor code to change settings with get/set current setting options.
+        pass
+
     def load_profile(self):
         profile_name = self.tab1.profile_dropdown.currentText()
 
         if profile_name in ('None', 'Custom'):
             return
-
+        # TODO: Instead of completely replacing the Settingsdict, maybe update it.
+        # TODO: Make sure download location is kept between profiles, for easier use of profiles.
         self.settings['Settings'] = copy.deepcopy(self.settings['Profiles'][profile_name])
         self.settings['Other stuff']['current_profile'] = profile_name
 
@@ -925,6 +564,12 @@ class GUI(MainWindow):
 
         self.tab2_options.load_profile(options)
         self.tab2_favorites.load_profile(favorites)
+
+        # Update Download_lineeit in tab2.
+        state, option = self.get_current_setting('Download location') # Use this method more?!
+
+        self.tab2_download_lineedit.setText(path_shortener(option) if state else 'DLs')
+        self.tab2_download_lineedit.setToolTip(option if state else 'DLs')
 
         self.tab1.profile_dropdown.blockSignals(True)
         self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('None'))
@@ -977,6 +622,9 @@ class GUI(MainWindow):
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
 
+        if item.data(0, 33) == 2:
+            self.alert_message('Error!', 'Custom option does not take a command!', None)
+
         # TODO: Standardise setting an parameter to checked, and updating to expanded state.
         elif '{}' in self.settings['Settings'][item.data(0, 32)]['command']:
 
@@ -1025,18 +673,19 @@ class GUI(MainWindow):
 
     def move_item(self, item: QTreeWidgetItem, favorite: bool):
         """ Move an time to or from the favorites tree. """
-        # print(favorite)
-        self.blockSignals(True)
+
         if favorite:
-            self.tab2_options.addTopLevelItem(item)
-            # print('remove')
+            tree = self.tab2_options
             self.settings['Favorites'].remove(item.data(0, 0))
         else:
-            # print(favorite)
-            self.tab2_favorites.addTopLevelItem(item)
+            tree = self.tab2_favorites
             self.settings['Favorites'].append(item.data(0, 0))
-        self.tab2_favorites.update_size()
+
+        tree.blockSignals(True)
+        tree.addTopLevelItem(item)
+
         self.tab2_options.update_size()
+        self.tab2_favorites.update_size()
 
         self.file_handler.save_settings(self.settings)
 
@@ -1044,7 +693,8 @@ class GUI(MainWindow):
             item.setExpanded(True)
         else:
             item.setExpanded(False)
-        self.blockSignals(False)
+
+        tree.blockSignals(False)
 
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""
@@ -1093,8 +743,10 @@ class GUI(MainWindow):
 
         item.treeWidget().blockSignals(True)
         for number in range(item.childCount()):
-            item.child(number).setData(0, 0, path_shortener(item.child(number).data(0, 0)))
-            item.child(number).setToolTip(0, self.settings['Settings']['Download location']['options'][number])
+            path = self.settings['Settings']['Download location']['options'][number]
+            item.child(number).setToolTip(0, path)
+            item.child(number).setText(0, path_shortener(path))
+
         if item.checkState(0) == Qt.Checked:
             for number in range(item.childCount()):
                 if item.child(number).checkState(0) == Qt.Checked:
@@ -1170,12 +822,21 @@ class GUI(MainWindow):
 
         # self.tab2_download_lineedit.setText(location)
         # self.tab2_download_lineedit.setToolTip(tooltip)
-        self.need_parameters.remove(item.data(0, 0))
+        try:
+            self.need_parameters.remove(item.data(0, 0))
+        except ValueError:
+            pass
 
         item.setCheckState(0, Qt.Checked)
         sub.setCheckState(0, Qt.Checked)
 
         self.file_handler.save_settings(self.settings)
+
+    def print_queue(self):
+        self.tab1.textbrowser.append('Active process: ' +
+                                     str(self.active_download.commands if self.active_download is not None else None))
+        for process in self.queue:
+            self.tab1.textbrowser.append(str(process.commands))
 
     @staticmethod
     def resource_path(relative_path):
@@ -1190,14 +851,14 @@ class GUI(MainWindow):
 
     def validate_settings(self):
         """ Checks the setttings for errors or missing data. """
-
+        # TODO: Move to FileHandler?
         base_sections = ['Profiles', 'Favorites', 'Settings', 'Other stuff']
         base_keys = ['command',
                      'dependency',
                      'options',
                      'state',
                      'tooltip']
-
+        # Add active option? above
         if not self.settings:
             raise SettingsError('Empty settings file!')
 
@@ -1248,13 +909,15 @@ class GUI(MainWindow):
                                            '-' * 20]))
 
         # TODO: Use get_base_setting to replace missing options or corrupt ones.
-        for key in ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows']:
+        for key in ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows', 'use_win_accent']:
             if key not in self.settings['Other stuff']:
                 self.settings['Other stuff'][key] = get_base_setting('Other stuff', key)
+                # TODO: Use this for all key lookups, and similar methods for sections.
 
         if not self.settings['Settings']['Download location']['options']:
             # Checks for a download setting, set the current path to that.
-            self.settings['Settings']['Download location']['options'] = [self.file_handler.work_dir + '/DL/']
+            path = self.file_handler.work_dir + '/DL/'
+            self.settings['Settings']['Download location']['options'] = [path]
 
         try:
             # Checks if the active option is valid, if not reset to the first item.
@@ -1314,17 +977,16 @@ class GUI(MainWindow):
             else:
                 self.settings['Settings'][item.data(0, 32)]['state'] = False
                 if item.data(0, 32) == 'Download location':
-                    self.tab2_download_lineedit.setText('DL')
-                    self.tab2_download_lineedit.setToolTip('DL')
+                    self.tab2_download_lineedit.setText(path_shortener(self.local_dl_path))
+                    self.tab2_download_lineedit.setToolTip(self.local_dl_path)
 
         elif item.data(0, 33) == 1:
             # Settings['Settings'][Name of setting]['active option']] = index of child
-            print('asd')
             self.settings['Settings'][item.parent().data(0, 32)]['active option'] = item.data(0, 35)
             if item.parent().data(0, 32) == 'Download location':
                 if item.checkState(0) == Qt.Checked:
                     self.tab2_download_lineedit.setText(item.data(0, 0))
-                    self.tab2_download_lineedit.setToolTip(item.data(0, 32).replace('%(title)s.%(ext)s', ''))
+                    self.tab2_download_lineedit.setToolTip(item.data(0, 32))
 
         elif item.data(0, 33) == 2:
             # Handles custom options.
@@ -1340,24 +1002,9 @@ class GUI(MainWindow):
         if save:
             self.file_handler.save_settings(self.settings)
 
-    # def locate_program_path(self, program):
-    #     """Used to find execuables."""
-    #
-    #     def is_exe(fpath):
-    #         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-    #
-    #     for path in os.environ["PATH"].split(os.pathsep):
-    #         path = path.strip('"')
-    #         exe_file = os.path.join(path, program)
-    #         if is_exe(exe_file):
-    #             return os.path.abspath(exe_file)
-    #     if os.path.isfile(program):
-    #         return os.path.join(self.workDir, program)
-    #     return None
-
     def dir_info(self):
 
-        file_dir = os.path.dirname(os.path.abspath(__file__))
+        file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 
         debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
                  color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
@@ -1374,12 +1021,12 @@ class GUI(MainWindow):
         for i in self.icon_list:
             if i is not None:
                 try:
-                    if os.path.isfile(str(i)):
+                    if self.file_handler.is_file(str(i)):
                         self.tab1.textbrowser.append(''.join(['Found: ', os.path.split(i)[1]]))
                     else:
                         self.tab1.textbrowser.append(''.join(['Missing in:', i]))
                 except IndexError:
-                    if os.path.isfile(str(i)):
+                    if self.file_handler.is_file(str(i)):
                         self.tab1.textbrowser.append(''.join(['Found: ', i]))
                     else:
                         self.tab1.textbrowser.append(''.join(['Missing in:', i]))
@@ -1398,6 +1045,12 @@ class GUI(MainWindow):
         self.queue.append(download_item)
         self.queue_handler()
 
+    def restart_current_download(self):
+        # TODO: Trigger this make trigger for restarting download!
+        self.tab1.textbrowser.append(color_text('Restarting download!', weight='normal'))
+        self.active_download.kill()
+        self.active_download.start()
+
     def queue_handler(self, process_finished=False):
         if not self.RUNNING or process_finished:
             if self.queue:
@@ -1406,7 +1059,7 @@ class GUI(MainWindow):
                 self.active_download = download
                 try:
                     download.start_dl()
-                except ArgumentError:
+                except TypeError:
                     self.Errors += 1
                     self.tab1.textbrowser.append(color_text('DOWNLOAD FAILED!\nYuotube-dl is missing!\n'))
                     return self.queue_handler(process_finished=True)
@@ -1414,6 +1067,7 @@ class GUI(MainWindow):
                 self.set_running(True)
             else:
                 self.set_running(False)
+                self.active_download = None
                 self.tab1.textbrowser.append(f'Error count: '
                                              f'{self.Errors if self.Errors ==0 else color_text(str(self.Errors),"darkorange","bold")}.')
                 self.Errors = 0
@@ -1437,10 +1091,14 @@ class GUI(MainWindow):
 
     def savefile_dialog(self):
         location = QFileDialog.getExistingDirectory(parent=self.main_tab)
+
         if location == '':
             pass
         elif os.path.exists(location):
             self.download_option_handler(location)
+        else:
+            self.alert_message('Error', 'Could not find the specified folder.'
+                                        '\nReport this on githib if it keeps happening.')
 
     def textfile_dialog(self):
         location = \
@@ -1596,7 +1254,7 @@ class GUI(MainWindow):
         last_line = self.tab1.textbrowser.textCursor().selectedText()
 
         # Check if a percentage has already been placed.
-        if "%" in last_line and 'ETA' in last_line:
+        if "%" in last_line and 'ETA' in last_line and "%" in text:
             self.tab1.textbrowser.textCursor().removeSelectedText()
             self.tab1.textbrowser.textCursor().deletePreviousChar()
             # Last line of text
@@ -1608,7 +1266,7 @@ class GUI(MainWindow):
                 self.tab1.textbrowser.append('')
 
         else:
-            if "%" in text and 'ETA' in text:
+            if ("%" in text and 'ETA' in text) or '100% of ' in text:
                 # Last line of text
                 self.tab1.textbrowser.append(color_text(text.split("[download]")[-1][1:],
                                                         color='lawngreen',
@@ -1616,6 +1274,7 @@ class GUI(MainWindow):
                                                         sections=(0, 5)))
             elif '[download]' in text:
                 self.tab1.textbrowser.append(''.join([text.replace('[download] ', ''), '\n']))
+
             else:
                 self.tab1.textbrowser.append(''.join([text, '\n']))
 
@@ -1650,7 +1309,7 @@ class GUI(MainWindow):
                 self.SAVED = True
 
             else:
-                if self.tab4_txt_lineedit.text() == '':
+                if self.tab4_txt_lineedit.text():
                     warning = 'No textfile selected!'
                 else:
                     warning = 'Could not find file!'
@@ -1669,12 +1328,14 @@ class GUI(MainWindow):
                     self.load_text_from_file()
 
     def save_text_to_file(self):
-        # TODO: Do proper path check before trying to open file handler.
+        # TODO: Implement Ctrl+L for loading of files.
         if self.settings['Other stuff']['multidl_txt']:
             self.file_handler.write_textfile(self.settings['Other stuff']['multidl_txt'],
                                              self.tab3_textedit.toPlainText())
+
             self.tab3_saveButton.setDisabled(True)
             self.SAVED = True
+
         else:
             result = self.alert_message('Warning!',
                                         'No textfile selected!',
@@ -1683,7 +1344,7 @@ class GUI(MainWindow):
 
             if result == QMessageBox.Yes:
                 save_path = QFileDialog.getSaveFileName(parent=self.main_tab, caption='Save as', filter='*.txt')
-                if not save_path[0] == '':
+                if not save_path[0]:
                     self.file_handler.write_textfile(save_path[0],
                                                      self.tab3_textedit.toPlainText())
                     self.settings['Other stuff']['multidl_txt'] = save_path[0]
@@ -1714,6 +1375,8 @@ class GUI(MainWindow):
         self.SAVED = False
 
     def confirm(self):
+        # Ensures that the settings are saved properly before exiting!
+
         if self.RUNNING or self.queue:
             result = self.alert_message('Want to quit?',
                                         'Still downloading!',
@@ -1724,7 +1387,12 @@ class GUI(MainWindow):
                 return None
 
         if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
+            self.file_handler.force_save = True
+            self.file_handler.save_settings(self.settings)
+
+            self.hide()
             self.sendClose.emit()
+
         else:
             result = self.alert_message('Unsaved changes in list!',
                                         'The download list has unsaved changes!',
@@ -1733,10 +1401,19 @@ class GUI(MainWindow):
                                         allow_cancel=True)
             if result == QMessageBox.Yes:
                 self.save_text_to_file()
+
+                self.file_handler.force_save = True
+                self.file_handler.save_settings(self.settings)
+                self.hide()
                 self.sendClose.emit()
+
             elif result == QMessageBox.Cancel:
-                pass
+                return
+
             else:
+                self.file_handler.force_save = True
+                self.file_handler.save_settings(self.settings)
+                self.hide()
                 self.sendClose.emit()
 
     def read_license(self):
@@ -1782,7 +1459,7 @@ if __name__ == '__main__':
 
             app = None
             if A == QMessageBox.Yes:
-                GUI.get_settings(True)
+                FileHandler().load_settings(True)
                 continue
             else:
                 break

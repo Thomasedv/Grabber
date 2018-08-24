@@ -2,6 +2,7 @@
 Utilities for Grabber.
 """
 import copy
+from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
 def path_shortener(full_path: str):
     """ Formats a path to a shorter version, for cleaner UI."""
@@ -71,9 +72,219 @@ class SettingsError(Exception):
     pass
 
 
-class ArgumentError(Exception):
-    pass
+def get_win_accent_color():
+    """
+    Return the Windows 10 accent color used by the user in a HEX format
+    """
+    # Open the registry
+    registry = ConnectRegistry(None, HKEY_CURRENT_USER)
+    key = OpenKey(registry, r'Software\Microsoft\Windows\DWM')
+    key_value = QueryValueEx(key, 'AccentColor')
+    accent_int = key_value[0]
+    accent_hex = hex(accent_int)  # Remove FF offset and convert to HEX again
+    accent_hex = str(accent_hex)[4:]  # Remove prefix and suffix
 
+    accent = accent_hex[4:6] + accent_hex[2:4] + accent_hex[0:2]
+
+    return '#' + accent
+
+
+stylesheet = f"""
+                                QWidget {{
+                                    background-color: #484848;
+                                    color: white;
+                                }}
+                                QMainWindow {{
+                                    background-color: #303030;
+                                    color: red;
+                                }}
+                                
+                                QMenu::separator {{
+                                    height: 2px;
+                                }}
+                                QFrame#line {{
+                                    color: #303030;
+                                }}
+
+                                QTabWidget::pane {{
+                                    border: none;
+                                }}
+
+                                QMenu::item {{
+                                    border: none;
+                                    padding: 3px 20px 3px 5px
+                                }}
+
+                                QMenu {{
+                                    border: 1px solid #303030;
+                                }}
+
+                                QMenu::item:selected {{
+                                    background-color: #303030;
+                                }}
+
+                                QMenu::item:disabled {{
+                                    color: #808080;
+                                }}
+
+                                QTabWidget {{
+                                    background-color: #303030;
+                                }}
+
+                                QTabBar {{
+                                    
+                                    background-color: #313131;
+                                }}
+
+                                QTabBar::tab {{
+                                    color: rgb(186,186,186);
+                                    background-color: #606060;
+                                    border-bottom: none;
+                                    border-left: 1px solid #484848;
+                                    min-width: 15ex;
+                                    min-height: 7ex;
+                                }}
+
+                                QTabBar::tab:selected {{
+                                    color: white;
+                                    background-color: #484848;
+                                }}
+                                QTabBar::tab:!selected {{
+                                    margin-top: 6px;
+                                }}
+
+                                QTabWidget::tab-bar {{
+                                    border-top: 1px solid #505050;
+                                    color: red;
+                                    background-color: red;
+                                }}
+
+                                QLineEdit {{
+                                    background-color: #303030;
+                                    color: rgb(186,186,186);
+                                    border-radius: 0px;
+                                    padding: 0 3px;
+                                }}
+                                
+                                QLineEdit:disabled {{
+                                    background-color: #303030;
+                                    color: #505050;
+                                    border-radius: none;
+                                }}
+                                
+                                QTextEdit {{
+                                    background-color: #484848;
+                                    color: rgb(186,186,186);
+                                    border: red solid 1px;
+                                }}
+
+                                QTextEdit#TextFileEdit {{
+                                    background-color: #303030;
+                                    color: rgb(186,186,186);
+                                    border: red solid 1px;
+                                    border-radius: 2px;
+                                }}
+                                
+                                QScrollBar::vertical {{
+                                    border: none;
+                                    background-color: rgba(255,255,255,0);
+                                    width: 10px;
+                                    margin: 0px 0px 1px 0px;
+                                }}
+
+                                QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
+                                    border: none;
+                                    background: none;
+                                }}
+
+                                QScrollBar::handle:vertical {{
+                                    background: #303030;
+                                    color: red;
+                                    min-height: 20px;
+                                    border-radius: 5px;
+                                }}
+
+                                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
+                                    background: none;
+                                }}
+
+                                QPushButton {{
+                                    background-color: #303030;
+                                    color: white;
+                                    border: 1px solid transparent;
+                                    border-radius: none;
+                                    width: 60px;
+                                    height: 20px;
+                                }}
+
+                                QPushButton:disabled {{
+                                    border: 1px solid #303030;
+                                    background-color: transparent;
+                                    color: #757575;
+                                }}
+                                
+                                QPushButton:pressed {{
+                                    background-color: #101010;
+                                    color: white;
+                                }}
+                                
+                                QTreeWidget {{
+                                    selection-color: red;
+                                    border: none;
+                                    outline: none;
+                                    outline-width: 0px;
+                                    selection-background-color: blue;
+                                }}      
+                                
+                                QTreeWidget::branch {{
+                                    border-image: none 0;    
+                                }}
+                                
+                                QTreeWidget::branch:has-siblings:!adjoins-item {{
+                                    border-image: none 0;
+                                }}
+                                
+                                QTreeWidget::branch:has-siblings:adjoins-item {{
+                                    border-image: none 0;
+                                }}
+                                
+                                QTreeWidget::branch:!has-children:!has-siblings:adjoins-item {{
+                                    border-image: none 0;
+                                }}
+                                
+                                QTreeWidget::item {{
+                                    height: 16px;
+                                }}
+
+                                QTreeWidget::item:disabled {{
+                                    color: grey;
+                                }}
+
+                                QTreeWidget::item:hover, QTreeWidget::item:selected {{
+                                    background-color: transparent;
+                                    color: white;
+                                }}
+
+                                QComboBox {{
+                                    border: 1px solid #303030;
+                                    border-radius: 0px;
+                                    background-color: #303030;
+                                    color: rgb(186,186,186);
+                                    padding-right: 5px;
+                                    padding-left: 5px;
+                                }}
+                                
+
+                                QComboBox::drop-down {{
+                                    border: 0px;
+                                    background: none;
+                                }}                        
+                                
+                                QComboBox::disabled {{
+                                    color: #484848;
+                                }}
+                                
+                                """
 
 base_settings = dict()
 base_settings['Profiles'] = {}
@@ -84,6 +295,7 @@ base_settings['Other stuff'] = {
     'current_profile': '',
     'select_on_focus': True,
     'show_collapse_arrows': False,
+    'use_win_accent': False,
     'custom': {
         "command": "Custom",
         "state": False,
@@ -296,7 +508,7 @@ base_settings['Settings']['Retry rate'] = {
     "active option": 0,
     "command": "--retries {}",
     "dependency": None,
-    "options": ['Implement later', 10, 15],
+    "options": [10, 15],
     "state": False,
     "tooltip": "Number of retries (default is 10), or \"infinite\"."
 }
@@ -388,7 +600,7 @@ base_settings['Settings']['Video format'] = {
     "active option": 0,
     "command": "--format {}",
     "dependency": None,
-    "options": ["Implement later"],
+    "options": [],
     "state": False,
     "tooltip": "Video format code."
 }
