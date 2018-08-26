@@ -8,10 +8,14 @@ If you want to convert the videos, or otherwise use features of youtube-dl that 
 that also has to be in the same folder (or path) as Grabber.** 
 
 You can get those programs here:
-* Youtube-dl: https://rg3.github.io/youtube-dl/
-* ffmpeg: https://www.ffmpeg.org/
+* Youtube-dl: https://rg3.github.io/youtube-dl/ 
+* ffmpeg: https://ffmpeg.zeranoe.com/builds/  
 
-Requirements to use source:
+**USE THE 4.0.2 static ffmpeg version!** Extract the 3 executables from the bin folder to the Grabber folder or PATH
+
+______
+
+Requirements to use source code:
 
 * Python 3.6+ 
 * PyQt5 5.9 (Earlier version might work too, worked fine with 5.8 before i upgraded.) 
