@@ -649,17 +649,22 @@ class GUI(MainWindow):
                 self.settings['Settings'][item.data(0, 32)]['options'].insert(0, parameter)
 
                 for i in range(len(self.settings['Settings'][item.data(0, 32)]['options'])):
-                    item.child(i).setData(0, 35, i)
+                    child = item.child(i)
+                    child.setData(0, 35, i)
                     if i == 0:
-                        item.child(i).setCheckState(0, Qt.Checked)
-                        item.child(i).setFlags(item.flags() ^ Qt.ItemIsUserCheckable)
+                        child.setCheckState(0, Qt.Checked)
+                        child.setFlags(child.flags() ^ Qt.ItemIsUserCheckable)
                     else:
-                        item.child(i).setCheckState(0, Qt.Unchecked)
-                        item.child(i).setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                        child.setCheckState(0, Qt.Unchecked)
+                        child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
 
                 item.setCheckState(0, Qt.Checked)
                 item.setExpanded(True)
                 item.treeWidget().update_size()
+                try:
+                    self.need_parameters.remove(item.data(0, 32))
+                except ValueError:
+                    pass
 
                 self.file_handler.save_settings(self.settings)
 
@@ -696,12 +701,12 @@ class GUI(MainWindow):
 
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""
-
-        size = self.height() - (self.frame.height() + self.tab2_download_lineedit.height()
-                                + self.tab2_favlabel.height() + self.main_tab.tabBar().height() + 40)
-        ParameterTree.max_size = size
-        self.tab2_options.setFixedHeight(size)
-        self.tab2_favorites.setFixedHeight(size)
+        if self.main_tab.currentIndex() == 1:
+            size = self.height() - (self.frame.height() + self.tab2_download_lineedit.height()
+                                    + self.tab2_favlabel.height() + self.main_tab.tabBar().height() + 40)
+            ParameterTree.max_size = size
+            self.tab2_options.setFixedHeight(size)
+            self.tab2_favorites.setFixedHeight(size)
 
     def window_focus_event(self):
         """ Selects text in tab1 line edit on window focus. """
@@ -821,7 +826,7 @@ class GUI(MainWindow):
         # self.tab2_download_lineedit.setText(location)
         # self.tab2_download_lineedit.setToolTip(tooltip)
         try:
-            self.need_parameters.remove(item.data(0, 0))
+            self.need_parameters.remove(item.data(0, 32))
         except ValueError:
             pass
 
@@ -958,13 +963,14 @@ class GUI(MainWindow):
             if item.data(0, 32) in self.need_parameters:
                 result = self.alert_message('Warning!', 'This parameter needs an option!', 'There are no options!\n'
                                                                                            'Would you make one?', True)
-
-                item.treeWidget().blockSignals(True)
-                item.setCheckState(0, Qt.Unchecked)
-                item.treeWidget().blockSignals(False)
-
                 if result == QMessageBox.Yes:
                     self.add_option(item)
+                else:
+                    item.treeWidget().blockSignals(True)
+                    item.setCheckState(0, Qt.Unchecked)
+                    item.treeWidget().blockSignals(False)
+                    item.treeWidget().check_dependency(item)
+                    print(item.data(0, 32) in self.need_parameters)
 
             if item.checkState(0) == Qt.Checked:
                 self.settings['Settings'][item.data(0, 32)]['state'] = True
@@ -986,7 +992,7 @@ class GUI(MainWindow):
                     self.tab2_download_lineedit.setText(item.data(0, 0))
                     self.tab2_download_lineedit.setToolTip(item.data(0, 32))
 
-        elif item.data(0, 33) == 2:
+        elif item.data(0, 33) == 2: # TODO: Remove since custom command is removed.
             # Handles custom options.
             if item.data(0, 0) in ('', ' '):
                 item.setData(0, 0, 'Custom command double click to change')

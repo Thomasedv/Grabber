@@ -4,6 +4,7 @@ Utilities for Grabber.
 import copy
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
+
 def path_shortener(full_path: str):
     """ Formats a path to a shorter version, for cleaner UI."""
 
@@ -11,25 +12,26 @@ def path_shortener(full_path: str):
     full_path = full_path.replace('\\', '/')
 
     if full_path[-1] != '/':
-        full_path = ''.join([full_path, '/'])
+        full_path = full_path + '/'
 
-    if len(full_path) > 15:
+    if len(full_path) > 20:
         times = 0
         for integer, letter in enumerate(reversed(full_path)):
             if letter == '/':
                 split = -integer - 1
                 times += 1
-                if times == 3:
+                if times == 3 and full_path.count('/') >= 4:
+                    short_path = ''.join([full_path[:full_path.find('/')+1], '...', full_path[split:]])
+                    print(short_path)
+                    break
+                elif times == 3:
+                    split = full_path.find('/', split)
+                    short_path = ''.join([full_path[:full_path.find('/')+1], '...', full_path[split:]])
                     break
         else:
-            raise Exception(''.join(['Something went wrong with path shortening! Path:', full_path]))
-
-        short_path = ''.join([full_path[0:3], '...', full_path[split:]])
+            short_path = full_path
     else:
         short_path = full_path
-
-    if not short_path[-1] == '/':
-        short_path += '/'
 
     return short_path
 

@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBo
     QHBoxLayout, QVBoxLayout
 
 from Modules.dropdown_widget import DropDown
-from Modules.lineEdit import LineEdit
+from Modules.lineedit import LineEdit
 
 
 class MainTab(QWidget):
@@ -55,8 +55,6 @@ class MainTab(QWidget):
 
         # Start making checkbutton for selecting downloading from text file mode.
         self.checkbox = QCheckBox('Download from text file.')
-
-        ## Layout tab 1.
 
         # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
         self.QH = QHBoxLayout()
