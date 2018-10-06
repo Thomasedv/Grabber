@@ -3,7 +3,7 @@ Utilities for Grabber.
 """
 import copy
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
-
+from itertools import chain
 
 def path_shortener(full_path: str):
     """ Formats a path to a shorter version, for cleaner UI."""
@@ -70,10 +70,6 @@ def format_in_list(command, option):
     return split_command
 
 
-class SettingsError(Exception):
-    pass
-
-
 def get_win_accent_color():
     """
     Return the Windows 10 accent color used by the user in a HEX format
@@ -89,6 +85,163 @@ def get_win_accent_color():
     accent = accent_hex[4:6] + accent_hex[2:4] + accent_hex[0:2]
 
     return '#' + accent
+
+
+class SettingsError(Exception):
+    pass
+
+
+class SettingsClass:
+    def __init__(self, settings, profiles, filehandler=None):
+        if not settings:
+            raise SettingsError('Empty settings file!')
+
+        if any((i in settings for i in ('Profiles', 'Other stuff', 'Settings'))):
+            settings, old_profiles = self._upgrade_settings(settings)
+            # Check for older settings files.
+            if not profiles:
+                profiles = old_profiles
+            else:
+                profiles = old_profiles.update(profiles)
+        try:
+            self._userdefined = settings['default']
+            self._parameters = settings['parameters']
+        except KeyError as e:
+            raise SettingsError(f'Missing section {e}')
+
+        self._profiles = profiles
+        self._filehandler = filehandler
+
+        self.need_parameters = []
+
+    def __enter__(self):
+        return self._parameters
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._filehandler is not None:
+            self._filehandler.save_settings(str(self))
+
+    def __getitem__(self, item):
+        return self._parameters[item]
+
+    def __str__(self):
+        return str({'default': self._userdefined, 'parameters': self._parameters})
+
+    @property
+    def current_profile(self):
+        return self._userdefined['current_profile']
+
+    @property
+    def profiles(self):
+        return list(self._profiles.keys())
+
+    def change_profile(self, profile):
+        if self.current_profile == profile:
+            return
+
+        for param, data in self._profiles[profile].items():
+            if param not in self._parameters:
+                self._parameters[param] = data
+                continue
+
+            self._parameters[param].update(data)
+            if '{}' in data['command'] and self._parameters[param]['options'] != data['options']:
+                self._parameters[param]['options'] = data['options'] + \
+                                                     [i for i in self._parameters[param]['options'] if
+                                                      i not in data['options']]
+
+        self._userdefined['current_profile'] = profile
+
+    @staticmethod
+    def _upgrade_settings(old_settings):
+        settings = {}
+        try:
+            settings['default'] = copy.deepcopy(old_settings['Other stuff'])
+            settings['parameters'] = copy.deepcopy(old_settings['Settings'])
+        except KeyError:
+            pass
+        try:
+            profiles = copy.deepcopy(old_settings['Profiles'])
+        except KeyError:
+            profiles = {}
+
+        return settings, profiles
+
+    def _validate_settings(self):
+        # User defined part
+        missing_settings = {}
+
+        keys = ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows', 'use_win_accent']
+        for key in keys:
+            if key not in self._userdefined:
+                self._userdefined[key] = get_base_setting('default', key)
+
+        # Parameters
+
+        keys = ['command',
+                'dependency',
+                'options',
+                'state',
+                'tooltip']
+
+        for setting, option in self._parameters.items():
+            # setting: The name of the setting, like "Ignore errors"
+            # option: The dict which contains the base keys.
+            # key (Define below): is a key in the base settings
+
+            for key in keys:
+                # Check if all base keys are in the options.
+
+                if key not in option.keys():
+                    # Check if the current setting has already logged a missing key
+                    # If it hasn't, create an entry in the missing_settings dict, as a list.
+                    # If it's there, then add the key to the missing list.
+
+                    if setting not in missing_settings.keys():
+                        missing_settings[setting] = [key]
+                    else:
+                        missing_settings[setting].append(key)
+
+                # Check if the current setting is missing options for the command, when needed.
+                # Disable the setting by default. Possibly alert the user.
+                elif key == 'command':
+                    if '{}' in option[key]:
+                        if not option['options']:
+                            # print(f'{setting} currently lacks any valid options!')
+                            if 'state' in option.keys() and setting != 'Download location':
+                                self._parameters[setting]['state'] = False
+                                # Add to a list over options to add setting to.
+                                self.need_parameters.append(setting)
+
+        if missing_settings:
+            raise SettingsError('\n'.join(['Settings file is corrupt/missing:',
+                                           '-' * 20,
+                                           *[f'{key}:\n - {", ".join(value)}' if value
+                                             else f"{key}" for key, value in missing_settings.items()],
+                                           '-' * 20]))
+
+        if not self._parameters['Download location']['options']:
+            # Checks for a download setting, set the current path to that.
+            path = self._filehandler.work_dir + '/DL/'
+            self._parameters['Download location']['options'] = [path]
+
+        try:
+            # Checks if the active option is valid, if not reset to the first item.
+            for setting in self._parameters:
+                options = self._parameters[setting]['options']
+                if options is not None:
+                    # Check if active option is a valid number.
+                    if not (0 <= self._parameters[setting]['active option'] < len(options)):
+                        self._parameters[setting]['active option'] = 0
+        # Catch if the setting is missing for needed options.
+        except KeyError as error:
+            raise SettingsError(f'{setting} is missing a needed option {error}.')
+        # Catches multiple type errors.
+        except TypeError as error:
+            raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
+
+        self._filehandler.save_settings(str(self))
+
 
 
 stylesheet = f"""
@@ -289,10 +442,10 @@ stylesheet = f"""
                                 """
 
 base_settings = dict()
-base_settings['Profiles'] = {}
-base_settings['Favorites'] = []
-base_settings['Settings'] = {}
-base_settings['Other stuff'] = {
+base_settings['profiles'] = {}
+base_settings['favorites'] = []
+base_settings['parameters'] = {}
+base_settings['default'] = {
     'multidl_txt': '',
     'current_profile': '',
     'select_on_focus': True,
@@ -304,7 +457,7 @@ base_settings['Other stuff'] = {
         "tooltip": "Custom option, double click to edit."
     }
 }
-base_settings['Settings']['Convert to audio'] = {
+base_settings['parameters']['Convert to audio'] = {
     "active option": 0,
     "command": "-x --audio-format {}",
     "dependency": None,
@@ -313,7 +466,7 @@ base_settings['Settings']['Convert to audio'] = {
     "tooltip": "Convert video files to audio-only files\n"
                "Requires ffmpeg, avconv and ffprobe or avprobe."
 }
-base_settings['Settings']["Add thumbnail"] = {
+base_settings['parameters']["Add thumbnail"] = {
     "active option": 0,
     "command": "--embed-thumbnail",
     "dependency": 'Convert to audio',
@@ -321,7 +474,7 @@ base_settings['Settings']["Add thumbnail"] = {
     "state": False,
     "tooltip": "Include thumbnail on audio files."
 }
-base_settings['Settings']['Audio quality'] = {
+base_settings['parameters']['Audio quality'] = {
     "active option": 0,
     "command": "--audio-quality {}",
     "dependency": 'Convert to audio',
@@ -331,7 +484,7 @@ base_settings['Settings']['Audio quality'] = {
                "a value between\n0 (better) and 9 (worse)"
                "for VBR\nor a specific bitrate like 128K"
 }
-base_settings['Settings']['Ignore errors'] = {
+base_settings['parameters']['Ignore errors'] = {
     "active option": 0,
     "command": "-i",
     "dependency": None,
@@ -339,7 +492,7 @@ base_settings['Settings']['Ignore errors'] = {
     "state": False,
     "tooltip": "Ignores errors, and jumps to next element instead of stopping."
 }
-base_settings['Settings']['Download location'] = {
+base_settings['parameters']['Download location'] = {
     "active option": 0,
     "command": "-o {}",
     "dependency": None,
@@ -347,7 +500,7 @@ base_settings['Settings']['Download location'] = {
     "state": False,
     "tooltip": "Select download location."
 }
-base_settings['Settings']['Strict file names'] = {
+base_settings['parameters']['Strict file names'] = {
     "active option": 0,
     "command": "--restrict-filenames",
     "dependency": None,
@@ -355,7 +508,7 @@ base_settings['Settings']['Strict file names'] = {
     "state": False,
     "tooltip": "Sets strict naming, to prevent unsupported characters in names."
 }
-base_settings['Settings']['Keep archive'] = {
+base_settings['parameters']['Keep archive'] = {
     "active option": 0,
     "command": "--download-archive {}",
     "dependency": None,
@@ -363,7 +516,7 @@ base_settings['Settings']['Keep archive'] = {
     "state": False,
     "tooltip": "Saves links to a textfile to avoid duplicate downloads later."
 }
-base_settings['Settings']['Force generic extractor'] = {
+base_settings['parameters']['Force generic extractor'] = {
     "active option": 0,
     "command": "--force-generic-extractor",
     "dependency": None,
@@ -371,7 +524,7 @@ base_settings['Settings']['Force generic extractor'] = {
     "state": False,
     "tooltip": "Force extraction to use the generic extractor"
 }
-base_settings['Settings']['Use proxy'] = {
+base_settings['parameters']['Use proxy'] = {
     "active option": 0,
     "command": "--proxy {}",
     "dependency": None,
@@ -379,7 +532,7 @@ base_settings['Settings']['Use proxy'] = {
     "state": False,
     "tooltip": "Use the specified HTTP/HTTPS/SOCKS proxy."
 }
-base_settings['Settings']['Socket timeout'] = {
+base_settings['parameters']['Socket timeout'] = {
     "active option": 0,
     "command": "--socket-timeout {}",
     "dependency": None,
@@ -387,7 +540,7 @@ base_settings['Settings']['Socket timeout'] = {
     "state": False,
     "tooltip": "Time to wait before giving up, in seconds."
 }
-base_settings['Settings']['Source IP'] = {
+base_settings['parameters']['Source IP'] = {
     "active option": 0,
     "command": "--source-address {}",
     "dependency": None,
@@ -395,7 +548,7 @@ base_settings['Settings']['Source IP'] = {
     "state": False,
     "tooltip": "Client-side IP address to bind to."
 }
-base_settings['Settings']['Force ipv4/6'] = {
+base_settings['parameters']['Force ipv4/6'] = {
     "active option": 0,
     "command": "--{}",
     "dependency": None,
@@ -403,7 +556,7 @@ base_settings['Settings']['Force ipv4/6'] = {
     "state": False,
     "tooltip": "Make all connections via ipv4/6."
 }
-base_settings['Settings']['Geo bypass URL'] = {
+base_settings['parameters']['Geo bypass URL'] = {
     "active option": 0,
     "command": "--geo-verification-proxy {}",
     "dependency": None,
@@ -413,7 +566,7 @@ base_settings['Settings']['Geo bypass URL'] = {
                "The default proxy specified by"
                " --proxy (or none, if the options is not present)\nis used for the actual downloading."
 }
-base_settings['Settings']['Geo bypass country CODE'] = {
+base_settings['parameters']['Geo bypass country CODE'] = {
     "active option": 0,
     "command": "--geo-bypass-country {}",
     "dependency": None,
@@ -422,7 +575,7 @@ base_settings['Settings']['Geo bypass country CODE'] = {
     "tooltip": "Force bypass geographic restriction with explicitly provided\n"
                "two-letter ISO 3166-2 country code (experimental)."
 }
-base_settings['Settings']['Playlist start'] = {
+base_settings['parameters']['Playlist start'] = {
     "active option": 0,
     "command": "--playlist-start {}",
     "dependency": None,
@@ -430,7 +583,7 @@ base_settings['Settings']['Playlist start'] = {
     "state": False,
     "tooltip": "Playlist video to start at (default is 1)."
 }
-base_settings['Settings']['Playlist end'] = {
+base_settings['parameters']['Playlist end'] = {
     "active option": 0,
     "command": "--playlist-end {}",
     "dependency": None,
@@ -438,7 +591,7 @@ base_settings['Settings']['Playlist end'] = {
     "state": False,
     "tooltip": "Playlist video to end at (default is last)."
 }
-base_settings['Settings']['Playlist items'] = {
+base_settings['parameters']['Playlist items'] = {
     "active option": 0,
     "command": "--playlist-items {}",
     "dependency": None,
@@ -450,7 +603,7 @@ base_settings['Settings']['Playlist items'] = {
                "indexed 1, 2, 5, 8 in the playlist.\nYou can specify range:"
                "\"1-3,7,10-13\"\nwill download the videos at index:\n1, 2, 3, 7, 10, 11, 12 and 13."
 }
-base_settings['Settings']['Match titles'] = {
+base_settings['parameters']['Match titles'] = {
     "active option": 0,
     "command": "--match-title {}",
     "dependency": None,
@@ -458,7 +611,7 @@ base_settings['Settings']['Match titles'] = {
     "state": False,
     "tooltip": "Download only matching titles (regex or caseless sub-string)."
 }
-base_settings['Settings']['Reject titles'] = {
+base_settings['parameters']['Reject titles'] = {
     "active option": 0,
     "command": "--reject-title {}",
     "dependency": None,
@@ -466,7 +619,7 @@ base_settings['Settings']['Reject titles'] = {
     "state": False,
     "tooltip": "Skip download for matching titles (regex or caseless sub-string)."
 }
-base_settings['Settings']['Max downloads'] = {
+base_settings['parameters']['Max downloads'] = {
     "active option": 0,
     "command": "--max-downloads {}",
     "dependency": None,
@@ -474,7 +627,7 @@ base_settings['Settings']['Max downloads'] = {
     "state": False,
     "tooltip": "Abort after downloading a certain number of files."
 }
-base_settings['Settings']['Minimum size'] = {
+base_settings['parameters']['Minimum size'] = {
     "active option": 0,
     "command": "--min-filesize {}",
     "dependency": None,
@@ -482,7 +635,7 @@ base_settings['Settings']['Minimum size'] = {
     "state": False,
     "tooltip": "Do not download any videos smaller than SIZE (e.g. 50k or 44.6m)."
 }
-base_settings['Settings']['Maximum size'] = {
+base_settings['parameters']['Maximum size'] = {
     "active option": 0,
     "command": "--max-filesize {}",
     "dependency": None,
@@ -490,7 +643,7 @@ base_settings['Settings']['Maximum size'] = {
     "state": False,
     "tooltip": "Do not download any videos bigger than SIZE (e.g. 50k or 44.6m)."
 }
-base_settings['Settings']['No playlist'] = {
+base_settings['parameters']['No playlist'] = {
     "active option": 0,
     "command": "--no-playlist ",
     "dependency": None,
@@ -498,7 +651,7 @@ base_settings['Settings']['No playlist'] = {
     "state": False,
     "tooltip": "Download only the video, if the URL refers to a video and a playlist."
 }
-base_settings['Settings']['Download speed limit'] = {
+base_settings['parameters']['Download speed limit'] = {
     "active option": 0,
     "command": "--limit-rate {}",
     "dependency": None,
@@ -506,7 +659,7 @@ base_settings['Settings']['Download speed limit'] = {
     "state": False,
     "tooltip": "Maximum download rate in bytes per second (e.g. 50K or 4.2M)."
 }
-base_settings['Settings']['Retry rate'] = {
+base_settings['parameters']['Retry rate'] = {
     "active option": 0,
     "command": "--retries {}",
     "dependency": None,
@@ -514,7 +667,7 @@ base_settings['Settings']['Retry rate'] = {
     "state": False,
     "tooltip": "Number of retries (default is 10), or \"infinite\"."
 }
-base_settings['Settings']['Download order'] = {
+base_settings['parameters']['Download order'] = {
     "active option": 0,
     "command": "--playlist-{}",
     "dependency": None,
@@ -522,7 +675,7 @@ base_settings['Settings']['Download order'] = {
     "state": False,
     "tooltip": "Download playlist videos in reverse/random order."
 }
-base_settings['Settings']['Prefer native/ffmpeg'] = {
+base_settings['parameters']['Prefer native/ffmpeg'] = {
     "active option": 0,
     "command": "--hls-prefer-{}",
     "dependency": None,
@@ -530,7 +683,7 @@ base_settings['Settings']['Prefer native/ffmpeg'] = {
     "state": False,
     "tooltip": "Use the native HLS downloader instead of ffmpeg, or vice versa."
 }
-base_settings['Settings']['Don\'t overwrite files'] = {
+base_settings['parameters']['Don\'t overwrite files'] = {
     "active option": 0,
     "command": "--no-overwrites",
     "dependency": None,
@@ -538,7 +691,7 @@ base_settings['Settings']['Don\'t overwrite files'] = {
     "state": False,
     "tooltip": "Do not overwrite files"
 }
-base_settings['Settings']['Don\'t continue files'] = {
+base_settings['parameters']['Don\'t continue files'] = {
     "active option": 0,
     "command": "--no-continue",
     "dependency": None,
@@ -546,7 +699,7 @@ base_settings['Settings']['Don\'t continue files'] = {
     "state": False,
     "tooltip": "Do not resume partially downloaded files."
 }
-base_settings['Settings']['Don\'t use .part files'] = {
+base_settings['parameters']['Don\'t use .part files'] = {
     "active option": 0,
     "command": "--no-part",
     "dependency": None,
@@ -554,7 +707,7 @@ base_settings['Settings']['Don\'t use .part files'] = {
     "state": False,
     "tooltip": "Do not use .part files - write directly into output file."
 }
-base_settings['Settings']['Verbose'] = {
+base_settings['parameters']['Verbose'] = {
     "active option": 0,
     "command": "--verbose",
     "dependency": None,
@@ -562,7 +715,7 @@ base_settings['Settings']['Verbose'] = {
     "state": False,
     "tooltip": "Print various debugging information."
 }
-base_settings['Settings']['Custom user agent'] = {
+base_settings['parameters']['Custom user agent'] = {
     "active option": 0,
     "command": "--user-agent {}",
     "dependency": None,
@@ -570,7 +723,7 @@ base_settings['Settings']['Custom user agent'] = {
     "state": False,
     "tooltip": "Specify a custom user agent."
 }
-base_settings['Settings']['Custom referer'] = {
+base_settings['parameters']['Custom referer'] = {
     "active option": 0,
     "command": "--referer {}",
     "dependency": None,
@@ -578,7 +731,7 @@ base_settings['Settings']['Custom referer'] = {
     "state": False,
     "tooltip": "Specify a custom referer, use if the video access is restricted to one domain."
 }
-base_settings['Settings']['Min sleep interval'] = {
+base_settings['parameters']['Min sleep interval'] = {
     "active option": 0,
     "command": "--sleep-interval {}",
     "dependency": None,
@@ -588,7 +741,7 @@ base_settings['Settings']['Min sleep interval'] = {
                "alone or a lower bound of a range for randomized sleep before each\n"
                "download when used along with max sleep interval."
 }
-base_settings['Settings']['Max sleep interval'] = {
+base_settings['parameters']['Max sleep interval'] = {
     "active option": 0,
     "command": "--max-sleep-interval {}",
     "dependency": "Min sleep interval",
@@ -598,7 +751,7 @@ base_settings['Settings']['Max sleep interval'] = {
                "(maximum possible number of seconds to sleep).\n"
                "Must only be used along with --min-sleep-interval."
 }
-base_settings['Settings']['Video format'] = {
+base_settings['parameters']['Video format'] = {
     "active option": 0,
     "command": "--format {}",
     "dependency": None,
@@ -606,7 +759,7 @@ base_settings['Settings']['Video format'] = {
     "state": False,
     "tooltip": "Video format code."
 }
-base_settings['Settings']['Write subtitle file'] = {
+base_settings['parameters']['Write subtitle file'] = {
     "active option": 0,
     "command": "--write-sub",
     "dependency": None,
@@ -614,7 +767,7 @@ base_settings['Settings']['Write subtitle file'] = {
     "state": False,
     "tooltip": "Write subtitle file."
 }
-base_settings['Settings']['Recode video'] = {
+base_settings['parameters']['Recode video'] = {
     "active option": 0,
     "command": "--recode-video {}",
     "dependency": None,
@@ -623,7 +776,7 @@ base_settings['Settings']['Recode video'] = {
     "tooltip": "Encode the video to another format if necessary.\n"
                "Currently supported: mp4|flv|ogg|webm|mkv|avi."
 }
-base_settings['Settings']['No post overwrite'] = {
+base_settings['parameters']['No post overwrite'] = {
     "active option": 0,
     "command": "--no-post-overwrites",
     "dependency": None,
@@ -632,7 +785,7 @@ base_settings['Settings']['No post overwrite'] = {
     "tooltip": "Do not overwrite post-processed files;\n"
                "the post-processed files are overwritten by default."
 }
-base_settings['Settings']['Embed subs'] = {
+base_settings['parameters']['Embed subs'] = {
     "active option": 0,
     "command": "--embed-subs",
     "dependency": None,
@@ -640,7 +793,7 @@ base_settings['Settings']['Embed subs'] = {
     "state": False,
     "tooltip": "Embed subtitles in the video (only for mp4, webm and mkv videos)"
 }
-base_settings['Settings']['Add metadata'] = {
+base_settings['parameters']['Add metadata'] = {
     "active option": 0,
     "command": "--add-metadata",
     "dependency": None,
@@ -648,7 +801,7 @@ base_settings['Settings']['Add metadata'] = {
     "state": False,
     "tooltip": "Write metadata to the video file."
 }
-base_settings['Settings']['Metadata from title'] = {
+base_settings['parameters']['Metadata from title'] = {
     "active option": 0,
     "command": "--metadata-from-title {}",
     "dependency": None,
@@ -676,4 +829,12 @@ def get_base_setting(section, setting):
 
 
 if __name__ == '__main__':
-    print(color_text('rests valued', sections=(2, 5)))
+# print(color_text('rests valued', sections=(2, 5)))
+# Testing of settings class:
+# import json
+# with open('..\\settings.json') as f:
+#     profile = json.load(f)
+# s = SettingsClass(base_settings, profile['Profiles'])
+# s.change_profile('Music')
+# s.change_profile('Music')
+# s.change_profile('Video')

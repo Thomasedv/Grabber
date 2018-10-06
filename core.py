@@ -854,91 +854,9 @@ class GUI(MainWindow):
 
     def validate_settings(self):
         """ Checks the setttings for errors or missing data. """
-        # TODO: Move to FileHandler?
-        base_sections = ['Profiles', 'Favorites', 'Settings', 'Other stuff']
-        base_keys = ['command',
-                     'dependency',
-                     'options',
-                     'state',
-                     'tooltip']
-        # Add active option? above
-        if not self.settings:
-            raise SettingsError('Empty settings file!')
-
-        missing_settings = {}
-        self.need_parameters = []
-
-        # Checks if any of the main sections are missing
-        for section in base_sections:
-            if section not in self.settings:
-                missing_settings[section] = []
-
-        # Checks if any of the Other stuff options are gone.
-
-        for setting, option in self.settings['Settings'].items():
-            # setting: The name of the setting, like "Ignore errors"
-            # option: The dict which contains the base keys.
-            # key (Define below): is a key in the base settings
-
-            for key in base_keys:
-                # Check if all base keys are in the options.
-
-                if key not in option.keys():
-                    # Check if the current setting has already logged a missing key
-                    # If it hasn't, create an entry in the missing_settings dict, as a list.
-                    # If it's there, then add the key to the missing list.
-
-                    if setting not in missing_settings.keys():
-                        missing_settings[setting] = [key]
-                    else:
-                        missing_settings[setting].append(key)
-
-                # Check if the current setting is missing options for the command, when needed.
-                # Disable the setting by default. Possibly alert the user.
-                elif key == 'command':
-                    if '{}' in option[key]:
-                        if not option['options']:
-                            # print(f'{setting} currently lacks any valid options!')
-                            if 'state' in option.keys() and setting != 'Download location':
-                                self.settings['Settings'][setting]['state'] = False
-                                # Add to a list over options to add setting to.
-                                self.need_parameters.append(setting)
-
-        if missing_settings:
-            raise SettingsError('\n'.join(['Settings file is corrupt/missing:',
-                                           '-' * 20,
-                                           *[f'{key}:\n - {", ".join(value)}' if value
-                                             else f"{key}" for key, value in missing_settings.items()],
-                                           '-' * 20]))
-
-        # TODO: Use get_base_setting to replace missing options or corrupt ones.
-        for key in ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows', 'use_win_accent']:
-            if key not in self.settings['Other stuff']:
-                self.settings['Other stuff'][key] = get_base_setting('Other stuff', key)
-                # TODO: Use this for all key lookups, and similar methods for sections.
-
-        if not self.settings['Settings']['Download location']['options']:
-            # Checks for a download setting, set the current path to that.
-            path = self.file_handler.work_dir + '/DL/'
-            self.settings['Settings']['Download location']['options'] = [path]
-
-        try:
-            # Checks if the active option is valid, if not reset to the first item.
-            # TODO: Refactor to look better, items, and possibly replace the long references with value['something']
-            for setting in self.settings['Settings'].keys():
-                if self.settings['Settings'][setting]['options'] is not None:
-                    # Check if active option is a valid number.
-                    if not (0 <= self.settings['Settings'][setting]['active option'] < len(
-                            self.settings['Settings'][setting]['options'])):
-                        self.settings['Settings'][setting]['active option'] = 0
-        # Catch if the setting is missing for needed options.
-        except KeyError as error:
-            raise SettingsError(f'{setting} is missing a needed option {error}.')
-        # Catches multiple type errors.
-        except TypeError as error:
-            raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
-
-        self.file_handler.save_settings(self.settings)
+        pass
+        print('Unused method still in use')
+        # TODO: Remove this!"
 
     def reset_settings(self):
         result = self.alert_message('Warning!',
@@ -949,6 +867,7 @@ class GUI(MainWindow):
                                     question=True)
 
         if result == QMessageBox.Yes:
+            # TODO: Move to SettingsClass!
             self.file_handler.load_settings(reset=True)
             qApp.exit(GUI.EXIT_CODE_REBOOT)
 
@@ -1024,16 +943,14 @@ class GUI(MainWindow):
 
         for i in self.icon_list:
             if i is not None:
-                try:
-                    if self.file_handler.is_file(str(i)):
+
+                if self.file_handler.is_file(str(i)):
+                    try:
                         self.tab1.textbrowser.append(''.join(['Found: ', os.path.split(i)[1]]))
-                    else:
-                        self.tab1.textbrowser.append(''.join(['Missing in:', i]))
-                except IndexError:
-                    if self.file_handler.is_file(str(i)):
+                    except IndexError:
                         self.tab1.textbrowser.append(''.join(['Found: ', i]))
-                    else:
-                        self.tab1.textbrowser.append(''.join(['Missing in:', i]))
+                else:
+                    self.tab1.textbrowser.append(''.join(['Missing in:', i]))
 
         self.main_tab.setCurrentIndex(0)
 
