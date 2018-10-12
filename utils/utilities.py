@@ -3,7 +3,7 @@ Utilities for Grabber.
 """
 import copy
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
-from itertools import chain
+
 
 def path_shortener(full_path: str):
     """ Formats a path to a shorter version, for cleaner UI."""
@@ -114,18 +114,44 @@ class SettingsClass:
 
         self.need_parameters = []
 
+        self._validate_settings()
+
+        print(self._profiles)
+        print(self.get_settings_data)
+
     def __enter__(self):
         return self._parameters
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._filehandler is not None:
-            self._filehandler.save_settings(str(self))
+            self._filehandler.save_settings(self.get_settings_data)
 
     def __getitem__(self, item):
         return self._parameters[item]
 
-    def __str__(self):
-        return str({'default': self._userdefined, 'parameters': self._parameters})
+    @property
+    def user_options(self):
+        return self._userdefined
+
+    def get_favorites(self):
+        return self._userdefined['favorites']
+
+    def is_activate(self, parameter):
+        return self._parameters[parameter]['state']
+
+    def get_active_setting(self, parameter):
+        param = self._parameters[parameter]
+        if '{}' in param['command']:
+            active = param['active option']
+            return param['options'][active]
+
+    @property
+    def parameters(self) -> dict:
+        return self._parameters
+
+    @property
+    def get_settings_data(self):
+        return {'default': self._userdefined, 'parameters': self._parameters}
 
     @property
     def current_profile(self):
@@ -135,25 +161,57 @@ class SettingsClass:
     def profiles(self):
         return list(self._profiles.keys())
 
+    @property
+    def get_profiles_data(self):
+        return self._profiles
+
+    def create_profile(self, profile):
+        self._profiles[profile] = copy.deepcopy(self._parameters)
+        self._userdefined['current_profile'] = profile
+
+    def delete_profile(self, profile):
+        del self._profiles[profile]
+        self._userdefined['current_profile'] = ''
+
+    def remove_parameter_option(self, parameter, index):
+        del self._parameters[parameter]['options'][index]
+        option = self._parameters[parameter]['active option']
+        option -= 1 if option > 0 else 0
+        self._parameters[parameter]['active option'] = option
+        if not option:
+            self.need_parameters.append(parameter)
+        # TODO: Remove options from profiles too. At least download options. Except when it's the selected option!!!
+
+    def add_parameter_option(self, parameter, option):
+        self._parameters[parameter]['options'].insert(0, option)
+
     def change_profile(self, profile):
         if self.current_profile == profile:
-            return
+            return True
+
+        if profile not in self._profiles:
+            return False
 
         for param, data in self._profiles[profile].items():
             if param not in self._parameters:
                 self._parameters[param] = data
                 continue
 
-            self._parameters[param].update(data)
             if '{}' in data['command'] and self._parameters[param]['options'] != data['options']:
                 self._parameters[param]['options'] = data['options'] + \
                                                      [i for i in self._parameters[param]['options'] if
                                                       i not in data['options']]
+                del data['options']
+                self._parameters[param].update(data)
+            else:
+                self._parameters[param].update(data)
 
         self._userdefined['current_profile'] = profile
+        return True
 
     @staticmethod
     def _upgrade_settings(old_settings):
+        print('Upgrading settings!!')
         settings = {}
         try:
             settings['default'] = copy.deepcopy(old_settings['Other stuff'])
@@ -169,9 +227,10 @@ class SettingsClass:
 
     def _validate_settings(self):
         # User defined part
+        global base_settings
         missing_settings = {}
 
-        keys = ['multidl_txt', 'current_profile', 'select_on_focus', 'show_collapse_arrows', 'use_win_accent']
+        keys = base_settings['default'].keys()
         for key in keys:
             if key not in self._userdefined:
                 self._userdefined[key] = get_base_setting('default', key)
@@ -240,7 +299,8 @@ class SettingsClass:
         except TypeError as error:
             raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
 
-        self._filehandler.save_settings(str(self))
+        self._filehandler.save_profiles(self.get_profiles_data)
+        self._filehandler.save_settings(self.get_settings_data)
 
 
 
@@ -443,12 +503,12 @@ stylesheet = f"""
 
 base_settings = dict()
 base_settings['profiles'] = {}
-base_settings['favorites'] = []
 base_settings['parameters'] = {}
 base_settings['default'] = {
     'multidl_txt': '',
     'current_profile': '',
     'select_on_focus': True,
+    'favorites': [],
     'show_collapse_arrows': False,
     'use_win_accent': False,
     'custom': {
@@ -829,6 +889,8 @@ def get_base_setting(section, setting):
 
 
 if __name__ == '__main__':
+    pass
+
 # print(color_text('rests valued', sections=(2, 5)))
 # Testing of settings class:
 # import json

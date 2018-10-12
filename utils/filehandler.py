@@ -6,7 +6,7 @@ from functools import wraps, partial
 from PyQt5.QtCore import QThreadPool, QTimer, Qt
 
 from .task import Task
-from .utilities import get_base_settings
+from .utilities import get_base_settings, SettingsClass
 
 
 def threaded_cooldown(func):
@@ -29,7 +29,6 @@ def threaded_cooldown(func):
     timer.setSingleShot(True)
     timer.setTimerType(Qt.VeryCoarseTimer)
 
-    @wraps(func)
     def wrapper(self, *args, **kwargs):
 
         if not hasattr(self, 'threadpool'):
@@ -88,13 +87,12 @@ class FileHandler:
     # TODO: Implement logging, since returned values from threaded functions are discarded.
     # Need to know if errors hanppen!
 
-    def __init__(self, settings='settings.json'):
+    def __init__(self, settings='settings.json', profiles='profiles.json'):
 
+        self.profile_path = profiles
         self.settings_path = settings
         self.work_dir = os.getcwd().replace('\\', '/')
 
-        # TODO: Perform saving in a threadpool with runnable
-        # TODO: implement a timed save, to avoid multiple saves a second.
         self.force_save = False
 
         self.threadpool = QThreadPool()
@@ -131,21 +129,37 @@ class FileHandler:
                 return True
         except (OSError, IOError) as e:
             # TODO: Logging!
-            # print('Failed to save settings!')
-            # print(f'Error given:\n{e}')
-            # traceback.print_exc()
             return False
 
-    def load_settings(self, reset=False):
+    @threaded_cooldown
+    def save_profiles(self, profiles):
+        try:
+            with open(self.profile_path, 'w') as f:
+                json.dump(profiles, f, indent=4, sort_keys=True)
+                return True
+        except (OSError, IOError) as e:
+            # TODO: Logging!
+            return False
+
+    def load_settings(self, reset=False) -> SettingsClass:
         """ Reads settings, or writes them if absent, or if instructed to using reset. """
-        if reset:
-            settings = get_base_settings()
-            self.save_settings(settings)
-            return settings
-        else:
-            if FileHandler.is_file(self.settings_path):
-                with open(self.settings_path, 'r') as f:
+
+        def get_file(path):
+            """  """
+            if FileHandler.is_file(path):
+                with open(path, 'r') as f:
                     return json.load(f)
+            else:
+                return {}
+
+        if reset:
+            profiles = get_file(self.profile_path)
+            return SettingsClass(get_base_settings(), profiles, self)
+        else:
+            settings = get_file(self.settings_path)
+            if settings:
+                profiles = get_file(self.profile_path)
+                return SettingsClass(settings, profiles, self)
             else:
                 return self.load_settings(reset=True)
 
