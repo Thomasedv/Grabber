@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, \
     QHBoxLayout, QVBoxLayout
 
@@ -14,6 +14,7 @@ class MainTab(QWidget):
 
         # Starts the program (Youtube-dl)
         self.start_btn = QPushButton('Download')
+        self.start_btn.clicked.connect(self.start_button_timer)
         # stops the program
         self.stop_btn = QPushButton('Abort')
         # Closes window (also stops the program)
@@ -27,6 +28,11 @@ class MainTab(QWidget):
 
         self.profile_dropdown = DropDown(self)
         self.profile_dropdown.setFixedWidth(100)
+
+        self.timer = QTimer(self)
+        self.timer.setInterval(100)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(lambda: self.start_btn.setDisabled(False))
 
         if settings.profiles:
             for profile in settings.profiles:
@@ -89,6 +95,10 @@ class MainTab(QWidget):
         self.QV.addLayout(self.QH)
 
         self.setLayout(self.QV)
+
+    def start_button_timer(self, state):
+        if not state:
+            self.timer.start(1000)
 
 
 if __name__ == '__main__':

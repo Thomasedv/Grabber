@@ -201,8 +201,8 @@ class SettingsClass:
                 self._parameters[param]['options'] = data['options'] + \
                                                      [i for i in self._parameters[param]['options'] if
                                                       i not in data['options']]
-                del data['options']
-                self._parameters[param].update(data)
+                new_data = {k: v for k, v in data.items() if k != 'options'}
+                self._parameters[param].update(new_data)
             else:
                 self._parameters[param].update(data)
 
