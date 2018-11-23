@@ -17,7 +17,7 @@ class ParameterTree(QTreeWidget):
     addOption = pyqtSignal(QTreeWidgetItem)
     itemRemoved = pyqtSignal(QTreeWidgetItem, int)
 
-    def __init__(self, profile: dict):
+    def __init__(self, profile: dict, parent=None):
         """
         Data table:
         All data is in column 0.
@@ -30,7 +30,7 @@ class ParameterTree(QTreeWidget):
         37 - List of QModelIndex to items that this depends on.
 
         """
-        super().__init__()
+        super().__init__(parent=parent)
 
         self.favorite = False
 

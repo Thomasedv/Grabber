@@ -457,22 +457,6 @@ stylesheet = f"""
                                     selection-background-color: blue;
                                 }}      
                                 
-                                QTreeWidget::branch {{
-                                    border-image: none 0;    
-                                }}
-                                
-                                QTreeWidget::branch:has-siblings:!adjoins-item {{
-                                    border-image: none 0;
-                                }}
-                                
-                                QTreeWidget::branch:has-siblings:adjoins-item {{
-                                    border-image: none 0;
-                                }}
-                                
-                                QTreeWidget::branch:!has-children:!has-siblings:adjoins-item {{
-                                    border-image: none 0;
-                                }}
-                                
                                 QTreeWidget::item {{
                                     height: 16px;
                                 }}

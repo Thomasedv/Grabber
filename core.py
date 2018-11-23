@@ -174,8 +174,8 @@ class GUI(MainWindow):
         self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
 
         # Sets up the parameter tree.
-        self.tab2_options = ParameterTree(options)
-        self.tab2_favorites = ParameterTree(favorites)
+        self.tab2_options = ParameterTree(options, self)
+        self.tab2_favorites = ParameterTree(favorites, self)
         self.tab2_favorites.favorite = True
 
         self.tab2_download_option = self.find_download_widget()
@@ -442,6 +442,27 @@ class GUI(MainWindow):
                                 QTreeWidget::indicator:unchecked {{
                                     image: url({self.unchecked_icon});
                                 }}
+                                
+                                QTreeWidget::branch {{
+                                    image: none;
+                                    border-image: none;    
+                                }}
+                                
+                                QTreeWidget::branch:has-siblings:!adjoins-item {{
+                                    image: none;
+                                    border-image: none;
+                                }}
+                                
+                                QTreeWidget::branch:has-siblings:adjoins-item {{
+                                    border-image: none;
+                                    image: none;
+                                }}
+                                
+                                QTreeWidget::branch:!has-children:!has-siblings:adjoins-item {{
+                                    border-image: none;
+                                    image: none;
+                                }}
+                                
                                 """
         ### Configuration main widget.
         # Adds tabs to the tab widget, and names the tabs.
