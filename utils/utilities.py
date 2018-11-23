@@ -22,7 +22,7 @@ def path_shortener(full_path: str):
                 times += 1
                 if times == 3 and full_path.count('/') >= 4:
                     short_path = ''.join([full_path[:full_path.find('/')+1], '...', full_path[split:]])
-                    print(short_path)
+                    # print(short_path)
                     break
                 elif times == 3:
                     split = full_path.find('/', split)
@@ -102,7 +102,8 @@ class SettingsClass:
             if not profiles:
                 profiles = old_profiles
             else:
-                profiles = old_profiles.update(profiles)
+                old_profiles.update(profiles)
+                profiles = copy.deepcopy(old_profiles)
         try:
             self._userdefined = settings['default']
             self._parameters = settings['parameters']
@@ -116,8 +117,8 @@ class SettingsClass:
 
         self._validate_settings()
 
-        print(self._profiles)
-        print(self.get_settings_data)
+        # print(self._profiles)
+        # print(self.get_settings_data)
 
     def __enter__(self):
         return self._parameters
@@ -211,13 +212,16 @@ class SettingsClass:
 
     @staticmethod
     def _upgrade_settings(old_settings):
-        print('Upgrading settings!!')
+        # print('Upgrading settings!!')
         settings = {}
         try:
             settings['default'] = copy.deepcopy(old_settings['Other stuff'])
+            if old_settings['Favorites']:
+                settings['default']['favorites'] = copy.deepcopy(old_settings['Favorites'])
             settings['parameters'] = copy.deepcopy(old_settings['Settings'])
         except KeyError:
             pass
+
         try:
             profiles = copy.deepcopy(old_settings['Profiles'])
         except KeyError:
@@ -242,6 +246,9 @@ class SettingsClass:
                 'options',
                 'state',
                 'tooltip']
+
+        for setting in {i for i in base_settings['parameters'] if i not in self._parameters}:
+            self._parameters[setting] = copy.deepcopy(base_settings['parameters'][setting])
 
         for setting, option in self._parameters.items():
             # setting: The name of the setting, like "Ignore errors"
@@ -301,7 +308,6 @@ class SettingsClass:
 
         self._filehandler.save_profiles(self.get_profiles_data)
         self._filehandler.save_settings(self.get_settings_data)
-
 
 
 stylesheet = f"""
@@ -876,6 +882,17 @@ base_settings['parameters']['Metadata from title'] = {
                "Example:\n\"%(artist)s - %(title)s\" matches a"
                "title like \"Coldplay - Paradise\".\nExample"
                "(regex):\n\"(?P<artist>.+?) - (?P<title>.+)\""
+}
+base_settings['parameters']['Merge output format'] = {
+    "active option": 0,
+    "command": "--merge-output-format {}",
+    "dependency": None,
+    "options": ["mp4", "mkv", "ogg", "webm", "flv"],
+    "state": False,
+    "tooltip": "If a merge is required (e.g. bestvideo+bestaudio),"
+               "\noutput to given container format."
+               "\nOne of mkv, mp4, ogg, webm, flv."
+               "\nIgnored if no merge is required"
 }
 
 
