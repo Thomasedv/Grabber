@@ -91,6 +91,10 @@ class SettingsError(Exception):
     pass
 
 
+class ProfileLoadError(Exception):
+    pass
+
+
 class SettingsClass:
     def __init__(self, settings, profiles, filehandler=None):
         if not settings:

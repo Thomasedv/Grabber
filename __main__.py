@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from core import GUI
 from utils.filehandler import FileHandler
-from utils.utilities import SettingsError
+from utils.utilities import SettingsError, ProfileLoadError
 
 
 def main():
@@ -21,15 +21,25 @@ def main():
             if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
                 continue
 
-        except (SettingsError, json.decoder.JSONDecodeError) as e:
+        except (SettingsError, ProfileLoadError, json.decoder.JSONDecodeError) as e:
+            if isinstance(e, ProfileLoadError):
+                file = 'profiles file'
+            else:
+                file = 'settings file'
+
             warning = QMessageBox.warning(None,
-                                          'Corrupt settings',
-                                          ''.join([str(e), '\nRestore default settings?']),
+                                          f'Corruption of {file}!',
+                                          ''.join([str(e), '\nRestore to defaults?']),
                                           buttons=QMessageBox.Yes | QMessageBox.No)
+
             if warning == QMessageBox.Yes:
                 filehandler = FileHandler()
-                setting = filehandler.load_settings(True)
-                filehandler.save_settings(setting.get_settings_data)
+                if isinstance(e, ProfileLoadError):
+                    filehandler.save_profiles({})
+                else:
+                    setting = filehandler.load_settings(reset=True)
+                    filehandler.save_settings(setting.get_settings_data)
+
 
 
                 app = None  # Ensures the app instance is properly removed!

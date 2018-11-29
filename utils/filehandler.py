@@ -6,7 +6,7 @@ from functools import wraps, partial
 from PyQt5.QtCore import QThreadPool, QTimer, Qt
 
 from .task import Task
-from .utilities import get_base_settings, SettingsClass
+from .utilities import get_base_settings, SettingsClass, ProfileLoadError
 
 
 def threaded_cooldown(func):
@@ -152,8 +152,12 @@ class FileHandler:
             else:
                 return {}
 
-        if reset:
+        try:
             profiles = get_file(self.profile_path)
+        except json.decoder.JSONDecodeError as e:
+            raise ProfileLoadError(str(e))
+
+        if reset:
             return SettingsClass(get_base_settings(), profiles, self)
         else:
             settings = get_file(self.settings_path)
