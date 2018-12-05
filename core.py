@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTex
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from utils.filehandler import FileHandler
-from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, stylesheet, get_win_accent_color
+from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, stylesheet, get_win_accent_color, \
+    ProfileLoadError
 
 
 class GUI(MainWindow):
@@ -1267,8 +1268,9 @@ class GUI(MainWindow):
             self.hide()
             self.file_handler.force_save = True
             self.file_handler.save_settings(self.settings.get_settings_data)
+            print(self.settings.profiles)
             self.file_handler.save_profiles(self.settings.get_profiles_data)
-
+            print(self.settings.profiles)
             self.sendClose.emit()
         # Ensures that the settings are saved properly before exiting!
 
@@ -1326,24 +1328,34 @@ if __name__ == '__main__':
     while True:
         try:
             app = QApplication(sys.argv)
-            qProcess = GUI()
+            program = GUI()
 
-            EXIT_CODE = app.exec()
+            EXIT_CODE = app.exec_()
             app = None
 
             if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
                 continue
-            break
 
-        except (SettingsError, json.decoder.JSONDecodeError) as e:
-            A = QMessageBox.warning(None, 'Corrupt settings', ''.join([str(e), '\nRestore default settings?']),
-                                    buttons=QMessageBox.Yes | QMessageBox.No)
-
-            app = None
-            if A == QMessageBox.Yes:
-                filehandler = FileHandler()
-                setting = filehandler.load_settings(True)
-                filehandler.save_settings(setting.get_settings_data)
-                continue
+        except (SettingsError, ProfileLoadError, json.decoder.JSONDecodeError) as e:
+            if isinstance(e, ProfileLoadError):
+                file = 'profiles file'
             else:
-                break
+                file = 'settings file'
+
+            warning = QMessageBox.warning(None,
+                                          f'Corruption of {file}!',
+                                          ''.join([str(e), '\nRestore to defaults?']),
+                                          buttons=QMessageBox.Yes | QMessageBox.No)
+
+            if warning == QMessageBox.Yes:
+                filehandler = FileHandler()
+                if isinstance(e, ProfileLoadError):
+                    filehandler.save_profiles({})
+                else:
+                    setting = filehandler.load_settings(reset=True)
+                    filehandler.save_settings(setting.get_settings_data)
+
+                app = None  # Ensures the app instance is properly removed!
+                continue
+
+        break

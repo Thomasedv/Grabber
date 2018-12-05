@@ -40,8 +40,6 @@ def main():
                     setting = filehandler.load_settings(reset=True)
                     filehandler.save_settings(setting.get_settings_data)
 
-
-
                 app = None  # Ensures the app instance is properly removed!
                 continue
 

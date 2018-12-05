@@ -162,7 +162,6 @@ class FileHandler:
         else:
             settings = get_file(self.settings_path)
             if settings:
-                profiles = get_file(self.profile_path)
                 return SettingsClass(settings, profiles, self)
             else:
                 return self.load_settings(reset=True)
