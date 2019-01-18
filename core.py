@@ -92,7 +92,7 @@ class GUI(MainWindow):
 
     def build_gui(self):
         """Generates the GUI elements, and hooks everything up."""
-        # TODO: Separate the GUI elements into their own class/file.
+
         # Denotes if the process(youtube-dl) is running.
         self.RUNNING = False
         # Denotes if the textfile is saved.
@@ -557,15 +557,13 @@ class GUI(MainWindow):
         if profile_name in ('None', 'Custom'):
             return
 
-        # TODO: Instead of completely replacing the Settingsdict, maybe update it.
-        # TODO: Make sure download location is kept between profiles, for easier use of profiles.
-
         success = self.settings.change_profile(profile_name)
         if not success:
             self.alert_message('Error',
                                'Failed to find profile',
                                f'The profile "{profile_name}" was not found!')
             return
+
         favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
         options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
 
@@ -743,6 +741,7 @@ class GUI(MainWindow):
             for number in range(item.childCount()):
                 if item.child(number).checkState(0) == Qt.Checked:
                     self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
+                    self.tab2_download_lineedit.setToolTip(item.child(number).data(0, 32))
                     break
             else:
                 # TODO: Add error handling here
@@ -849,7 +848,6 @@ class GUI(MainWindow):
                                     question=True)
 
         if result == QMessageBox.Yes:
-            # TODO: Move to SettingsClass!
             self.settings = self.file_handler.load_settings(reset=True)
             qApp.exit(GUI.EXIT_CODE_REBOOT)
 
