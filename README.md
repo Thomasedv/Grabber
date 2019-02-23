@@ -31,14 +31,7 @@ Images from version 0.3.1.
 
 Current to do list: 
 
-* Make code consistent in style. (Mostly completed...)
-* Add lots of comments, strings an other stuff to ensure code readability and actually make it possible form someone else to understand the code.
-* Rename really badly made functions. (Mostly done)
-* Docstrings to modules.
-* Replace code that has been given simplifications. 
-* Remove or specify try/except statements where they are too broad.
-* Add general error handling when stuff goes wrong, especially read/write errors if there are some. 
+* Possibly in desired: Add hide from taskbar. (So only a icon in bottom right corner, potentially pop-up when done downloading.) 
+* ~~Add general error handling when stuff goes wrong, especially read/write errors if there are some.~~
 * ~~Upload first release executable. (Built with PyInstaller)~~ Done!
-* Learn to do testing...
-* Add hide from taskbar. (So only a icon in bottom right corner, potentially pop-up when done downloading.)
-* Add custom profiles. 
+* ~~Add custom profiles. ~~
