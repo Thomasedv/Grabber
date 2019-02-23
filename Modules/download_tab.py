@@ -1,18 +1,20 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, \
     QHBoxLayout, QVBoxLayout
 
 from Modules.dropdown_widget import DropDown
-from Modules.lineEdit import LineEdit
+from Modules.lineedit import LineEdit
+from utils.utilities import SettingsClass
 
 
 class MainTab(QWidget):
 
-    def __init__(self, settings, parent=None):
+    def __init__(self, settings: SettingsClass, parent=None):
         super().__init__(parent=parent)
 
         # Starts the program (Youtube-dl)
         self.start_btn = QPushButton('Download')
+        self.start_btn.clicked.connect(self.start_button_timer)
         # stops the program
         self.stop_btn = QPushButton('Abort')
         # Closes window (also stops the program)
@@ -27,10 +29,15 @@ class MainTab(QWidget):
         self.profile_dropdown = DropDown(self)
         self.profile_dropdown.setFixedWidth(100)
 
-        if settings['Profiles']:
-            for profile in settings['Profiles'].keys():
+        self.timer = QTimer(self)
+        self.timer.setInterval(100)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(lambda: self.start_btn.setDisabled(False))
+
+        if settings.profiles:
+            for profile in settings.profiles:
                 self.profile_dropdown.addItem(profile)
-            current_profile = settings['Other stuff']['current_profile']
+            current_profile = settings.user_options['current_profile']
             if current_profile:
                 self.profile_dropdown.setCurrentText(current_profile)
             else:
@@ -55,8 +62,6 @@ class MainTab(QWidget):
 
         # Start making checkbutton for selecting downloading from text file mode.
         self.checkbox = QCheckBox('Download from text file.')
-
-        ## Layout tab 1.
 
         # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
         self.QH = QHBoxLayout()
@@ -91,14 +96,18 @@ class MainTab(QWidget):
 
         self.setLayout(self.QV)
 
+    def start_button_timer(self, state):
+        if not state:
+            self.timer.start(1000)
+
 
 if __name__ == '__main__':
     # Only visual aspects work here!!
     import sys
     from PyQt5.QtWidgets import QApplication
-    from utils.utilities import get_base_settings
+    from utils.filehandler import FileHandler
 
     app = QApplication(sys.argv)
-    gui = MainTab(get_base_settings())
+    gui = MainTab(FileHandler().load_settings())
     gui.show()
     app.exec_()
