@@ -1178,7 +1178,7 @@ class GUI(MainWindow):
     def allow_start(self):
         self.tab1.stop_btn.setDisabled(not self.RUNNING)
         self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
-        self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '')
+        self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '' and not self.tab1.checkbox.isChecked())
 
     def load_text_from_file(self):
         if self.tab3_textedit.toPlainText() or (not self.tab3_saveButton.isEnabled()) or self.SAVED:
