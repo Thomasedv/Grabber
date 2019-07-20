@@ -2,6 +2,7 @@ from PyQt5.QtCore import QProcess
 
 
 class Download(QProcess):
+
     def __init__(self, working_dir: str, program_path: str, commands: list, parent=None):
         """
         Download objects take required elements, and will start a process on command.
@@ -16,11 +17,8 @@ class Download(QProcess):
 
     def start_dl(self):
         if self.program_path is None:
-            raise TypeError('Missing youtube-dl path.')
+            raise TypeError('Can\'t find youtube-dl executable')
         # TODO: Handler errors with starting youtube-dl
-
-        self.errorOccurred.connect(lambda: print('error', self.error()))
-
         self.start(self.program_path, self.commands)
 
 

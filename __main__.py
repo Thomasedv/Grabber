@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 
 from PyQt5.QtCore import Qt
@@ -12,6 +13,16 @@ from utils.utilities import SettingsError, ProfileLoadError
 def main():
     while True:
         try:
+            # If Grabber is run from start menu, working directory is set to system32, this changes to file location.
+
+            if os.getcwd().lower() == r'c:\windows\system32'.lower():  # Bit of a hack, but if you have this, your fault
+                # Check if running as script, or executable.
+                if getattr(sys, 'frozen', False):
+                    application_path = os.path.dirname(sys.executable)
+                else:
+                    application_path = os.path.dirname(__file__)
+                os.chdir(os.path.dirname(os.path.realpath(application_path)))
+
             app = QApplication(sys.argv)
             program = GUI()
 

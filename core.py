@@ -954,6 +954,7 @@ class GUI(MainWindow):
                     return self.queue_handler(process_finished=True)
 
                 self.set_running(True)
+
             else:
                 self.set_running(False)
                 self.active_download = None
