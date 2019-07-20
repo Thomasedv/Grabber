@@ -21,7 +21,7 @@ def main():
                     application_path = os.path.dirname(sys.executable)
                 else:
                     application_path = os.path.dirname(__file__)
-                os.chdir(os.path.dirname(os.path.realpath(application_path)))
+                os.chdir(os.path.realpath(application_path))
 
             app = QApplication(sys.argv)
             program = GUI()
