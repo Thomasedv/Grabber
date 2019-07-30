@@ -11,7 +11,22 @@ You can get those programs here:
 * Youtube-dl: https://rg3.github.io/youtube-dl/ 
 * ffmpeg: https://ffmpeg.zeranoe.com/builds/  
 
-**USE THE 4.0.2 static ffmpeg version!** Extract the 3 executables from the bin folder to the Grabber folder or PATH
+Short installation guide:
+
+* Download Grabber.exe and place in a folder.
+* Download youtube-dl.exe and *either* place it in the same folder as above, or in PATH, if you know how. 
+* If you want to convert to audio, you need to also put ffmpeg.exe and the other included executables that follow into the same folder as Grabber.exe or in PATH.
+* If nothing happens when you try to start a download, youtube-dl likely fails because you **need** this installed:
+ https://www.microsoft.com/en-US/download/details.aspx?id=5555
+
+Youtube-dl download: 
+https://ytdl-org.github.io/youtube-dl/download.html
+FFmpeg download (**STATIC build verioin**, for example 4..4 Windows 64/32, static) : 
+https://ffmpeg.zeranoe.com/builds/
+
+Open the ffmpeg zip, copy 3 executables in the **bin** folder to the locations mentioned above.
+
+**USE THE 4.X.X static ffmpeg version!** Extract the 3 executables from the bin folder to the Grabber folder or PATH
 
 ______
 
