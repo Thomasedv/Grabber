@@ -342,7 +342,7 @@ class GUI(MainWindow):
         self.tab4_txt_lineedit = QLineEdit()
         self.tab4_txt_lineedit.setReadOnly(True)  # Read only
         self.tab4_txt_lineedit.setText(self.settings.user_options['multidl_txt'])  # Path from settings.
-        # TODO: Refactor settings to not have the section "Other stuff"
+
         self.tab4_txt_label = QLabel('Textfile:')
 
         # Textbrowser to adds some info about Grabber.

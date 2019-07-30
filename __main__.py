@@ -58,8 +58,6 @@ def main():
 
 
 if __name__ == '__main__':
-    # TODO: Test on high DPI screen.
-    # TODO: Get a high DPI screen...
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     main()
