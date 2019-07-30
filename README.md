@@ -21,6 +21,7 @@ Short installation guide:
 
 Youtube-dl download: 
 https://ytdl-org.github.io/youtube-dl/download.html
+
 FFmpeg download (**STATIC build verioin**, for example 4..4 Windows 64/32, static) : 
 https://ffmpeg.zeranoe.com/builds/
 
