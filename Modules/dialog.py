@@ -8,16 +8,16 @@ from utils.utilities import color_text
 
 class Dialog(QDialog):
 
-    def __init__(self, parent=None, name: str = '', description: str = ''):
+    def __init__(self, parent=None, name: str = '', description: str = '', allow_empty=False):
         super(Dialog, self).__init__(parent)
         self.option = QLineEdit()
-
+        self.allow_empty = allow_empty
         self.label = QLabel(color_text('Insert option:', 'limegreen'))
         self.name_label = QLabel(color_text(name + ':', 'limegreen'))
         self.tooltip = QLabel(description)
         self.ok_button = QPushButton('Ok', self)
         self.ok_button.setFixedSize(self.ok_button.sizeHint())
-        self.ok_button.setDisabled(True)
+        self.ok_button.setDisabled(not allow_empty)
         self.ok_button.clicked.connect(self.accept)
 
         self.cancel_button = QPushButton('Cancel', self)
@@ -43,8 +43,9 @@ class Dialog(QDialog):
         self.option.setFocus()
 
     def input_check(self):
-        test = re.match(r'(^ *$)', self.option.text())
-        if test is not None:
-            self.ok_button.setDisabled(True)
-        else:
-            self.ok_button.setDisabled(False)
+        if not self.allow_empty:
+            test = re.match(r'(^ *$)', self.option.text())
+            if test is not None:
+                self.ok_button.setDisabled(True)
+            else:
+                self.ok_button.setDisabled(False)

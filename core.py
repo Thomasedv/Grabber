@@ -34,6 +34,8 @@ class GUI(MainWindow):
         # starts checks
         self.initial_checks()
 
+        self._temp = {}
+
         # Builds GUI and everything related to that.
         self.build_gui()
 
@@ -1059,6 +1061,28 @@ class GUI(MainWindow):
                     add = format_in_list(options['command'],
                                          os.path.join(os.getcwd(), self.settings.get_active_setting(parameter)))
                     command += add
+            elif parameter == 'Username':
+                if options['state']:
+                    option = self.settings.get_active_setting(parameter)
+                    if option in self._temp:
+                        _password = self._temp[option]
+                    else:
+                        dialog = Dialog(self,
+                                        'Password',
+                                        f'Input you password for the account "{option}".',
+                                        allow_empty=True)
+
+                        if dialog.exec_() == QDialog.Accepted:
+                            self._temp[option] = _password = dialog.option.text()
+                        else:
+                            self.tab1.textbrowser.append(color_text('ERROR: No password was entered.', sections=(0, 6)))
+                            return
+
+                    add = format_in_list(options['command'], option)
+                    add += ['--password', _password]
+
+                    command += add
+
             else:
                 if options['state']:
                     if self.settings.get_active_setting(parameter):

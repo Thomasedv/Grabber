@@ -882,6 +882,14 @@ base_settings['parameters']['Merge output format'] = {
                "\nOne of mkv, mp4, ogg, webm, flv."
                "\nIgnored if no merge is required"
 }
+base_settings['parameters']['Username'] = {
+    "active option": 0,
+    "command": "--username {}",
+    "dependency": None,
+    "options": [],
+    "state": False,
+    "tooltip": "Username of your account. Password will be asked for on run."
+}
 
 
 def get_base_settings() -> dict:
