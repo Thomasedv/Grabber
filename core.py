@@ -554,33 +554,38 @@ class GUI(MainWindow):
         self.file_handler.save_profiles(self.settings.get_profiles_data)
 
     def load_profile(self):
-        profile_name = self.tab1.profile_dropdown.currentText()
+        try:
+            profile_name = self.tab1.profile_dropdown.currentText()
 
-        if profile_name in ('None', 'Custom'):
-            return
+            if profile_name in ('None', 'Custom'):
+                return
 
-        success = self.settings.change_profile(profile_name)
-        if not success:
-            self.alert_message('Error',
-                               'Failed to find profile',
-                               f'The profile "{profile_name}" was not found!')
-            return
+            success = self.settings.change_profile(profile_name)
 
-        favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
-        options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
+            if not success:
+                self.alert_message('Error',
+                                   'Failed to find profile',
+                                   f'The profile "{profile_name}" was not found!')
+                return
 
-        self.tab2_options.load_profile(options)
-        self.tab2_favorites.load_profile(favorites)
+            favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
+            options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
 
-        self.tab2_download_option = self.find_download_widget()
-        self.download_name_handler()
+            self.tab2_options.load_profile(options)
+            self.tab2_favorites.load_profile(favorites)
 
-        self.tab1.profile_dropdown.blockSignals(True)
-        self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('None'))
-        self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('Custom'))
-        self.tab1.profile_dropdown.blockSignals(False)
+            self.tab2_download_option = self.find_download_widget()
+            self.download_name_handler()
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+            self.tab1.profile_dropdown.blockSignals(True)
+            self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('None'))
+            self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('Custom'))
+            self.tab1.profile_dropdown.blockSignals(False)
+
+            self.file_handler.save_settings(self.settings.get_settings_data)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
 
     def delete_profile(self):
         index = self.tab1.profile_dropdown.currentIndex()

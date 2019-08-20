@@ -243,6 +243,12 @@ class SettingsClass:
             if key not in self._userdefined:
                 self._userdefined[key] = get_base_setting('default', key)
 
+        keys = base_settings['parameters']
+        for profile in self.profiles:
+            for key in keys:
+                if key not in self._profiles[profile]:
+                    self._profiles[profile][key] = get_base_setting('parameters', key)
+
         # Parameters
 
         keys = ['command',
