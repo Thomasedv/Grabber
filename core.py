@@ -6,8 +6,8 @@ import sys
 from collections import deque
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
-from PyQt5.QtGui import QFont, QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QLineEdit, \
+from PyQt5.QtGui import QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, \
     QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
     QFrame, QDialog, QApplication, QMessageBox, QTabWidget
 
@@ -111,11 +111,6 @@ class GUI(MainWindow):
 
         ## Stylesheet of widget!
 
-        ## Set font for tab 4.
-        self.font = QFont()
-        self.font.setFamily('Consolas')
-        self.font.setPixelSize(13)
-
         # Sorts the parameters, so that favorite ones are added to the favorite widget.
         favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
         options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
@@ -143,9 +138,13 @@ class GUI(MainWindow):
         self.tab1.checkbox.stateChanged.connect(self.allow_start)
         # Connects actions to text changes and adds action to when you press Enter.
         self.tab1.lineedit.textChanged.connect(self.allow_start)
-        # Starts downloading
+
+        # Queue downloading
         self.tab1.lineedit.returnPressed.connect(self.tab1.start_btn.click)
+
+        # Change profile
         self.tab1.profile_dropdown.currentTextChanged.connect(self.load_profile)
+        # Delete profile
         self.tab1.profile_dropdown.deleteItem.connect(self.delete_profile)
 
         ### Tab 2
@@ -285,36 +284,10 @@ class GUI(MainWindow):
 
         ## Widget creation tab 3.
         # Create textedit
-        self.tab3_textedit = QTextEdit()
-        self.tab3_textedit.setObjectName('TextFileEdit')
 
-        self.tab3_textedit.setFont(self.font)
-
-        # Create load button and label.
-        self.tab3_label = QLabel('Add videos to textfile:')
-        self.tab3_loadButton = QPushButton('Load file')
-        self.tab3_saveButton = QPushButton('Save file')
-        self.tab3_saveButton.setDisabled(True)
-
-        ## Layout tab 3.
-
-        # Create horizontal layout.
-        self.tab3_QH = QHBoxLayout()
-
-        # Filling horizontal layout
-        self.tab3_QH.addWidget(self.tab3_label)
-        self.tab3_QH.addStretch(1)
-        self.tab3_QH.addWidget(self.tab3_loadButton)
-        self.tab3_QH.addWidget(self.tab3_saveButton)
-
-        # Horizontal layout with a textedit and a button.
-        self.tab3_VB = QVBoxLayout()
-        self.tab3_VB.addLayout(self.tab3_QH)
-        self.tab3_VB.addWidget(self.tab3_textedit)
 
         # Tab creation.
         self.tab3 = QWidget()
-        self.tab3.setLayout(self.tab3_VB)
 
         ## Connecting stuff tab 3.
 
