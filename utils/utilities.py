@@ -10,6 +10,7 @@ FONT_CONSOLAS = QFont()
 FONT_CONSOLAS.setFamily('Consolas')
 FONT_CONSOLAS.setPixelSize(13)
 
+
 def path_shortener(full_path: str):
     """ Formats a path to a shorter version, for cleaner UI."""
 

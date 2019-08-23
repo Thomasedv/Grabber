@@ -8,10 +8,12 @@ from collections import deque
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, \
-    QShortcut, QFileDialog, QGridLayout, QTextBrowser, QTreeWidgetItem, qApp, QAction, QMenu, \
+    QShortcut, QFileDialog, QGridLayout, QTreeWidgetItem, qApp, QAction, QMenu, \
     QFrame, QDialog, QApplication, QMessageBox, QTabWidget
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
+from Modules.about_tab import AboutTab
+from Modules.text_manager import TextTab
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, stylesheet, get_win_accent_color, \
     ProfileLoadError
@@ -97,8 +99,7 @@ class GUI(MainWindow):
 
         # Denotes if the process(youtube-dl) is running.
         self.RUNNING = False
-        # Denotes if the textfile is saved.
-        self.SAVED = True
+
         # Error count is provided after process quit.
         self.Errors = 0
         # Indicates if license is shown. (For license tab)
@@ -277,103 +278,29 @@ class GUI(MainWindow):
         self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
         self.tab2_save_profile_btn.clicked.connect(self.save_profile)
 
-        # Creates custom option.
-        # self.custom_option()
-
-        ### Tab 3.
-
-        ## Widget creation tab 3.
-        # Create textedit
-
-
+        # Tab 3.
         # Tab creation.
-        self.tab3 = QWidget()
+        self.tab3 = TextTab(parent=self)
 
-        ## Connecting stuff tab 3.
+        # Connecting stuff tab 3.
 
         # When loadbutton is clicked, launch load textfile.
-        self.tab3_loadButton.clicked.connect(self.load_text_from_file)
-
+        self.tab3.loadButton.clicked.connect(self.load_text_from_file)
         # When savebutton clicked, save text to document.
-        self.tab3_saveButton.clicked.connect(self.save_text_to_file)
-        self.tab3_textedit.textChanged.connect(self.enable_saving)
+        self.tab3.saveButton.clicked.connect(self.save_text_to_file)
 
-        ### Tab 4
-
+        # Tab 4
         # Button to browse for .txt file to download files.
-        self.tab4_txt_location_btn = QPushButton('Browse')
-        # Button to check for youtube-dl updates.
-        self.tab4_update_btn = QPushButton('Update')
-        # License
-        self.tab4_license_btn = QPushButton('License')
-        # Debugging
-        self.tab4_dirinfo_btn = QPushButton('Dirinfo')
-        # Reset settings, (requires restart!)
-        self.tab4_test_btn = QPushButton('Reset\n settings')
-        # Adjust button size to match naming. (Possibly change later in some form)
-        self.tab4_test_btn.setMinimumHeight(30)
-
-        # Lineedit to show path to text file. (Can be changed later to use same path naming as other elements.)
-        self.tab4_txt_lineedit = QLineEdit()
-        self.tab4_txt_lineedit.setReadOnly(True)  # Read only
-        self.tab4_txt_lineedit.setText(self.settings.user_options['multidl_txt'])  # Path from settings.
-
-        self.tab4_txt_label = QLabel('Textfile:')
-
-        # Textbrowser to adds some info about Grabber.
-        self.tab4_abouttext_textedit = QTextBrowser()
-        self.tab4_abouttext_textedit.setObjectName('AboutText')
-        self.tab4_abouttext_textedit.setOpenExternalLinks(True)
-        # TODO: Shorten this massive piece.
-        self.tab4_abouttext_textedit.setText('In-development (on my free time) version of a Youtube-dl GUI. \n'
-                                             'I\'m just a developer for fun.\nThis is licensed under GPL 3.\n')
-        self.tab4_abouttext_textedit.append('Source on Github: '
-                                            '<a style="color: darkorange" '
-                                            'href="https://github.com/Thomasedv/Grabber">'
-                                            'Website'
-                                            '</a>')
-        self.tab4_abouttext_textedit.append('<br>PyQt5 use for making this: '
-                                            '<a style="color: darkorange" '
-                                            'href="https://www.riverbankcomputing.com/software/pyqt/intro">'
-                                            'Website'
-                                            '</a>')
-
-        ## Layout tab 4.
-
-        self.tab4_QH = QHBoxLayout()
-        self.tab4_QV = QVBoxLayout()
-
-        self.tab4_QH.addWidget(self.tab4_abouttext_textedit)
-
-        self.tab4_QV.addWidget(self.tab4_update_btn)
-        self.tab4_QV.addWidget(self.tab4_dirinfo_btn)
-        self.tab4_QV.addWidget(self.tab4_license_btn)
-        self.tab4_QV.addWidget(self.tab4_test_btn)
-
-        self.tab4_QV.addStretch(1)
-
-        self.tab4_QH.addLayout(self.tab4_QV)
-
-        self.tab4_topQH = QHBoxLayout()
-        self.tab4_topQH.addWidget(self.tab4_txt_label)
-        self.tab4_topQH.addWidget(self.tab4_txt_lineedit)
-        self.tab4_topQH.addWidget(self.tab4_txt_location_btn)
-
-        self.tab4_topQV = QVBoxLayout()
-        self.tab4_topQV.addLayout(self.tab4_topQH)
-        self.tab4_topQV.addLayout(self.tab4_QH)
-
-        self.tab4 = QWidget()
-        self.tab4.setLayout(self.tab4_topQV)
+        self.tab4 = AboutTab(self.settings, parent=self)
 
         ## Connecting stuff tab 4.
 
         # Starts self.update_youtube_dl, locate_program_path checks for updates.
-        self.tab4_update_btn.clicked.connect(self.update_youtube_dl)
-        self.tab4_dirinfo_btn.clicked.connect(self.dir_info)
-        self.tab4_test_btn.clicked.connect(self.reset_settings)
-        self.tab4_license_btn.clicked.connect(self.read_license)
-        self.tab4_txt_location_btn.clicked.connect(self.textfile_dialog)
+        self.tab4.update_btn.clicked.connect(self.update_youtube_dl)
+        self.tab4.dirinfo_btn.clicked.connect(self.dir_info)
+        self.tab4.reset_btn.clicked.connect(self.reset_settings)
+        self.tab4.license_btn.clicked.connect(self.read_license)
+        self.tab4.location_btn.clicked.connect(self.textfile_dialog)
 
         ### Future tab creation here! Currently 4 tabs already.
         if self.settings.user_options['use_win_accent']:
@@ -462,8 +389,8 @@ class GUI(MainWindow):
             self.tab1.lineedit.setFocus()
 
         # Other functionality.
-        self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3_textedit)
-        self.shortcut.activated.connect(self.tab3_saveButton.click)
+        self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3.textedit)
+        self.shortcut.activated.connect(self.tab3.saveButton.click)
 
         # TODO: Hook up to button, or change output to somewhere the user can get it.
         self.trigger_queue_print = QShortcut(QKeySequence('Ctrl+P'), self)
@@ -471,7 +398,7 @@ class GUI(MainWindow):
 
         # Check for youtube
         if self.youtube_dl_path is None:
-            self.tab4_update_btn.setDisabled(True)
+            self.tab4.update_btn.setDisabled(True)
             self.tab1.textbrowser.append(color_text('\nNo youtube-dl.exe found! Add to path, '
                                                     'or make sure it\'s in the same folder as this program. '
                                                     'Then close and reopen this program.', 'darkorange', 'bold'))
@@ -977,7 +904,7 @@ class GUI(MainWindow):
         if location == '':
             pass
         elif self.file_handler.is_file(location):
-            if not self.SAVED:
+            if not self.tab3.SAVED:
                 result = self.alert_message('Warning!',
                                             'Selecting new textfile,'
                                             ' this will load over the text in the download list tab!',
@@ -986,15 +913,15 @@ class GUI(MainWindow):
 
                 if result == QMessageBox.Yes:
                     self.settings.user_options['multidl_txt'] = location
-                    self.tab4_txt_lineedit.setText(location)
-                    self.SAVED = True
+                    self.tab4.textbrowser.setText(location)
+                    self.tab3.SAVED = True
                     self.load_text_from_file()
 
                     self.file_handler.save_settings(self.settings.get_settings_data)
             else:
                 self.settings.user_options['multidl_txt'] = location
-                self.tab4_txt_lineedit.setText(location)
-                self.SAVED = True
+                self.tab4.textbrowser.setText(location)
+                self.tab3.SAVED = True
                 self.load_text_from_file()
 
                 self.file_handler.save_settings(self.settings.get_settings_data)
@@ -1003,6 +930,7 @@ class GUI(MainWindow):
             # Check if the checkbox is toggled, and disables the line edit if it is.
             #  Also disables start button if lineEdit is empty and checkbox is not checked
 
+
     def queue_dl(self):
         if not self.RUNNING:
             self.tab1.textbrowser.clear()
@@ -1010,7 +938,7 @@ class GUI(MainWindow):
         command = []
 
         if self.tab1.checkbox.isChecked():
-            if self.tab4_txt_lineedit.text() == '':
+            if self.tab4.txt_lineedit.text() == '':
                 self.alert_message('Error!', 'No textfile selected!', '')
                 self.tab1.textbrowser.append('No textfile selected...\n\nNo download queued!')
                 return
@@ -1184,27 +1112,27 @@ class GUI(MainWindow):
         self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '' and not self.tab1.checkbox.isChecked())
 
     def load_text_from_file(self):
-        if self.tab3_textedit.toPlainText() or (not self.tab3_saveButton.isEnabled()) or self.SAVED:
+        if self.tab3.textedit.toPlainText() or (not self.tab3.saveButton.isEnabled()) or self.tab3.SAVED:
             content = self.file_handler.read_textfile(self.settings.user_options['multidl_txt'])
             if content is not None:
-                self.tab3_textedit.clear()
+                self.tab3.textedit.clear()
                 for line in content.split():
-                    self.tab3_textedit.append(line.strip())
+                    self.tab3.textedit.append(line.strip())
 
-                self.tab3_textedit.append('')
-                self.tab3_textedit.setFocus()
-                self.tab3_saveButton.setDisabled(True)
-                self.SAVED = True
+                self.tab3.textedit.append('')
+                self.tab3.textedit.setFocus()
+                self.tab3.saveButton.setDisabled(True)
+                self.tab3.SAVED = True
 
             else:
-                if self.tab4_txt_lineedit.text():
+                if self.tab4.txt_lineedit.text():
                     warning = 'No textfile selected!'
                 else:
                     warning = 'Could not find file!'
                 self.alert_message('Error!', warning, '')
         else:
-            if self.tab4_txt_lineedit.text() == '':
-                self.SAVED = True
+            if self.tab4.txt_lineedit.text() == '':
+                self.tab3.SAVED = True
                 self.load_text_from_file()
             else:
                 result = self.alert_message('Warning',
@@ -1212,17 +1140,17 @@ class GUI(MainWindow):
                                             'Do you want to load over the unsaved changes?',
                                             question=True)
                 if result == QMessageBox.Yes:
-                    self.SAVED = True
+                    self.tab3.SAVED = True
                     self.load_text_from_file()
 
     def save_text_to_file(self):
         # TODO: Implement Ctrl+L for loading of files.
         if self.settings.user_options['multidl_txt']:
             self.file_handler.write_textfile(self.settings.user_options['multidl_txt'],
-                                             self.tab3_textedit.toPlainText())
+                                             self.tab3.textedit.toPlainText())
 
-            self.tab3_saveButton.setDisabled(True)
-            self.SAVED = True
+            self.tab3.saveButton.setDisabled(True)
+            self.tab3.SAVED = True
 
         else:
             result = self.alert_message('Warning!',
@@ -1234,13 +1162,13 @@ class GUI(MainWindow):
                 save_path = QFileDialog.getSaveFileName(parent=self.main_tab, caption='Save as', filter='*.txt')
                 if not save_path[0]:
                     self.file_handler.write_textfile(save_path[0],
-                                                     self.tab3_textedit.toPlainText())
+                                                     self.tab3.textedit.toPlainText())
                     self.settings.user_options['multidl_txt'] = save_path[0]
                     self.file_handler.save_settings(self.settings.get_settings_data)
 
-                    self.tab4_txt_lineedit.setText(self.settings.user_options['multidl_txt'])
-                    self.tab3_saveButton.setDisabled(True)
-                    self.SAVED = True
+                    self.tab4.txt_lineedit.setText(self.settings.user_options['multidl_txt'])
+                    self.tab3.saveButton.setDisabled(True)
+                    self.tab3.SAVED = True
 
     def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
 
@@ -1257,10 +1185,6 @@ class GUI(MainWindow):
         elif question:
             warning_window.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         return warning_window.exec()
-
-    def enable_saving(self):
-        self.tab3_saveButton.setDisabled(False)
-        self.SAVED = False
 
     def confirm(self):
 
@@ -1284,7 +1208,7 @@ class GUI(MainWindow):
             if result != QMessageBox.Yes:
                 return None
 
-        if ((self.tab3_textedit.toPlainText() == '') or (not self.tab3_saveButton.isEnabled())) or self.SAVED:
+        if ((self.tab3.textedit.toPlainText() == '') or (not self.tab3.saveButton.isEnabled())) or self.tab3.SAVED:
             do_proper_shutdown()
 
         else:
@@ -1304,24 +1228,15 @@ class GUI(MainWindow):
     def read_license(self):
         # TODO: Refactor code, keep string for UI out of code.
         if not self.license_shown:
-            self.tab4_abouttext_textedit.clear()
             content = self.file_handler.read_textfile(self.license_path)
-            self.tab4_abouttext_textedit.append(content)
-
+            if content is None:
+                self.alert_message('Error!', 'Failed to read textfile!')
+                return
+            self.tab4.abouttext_textedit.clear()
+            self.tab4.abouttext_textedit.append(content)
             self.license_shown = True
         else:
-            self.tab4_abouttext_textedit.setText('In-development (on my free time) version of a Youtube-dl GUI. \n'
-                                                 'I\'m just a developer for fun.\nThis is licensed under GPL 3.\n')
-            self.tab4_abouttext_textedit.append('Source on Github: '
-                                                '<a style="color: darkorange" '
-                                                'href="https://github.com/Thomasedv/Grabber">'
-                                                'Website'
-                                                '</a>')
-            self.tab4_abouttext_textedit.append('<br>PyQt5 use for making this: '
-                                                '<a style="color: darkorange" '
-                                                'href="https://www.riverbankcomputing.com/software/pyqt/intro">'
-                                                'Website'
-                                                '</a>')
+            self.tab4.set_standard_text()
             self.license_shown = False
 
 
