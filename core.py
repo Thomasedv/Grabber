@@ -1,11 +1,9 @@
 import json
 import json
 import os
-import re
 import sys
-from collections import deque
 
-from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
+from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData, pyqtSlot
 from PyQt5.QtGui import QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, \
     QShortcut, QFileDialog, QGridLayout, QTreeWidgetItem, qApp, QAction, QMenu, \
@@ -13,6 +11,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLab
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from Modules.about_tab import AboutTab
+from Modules.process_manager import Downloader
 from Modules.text_manager import TextTab
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, stylesheet, get_win_accent_color, \
@@ -45,7 +44,7 @@ class GUI(MainWindow):
         # self.setProcessChannelMode(QProcess.MergedChannels)
 
         # connects program output to the GUI part.
-        # self.readyReadStandardOutput.connect(self.read_stdoutput)
+        # self.readyReadStandardOutput.connect(self.print_process_output)
 
     def initial_checks(self):
         """Loads settings and finds necessary files. Checks the setting file for errors."""
@@ -53,7 +52,7 @@ class GUI(MainWindow):
 
         self.file_handler = FileHandler()
         self.settings = self.file_handler.load_settings()
-
+        self.downloader = Downloader(self.file_handler)
         # Find resources.
         # Find youtube-dl
 
@@ -64,9 +63,8 @@ class GUI(MainWindow):
 
         self.local_dl_path = self.file_handler.work_dir + '/DL/'
 
-
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
-        # Use replace('\\', '/') on path.
+        # Using replace('\\', '/') on path. Done by file handler!
         self.icon_list = []
 
         # TODO: Turn into dict comprehension??
@@ -106,7 +104,7 @@ class GUI(MainWindow):
         self.license_shown = False
 
         # Downloda queue
-        self.queue = deque()
+        # self.queue = deque()
 
         self.active_download = None
 
@@ -115,7 +113,6 @@ class GUI(MainWindow):
         # Sorts the parameters, so that favorite ones are added to the favorite widget.
         favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
         options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
-
 
         ### Main widget. This will be the ones that holds everything.
         ## Create top level tab widget system for the UI.
@@ -393,8 +390,8 @@ class GUI(MainWindow):
         self.shortcut.activated.connect(self.tab3.saveButton.click)
 
         # TODO: Hook up to button, or change output to somewhere the user can get it.
-        self.trigger_queue_print = QShortcut(QKeySequence('Ctrl+P'), self)
-        self.trigger_queue_print.activated.connect(self.print_queue)
+        # self.trigger_queue_print = QShortcut(QKeySequence('Ctrl+P'), self)
+        # self.trigger_queue_print.activated.connect(self.print_queue)
 
         # Check for youtube
         if self.youtube_dl_path is None:
@@ -417,6 +414,11 @@ class GUI(MainWindow):
         self.resizedByUser.connect(self.resize_contents)
         # To make sure the window is updated on first enter
         # if resized before tab2 is shown, i'll be blank.
+
+        self.downloader.output.connect(self.print_process_output)
+        self.downloader.stateChanged.connect(self.allow_start)
+        self.downloader.clearOutput.connect(self.tab1.textbrowser.clear)
+        self.downloader.updateQueue.connect(lambda text: self.tab1.queue_label.setText(text))
         self.main_tab.currentChanged.connect(self.resize_contents)
 
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
@@ -729,22 +731,7 @@ class GUI(MainWindow):
 
         self.file_handler.save_settings(self.settings.get_settings_data)
 
-    def print_queue(self):
-        self.tab1.textbrowser.append('Active process: ' +
-                                     str(self.active_download.commands if self.active_download is not None else None))
-        for process in self.queue:
-            self.tab1.textbrowser.append(str(process.commands))
-
-    @staticmethod
-    def resource_path(relative_path):
-        """ Get absolute path to resource, works for dev and for PyInstaller """
-        try:
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = sys._MEIPASS
-        except AttributeError:
-            base_path = os.path.abspath(".")
-
-        return os.path.join(base_path, relative_path)
+    # TODO: Show queue option
 
     def reset_settings(self):
         result = self.alert_message('Warning!',
@@ -830,61 +817,9 @@ class GUI(MainWindow):
         self.main_tab.setCurrentIndex(0)
 
     def update_youtube_dl(self):
-        self.tab1.textbrowser.clear()
-        self.main_tab.setCurrentIndex(0)
-
-        download_item = Download(self.program_workdir, self.youtube_dl_path, ['-U', '--encoding', 'utf-8'], self)
-        download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
-        download_item.stateChanged.connect(self.program_state_changed)
-
-        self.tab1.start_btn.setDisabled(True)
-        self.queue.append(download_item)
-        self.queue_handler()
-
-    def restart_current_download(self):
-        # TODO: Trigger this make trigger for restarting download!
-        self.tab1.textbrowser.append(color_text('Restarting download!', weight='normal'))
-        self.active_download.kill()
-        self.active_download.start()
-
-    def queue_handler(self, process_finished=False):
-        if not self.RUNNING or process_finished:
-            if self.queue:
-                download = self.queue.popleft()
-                self.tab1.queue_label.setText(f'Items in queue: {len(self.queue):5}')
-                self.active_download = download
-                try:
-                    download.start_dl()
-                except TypeError:
-                    self.Errors += 1
-                    self.tab1.textbrowser.append(color_text('DOWNLOAD FAILED!\nYuotube-dl is missing!\n'))
-                    return self.queue_handler(process_finished=True)
-
-                self.set_running(True)
-
-            else:
-                self.set_running(False)
-                self.active_download = None
-                self.tab1.textbrowser.append(f'Error count: '
-                                             f'{self.Errors if self.Errors ==0 else color_text(str(self.Errors),"darkorange","bold")}.')
-                self.Errors = 0
-        self.tab1.queue_label.setText(f'Items in queue: {len(self.queue):3}')
-
-    def set_running(self, running=False):
-        self.RUNNING = running
-        self.tab1.stop_btn.setEnabled(self.RUNNING)
-        # When something is downloading add program wide changes here.
-
-    # When the current download is started/stopped then this runs.
-    def program_state_changed(self, new_state):
-        if new_state == QProcess.NotRunning:
-            self.active_download.disconnect()
-            self.tab1.textbrowser.append('\nDone\n')
-            self.queue_handler(process_finished=True)
-        elif new_state == QProcess.Running:
-            self.tab1.textbrowser.append(color_text('Starting...\n', 'lawngreen', 'normal', sections=(0, 8)))
-
-        return
+        update = Download(self.program_workdir, self.youtube_dl_path, ['-U', '--encoding', 'utf-8'], self)
+        self.main_tab.setCurrentIndex(0)  # Go to main
+        self.downloader.update_youtube_dl(update)
 
     def savefile_dialog(self):
         location = QFileDialog.getExistingDirectory(parent=self.main_tab)
@@ -930,11 +865,7 @@ class GUI(MainWindow):
             # Check if the checkbox is toggled, and disables the line edit if it is.
             #  Also disables start button if lineEdit is empty and checkbox is not checked
 
-
     def queue_dl(self):
-        if not self.RUNNING:
-            self.tab1.textbrowser.clear()
-
         command = []
 
         if self.tab1.checkbox.isChecked():
@@ -1004,57 +935,22 @@ class GUI(MainWindow):
         if self.ffmpeg_path is not None:
             command += ['--ffmpeg-location', self.ffmpeg_path]
 
-        download_item = Download(self.program_workdir, self.youtube_dl_path, command, self)
-        download_item.readyReadStandardOutput.connect(lambda: self.read_stdoutput(download_item))
-        download_item.stateChanged.connect(self.program_state_changed)
-
+        download = Download(self.program_workdir, self.youtube_dl_path, command, self)
         self.tab1.start_btn.setDisabled(True)
-        self.queue.append(download_item)
-        self.queue_handler()
+        self.downloader.queue_dl(download)
 
     def stop_download(self):
-        if self.queue:
+        if self.downloader.has_pending():
             result = self.alert_message('Stop all?', 'Stop all pending downloads too?', '', True, True)
-            if result == QMessageBox.Yes:
-                for i in self.queue:
-                    i.disconnect()
-                    del i
-                self.queue.clear()
-                self.active_download.kill()
-                self.tab1.textbrowser.append('Cancelling all downloads...')
-            elif result == QMessageBox.No:
-                self.active_download.kill()
-                self.tab1.textbrowser.append('Cancelling download...')
-            elif result == QMessageBox.Cancel:
+            if result == QMessageBox.Cancel:
                 return
-        else:
-            if self.active_download is not None:
-                self.active_download.kill()
             else:
-                self.alert_message('Alert', 'stop was called without without an active process!', '')
+                self.downloader.stop_download(all_dls=(result == QMessageBox.Yes))
+        else:
+            self.downloader.stop_download()
 
-    def cmdoutput(self, info):
-        replace_dict = {
-            '[ffmpeg] ': '',
-            '[youtube] ': ''
-        }
-        substrs = sorted(replace_dict, key=len, reverse=True)
-        if info.startswith('ERROR'):
-            self.Errors += 1
-            info = info.replace('ERROR', '<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>')
-        info = re.sub(r'\s+$', '', info, 0, re.M)
-        info = re.sub(' +', ' ', info)
-        regexp = re.compile('|'.join(map(re.escape, substrs)))
-
-        return regexp.sub(lambda match: replace_dict[match.group(0)], info)
-
-    # appends youtube-dl output to tab1.textbrowser.
-    def read_stdoutput(self, download_item: Download):
-        data = download_item.readAllStandardOutput().data()
-        text = data.decode('utf-8', 'replace').strip()
-        text = self.cmdoutput(text)
-        # print(text)
-
+    @pyqtSlot(str)
+    def print_process_output(self, text):
         scrollbar = self.tab1.textbrowser.verticalScrollBar()
         place = scrollbar.sliderPosition()
 
@@ -1097,7 +993,7 @@ class GUI(MainWindow):
         # Prevents some leftover highlighted text on errors and such.
         self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
 
-        # Ensures slider position is kept when not at bottom, and stays at bottom with new text where there.
+        # Ensures slider position is kept when not at bottom, and stays at bottom with new text when there.
         if keep_position:
             scrollbar.setSliderPosition(place)
         else:
@@ -1107,7 +1003,7 @@ class GUI(MainWindow):
     # And disables the lineEdit if the textbox is checked.
     # Stop button is set to disabled, since no process is running.
     def allow_start(self):
-        self.tab1.stop_btn.setDisabled(not self.RUNNING)
+        self.tab1.stop_btn.setDisabled(not self.downloader.RUNNING)
         self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
         self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '' and not self.tab1.checkbox.isChecked())
 
@@ -1189,6 +1085,8 @@ class GUI(MainWindow):
     def confirm(self):
 
         def do_proper_shutdown():
+            """Ensures that the settings are saved properly before exiting!"""
+
             nonlocal self
             self.hide()
             self.file_handler.force_save = True
@@ -1197,9 +1095,8 @@ class GUI(MainWindow):
             self.file_handler.save_profiles(self.settings.get_profiles_data)
             print(self.settings.profiles)
             self.sendClose.emit()
-        # Ensures that the settings are saved properly before exiting!
 
-        if self.RUNNING or self.queue:
+        if self.RUNNING:
             result = self.alert_message('Want to quit?',
                                         'Still downloading!',
                                         'Do you want to close without letting youtube-dl finish? '
