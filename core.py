@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLab
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from Modules.about_tab import AboutTab
-from Modules.process_manager import Downloader
+from Modules.downloader import Downloader
 from Modules.text_manager import TextTab
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, stylesheet, get_win_accent_color, \
@@ -95,20 +95,9 @@ class GUI(MainWindow):
     def build_gui(self):
         """Generates the GUI elements, and hooks everything up."""
 
-        # Denotes if the process(youtube-dl) is running.
-        self.RUNNING = False
-
-        # Error count is provided after process quit.
-        self.Errors = 0
         # Indicates if license is shown. (For license tab)
+        # TODO: Move to license tab?
         self.license_shown = False
-
-        # Downloda queue
-        # self.queue = deque()
-
-        self.active_download = None
-
-        ## Stylesheet of widget!
 
         # Sorts the parameters, so that favorite ones are added to the favorite widget.
         favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
@@ -1091,9 +1080,7 @@ class GUI(MainWindow):
             self.hide()
             self.file_handler.force_save = True
             self.file_handler.save_settings(self.settings.get_settings_data)
-            print(self.settings.profiles)
             self.file_handler.save_profiles(self.settings.get_profiles_data)
-            print(self.settings.profiles)
             self.sendClose.emit()
 
         if self.RUNNING:
