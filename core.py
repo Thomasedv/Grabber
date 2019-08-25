@@ -5,13 +5,13 @@ import sys
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData, pyqtSlot
 from PyQt5.QtGui import QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, \
-    QShortcut, QFileDialog, QGridLayout, QTreeWidgetItem, qApp, QAction, QMenu, \
-    QFrame, QDialog, QApplication, QMessageBox, QTabWidget
+from PyQt5.QtWidgets import QShortcut, QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
+    QTabWidget
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
 from Modules.about_tab import AboutTab
-from Modules.downloader import Downloader
+from Modules.download_manager import Downloader
+from Modules.parameter_tab import ParameterTab
 from Modules.text_manager import TextTab
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, stylesheet, get_win_accent_color, \
@@ -134,135 +134,26 @@ class GUI(MainWindow):
         # Delete profile
         self.tab1.profile_dropdown.deleteItem.connect(self.delete_profile)
 
-        ### Tab 2
-        #  Building widget tab 2.
-
-        # Button for browsing download location.
-        self.tab2_browse_btn = QPushButton('Browse')
-
-        self.tab2_save_profile_btn = QPushButton('Save Profile')
-        self.tab2_save_profile_btn.resize(self.tab2_save_profile_btn.sizeHint())
-
-        # Label for the lineEdit.
-        self.tab2_download_label = QLabel('Download to:')
-
-        self.tab2_favlabel = QLabel('Favorites:')
-        self.tab2_optlabel = QLabel('All settings:')
-
-        # LineEdit for download location.
-        self.tab2_download_lineedit = QLineEdit()
-        self.tab2_download_lineedit.setReadOnly(True)
-
-        if self.settings.is_activate('Download location'):
-            self.tab2_download_lineedit.setText('')
-            self.tab2_download_lineedit.setToolTip(self.settings.get_active_setting('Download location'))
-        else:
-            # Should not be reachable anymore!
-            self.tab2_download_lineedit.setText('DL')
-            self.tab2_download_lineedit.setToolTip('Default download location.')
-        self.tab2_download_lineedit.setContextMenuPolicy(Qt.ActionsContextMenu)
-
-        # Sets up the parameter tree.
-        self.tab2_options = ParameterTree(options, self)
-        self.tab2_favorites = ParameterTree(favorites, self)
-        self.tab2_favorites.favorite = True
-
-        self.tab2_download_option = self.find_download_widget()
-
-        if self.settings.user_options['show_collapse_arrows']:
-            self.tab2_options.setRootIsDecorated(True)
-            self.tab2_favorites.setRootIsDecorated(True)
-        else:
-            self.tab2_options.setRootIsDecorated(False)
-            self.tab2_favorites.setRootIsDecorated(False)
-
-        # Menu creation for tab2_download_lineedit
-        menu = QMenu()
-        # Makes an action for the tab2_download_lineedit
-        open_folder_action = QAction('Open location', parent=self.tab2_download_lineedit)
-        # open_folder_action.setEnabled(True)
-        open_folder_action.triggered.connect(self.open_folder)
-
-        copy_action = QAction('Copy', parent=self.tab2_download_lineedit)
-        copy_action.triggered.connect(self.copy_to_cliboard)
-
-        menu.addAction(copy_action)
-
-        ## Layout tab 2.
-
-        # Horizontal layout for the download line.
-        self.tab2_QH = QHBoxLayout()
-
-        # Adds widgets to the horizontal layout. label, lineedit and button. LineEdit stretches by deafult.
-        self.tab2_QH.addWidget(self.tab2_download_label)
-        self.tab2_QH.addWidget(self.tab2_download_lineedit)
-        self.tab2_QH.addWidget(self.tab2_browse_btn)
-        self.tab2_QH.addWidget(self.tab2_save_profile_btn)
-        # Vertical layout creation
-        self.tab2_QV = QVBoxLayout()
-        # Adds the dl layout to the vertical one.
-        self.tab2_QV.addLayout(self.tab2_QH, stretch=0)
-
-        # Adds stretch to the layout.
-        self.grid = QGridLayout()
-
-        self.frame = QFrame()
-        self.frame2 = QFrame()
-
-        self.frame2.setFrameShape(QFrame.HLine)
-        self.frame.setFrameShape(QFrame.HLine)
-
-        self.frame.setLineWidth(2)
-        self.frame2.setLineWidth(2)
-
-        self.frame.setObjectName('line')
-        self.frame2.setObjectName('line')
-
-        self.grid.addWidget(self.tab2_favlabel, 1, 0)
-        self.grid.addWidget(self.tab2_optlabel, 1, 1)
-        self.grid.addWidget(self.frame, 2, 0)
-        self.grid.addWidget(self.frame2, 2, 1)
-        self.grid.addWidget(self.tab2_favorites, 3, 0, Qt.AlignTop)
-        self.grid.addWidget(self.tab2_options, 3, 1, Qt.AlignTop)
-        self.grid.setRowStretch(0, 0)
-        self.grid.setRowStretch(1, 0)
-        self.grid.setRowStretch(2, 0)
-        self.grid.setRowStretch(3, 1)
-        self.tab2_QV.addLayout(self.grid)
-
-        # self.tab2_hdl_box = QHBoxLayout()
-        # self.tab2_grid_layout.expandingDirections()
-        # self.tab2_vdl_box = QVBoxLayout()
-        # self.tab2_vdl_box.addWidget(self.tab2_options)
-        # self.tab2_vdl_box.addStretch(1)
-        # self.tab2_hdl_box.addLayout(self.tab2_vdl_box)
-        # self.tab2_hdl_box.addWidget(self.tab2_favorites)
-
-        # self.tab2_QV.addLayout(self.tab2_hdl_box)
-        # self.tab2_QV.addStretch(1)
-
-        # Create Qwidget for the layout for tab 2.
-        self.tab2 = QWidget()
+        # Tab 2
+        self.tab2 = ParameterTab(options, favorites, self.settings, self)
         # Adds the tab2 layout to the widget.
-        self.tab2.setLayout(self.tab2_QV)
 
-        ## Connection stuff tab 2.
+        # Connection stuff tab 2.
+        self.tab2.open_folder_action.triggered.connect(self.open_folder)
+        self.tab2.copy_action.triggered.connect(self.copy_to_cliboard)
 
-        self.tab2_download_lineedit.addAction(open_folder_action)
-        self.tab2_download_lineedit.addAction(copy_action)
+        self.tab2.options.itemChanged.connect(self.parameter_updater)
+        self.tab2.options.move_request.connect(self.move_item)
+        self.tab2.options.itemRemoved.connect(self.item_removed)
+        self.tab2.options.addOption.connect(self.add_option)
 
-        self.tab2_options.itemChanged.connect(self.parameter_updater)
-        self.tab2_options.move_request.connect(self.move_item)
-        self.tab2_options.itemRemoved.connect(self.item_removed)
-        self.tab2_options.addOption.connect(self.add_option)
+        self.tab2.favorites.itemChanged.connect(self.parameter_updater)
+        self.tab2.favorites.move_request.connect(self.move_item)
+        self.tab2.favorites.itemRemoved.connect(self.item_removed)
+        self.tab2.favorites.addOption.connect(self.add_option)
 
-        self.tab2_favorites.itemChanged.connect(self.parameter_updater)
-        self.tab2_favorites.move_request.connect(self.move_item)
-        self.tab2_favorites.itemRemoved.connect(self.item_removed)
-        self.tab2_favorites.addOption.connect(self.add_option)
-
-        self.tab2_browse_btn.clicked.connect(self.savefile_dialog)
-        self.tab2_save_profile_btn.clicked.connect(self.save_profile)
+        self.tab2.browse_btn.clicked.connect(self.savefile_dialog)
+        self.tab2.save_profile_btn.clicked.connect(self.save_profile)
 
         # Tab 3.
         # Tab creation.
@@ -462,10 +353,10 @@ class GUI(MainWindow):
             favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
             options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
 
-            self.tab2_options.load_profile(options)
-            self.tab2_favorites.load_profile(favorites)
+            self.tab2.options.load_profile(options)
+            self.tab2.favorites.load_profile(favorites)
 
-            self.tab2_download_option = self.find_download_widget()
+            self.tab2.download_option = self.find_download_widget()
             self.download_name_handler()
 
             self.tab1.profile_dropdown.blockSignals(True)
@@ -576,17 +467,17 @@ class GUI(MainWindow):
         """ Move an time to or from the favorites tree. """
 
         if favorite:
-            tree = self.tab2_options
+            tree = self.tab2.options
             self.settings.user_options['favorites'].remove(item.data(0, 0))
         else:
-            tree = self.tab2_favorites
+            tree = self.tab2.favorites
             self.settings.user_options['favorites'].append(item.data(0, 0))
 
         tree.blockSignals(True)
         tree.addTopLevelItem(item)
 
-        self.tab2_options.update_size()
-        self.tab2_favorites.update_size()
+        self.tab2.options.update_size()
+        self.tab2.favorites.update_size()
 
         self.file_handler.save_settings(self.settings.get_settings_data)
 
@@ -600,15 +491,15 @@ class GUI(MainWindow):
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""
         if self.main_tab.currentIndex() == 1:
-            size = self.height() - (self.frame.height() + self.tab2_download_lineedit.height()
-                                    + self.tab2_favlabel.height() + self.main_tab.tabBar().height() + 40)
+            size = self.height() - (self.frame.height() + self.tab2.download_lineedit.height()
+                                    + self.tab2.favlabel.height() + self.main_tab.tabBar().height() + 40)
             ParameterTree.max_size = size
-            self.tab2_options.setFixedHeight(size)
-            self.tab2_favorites.setFixedHeight(size)
+            self.tab2.options.setFixedHeight(size)
+            self.tab2.favorites.setFixedHeight(size)
 
     def window_focus_event(self):
         """ Selects text in tab1 line edit on window focus. """
-        # self.tab2_options.max_size =
+        # self.tab2.options.max_size =
         if self.tab1.lineedit.isEnabled():
             self.tab1.lineedit.setFocus()
             self.tab1.lineedit.selectAll()
@@ -616,18 +507,18 @@ class GUI(MainWindow):
     def copy_to_cliboard(self):
         """ Adds text to clipboard. """
         mime = QMimeData()
-        mime.setText(self.tab2_download_lineedit.text())
+        mime.setText(self.tab2.download_lineedit.text())
         board = QGuiApplication.clipboard()
         board.setMimeData(mime, mode=QClipboard.Clipboard)
 
     def open_folder(self):
         """ Opens a folder at specified location. """
         # noinspection PyCallByClass
-        QProcess.startDetached('explorer {}'.format(self.tab2_download_lineedit.toolTip().replace("/", "\\")))
+        QProcess.startDetached('explorer {}'.format(self.tab2.download_lineedit.toolTip().replace("/", "\\")))
 
     def download_name_handler(self):
         """ Formats download names and removes the naming string for ytdl. """
-        item = self.tab2_download_option
+        item = self.tab2.download_option
 
         item.treeWidget().blockSignals(True)
         for number in range(item.childCount()):
@@ -638,8 +529,8 @@ class GUI(MainWindow):
         if item.checkState(0) == Qt.Checked:
             for number in range(item.childCount()):
                 if item.child(number).checkState(0) == Qt.Checked:
-                    self.tab2_download_lineedit.setText(item.child(number).data(0, 0))
-                    self.tab2_download_lineedit.setToolTip(item.child(number).data(0, 32))
+                    self.tab2.download_lineedit.setText(item.child(number).data(0, 0))
+                    self.tab2.download_lineedit.setToolTip(item.child(number).data(0, 32))
                     break
             else:
                 # TODO: Add error handling here
@@ -647,27 +538,16 @@ class GUI(MainWindow):
                 print('You messed with the settings... didn\'t you?!')
                 # raise SettingsError('Error, no active option!')
         else:
-            self.tab2_download_lineedit.setText(path_shortener(self.local_dl_path))
-            self.tab2_download_lineedit.setToolTip(self.local_dl_path)
+            self.tab2.download_lineedit.setText(path_shortener(self.local_dl_path))
+            self.tab2.download_lineedit.setToolTip(self.local_dl_path)
         item.treeWidget().blockSignals(False)
-
-    def find_download_widget(self):
-        """ Finds the download widget. """
-        # TODO: Refactor to check the settings file/object, not the parameterTrees.
-        for item in self.tab2_favorites.topLevelItems():
-            if item.data(0, 32) == 'Download location':
-                return item
-        for item in self.tab2_options.topLevelItems():
-            if item.data(0, 32) == 'Download location':
-                return item
-        raise SettingsError('No download item found in settings.')
 
     def download_option_handler(self, full_path: str):
         """ Handles the download options. """
         # Adds new dl location to the tree and settings. Removes oldest one, if there is more than 3.
         # Remove try/except later.
 
-        item = self.tab2_download_option
+        item = self.tab2.download_option
 
         if not full_path.endswith('/'):
             full_path += '/'
@@ -708,8 +588,8 @@ class GUI(MainWindow):
         item.treeWidget().setSortingEnabled(True)
         item.treeWidget().blockSignals(False)
 
-        # self.tab2_download_lineedit.setText(location)
-        # self.tab2_download_lineedit.setToolTip(tooltip)
+        # self.tab2.download_lineedit.setText(location)
+        # self.tab2.download_lineedit.setToolTip(tooltip)
         try:
             self.settings.need_parameters.remove(item.data(0, 32))
         except ValueError:
@@ -762,16 +642,16 @@ class GUI(MainWindow):
             else:
                 self.settings[item.data(0, 32)]['state'] = False
                 if item.data(0, 32) == 'Download location':
-                    self.tab2_download_lineedit.setText(path_shortener(self.local_dl_path))
-                    self.tab2_download_lineedit.setToolTip(self.local_dl_path)
+                    self.tab2.download_lineedit.setText(path_shortener(self.local_dl_path))
+                    self.tab2.download_lineedit.setToolTip(self.local_dl_path)
 
         elif item.data(0, 33) == 1:
             # Settings['Settings'][Name of setting]['active option']] = index of child
             self.settings[item.parent().data(0, 32)]['active option'] = item.data(0, 35)
             if item.parent().data(0, 32) == 'Download location':
                 if item.checkState(0) == Qt.Checked:
-                    self.tab2_download_lineedit.setText(item.data(0, 0))
-                    self.tab2_download_lineedit.setToolTip(item.data(0, 32))
+                    self.tab2.download_lineedit.setText(item.data(0, 0))
+                    self.tab2.download_lineedit.setToolTip(item.data(0, 32))
 
         if save:
             self.file_handler.save_settings(self.settings.get_settings_data)
@@ -996,6 +876,7 @@ class GUI(MainWindow):
         self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
         self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '' and not self.tab1.checkbox.isChecked())
 
+    # TODO: Move to tab 3?
     def load_text_from_file(self):
         if self.tab3.textedit.toPlainText() or (not self.tab3.saveButton.isEnabled()) or self.tab3.SAVED:
             content = self.file_handler.read_textfile(self.settings.user_options['multidl_txt'])
@@ -1010,7 +891,7 @@ class GUI(MainWindow):
                 self.tab3.SAVED = True
 
             else:
-                if self.tab4.txt_lineedit.text():
+                if self.settings.user_options['multidl_txt']:
                     warning = 'No textfile selected!'
                 else:
                     warning = 'Could not find file!'
@@ -1083,7 +964,7 @@ class GUI(MainWindow):
             self.file_handler.save_profiles(self.settings.get_profiles_data)
             self.sendClose.emit()
 
-        if self.RUNNING:
+        if self.downloader.RUNNING:
             result = self.alert_message('Want to quit?',
                                         'Still downloading!',
                                         'Do you want to close without letting youtube-dl finish? '

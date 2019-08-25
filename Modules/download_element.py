@@ -18,7 +18,7 @@ class Download(QProcess):
     def start_dl(self):
         if self.program_path is None:
             raise TypeError('Can\'t find youtube-dl executable')
-        # TODO: Handler errors with starting youtube-dl
+
         self.start(self.program_path, self.commands)
 
 
