@@ -356,7 +356,6 @@ class GUI(MainWindow):
             self.tab2.options.load_profile(options)
             self.tab2.favorites.load_profile(favorites)
 
-            self.tab2.download_option = self.find_download_widget()
             self.download_name_handler()
 
             self.tab1.profile_dropdown.blockSignals(True)
@@ -491,7 +490,7 @@ class GUI(MainWindow):
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""
         if self.main_tab.currentIndex() == 1:
-            size = self.height() - (self.frame.height() + self.tab2.download_lineedit.height()
+            size = self.height() - (self.tab2.frame.height() + self.tab2.download_lineedit.height()
                                     + self.tab2.favlabel.height() + self.main_tab.tabBar().height() + 40)
             ParameterTree.max_size = size
             self.tab2.options.setFixedHeight(size)
