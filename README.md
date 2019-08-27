@@ -41,9 +41,8 @@ Made with PyQt5 https://www.riverbankcomputing.com/software/pyqt/intro
 
 Images from version 0.3.1.
 
-Current to do list: 
+Currently updates i am interested in doing:
+* Parallel downloads
+* Custom UI colors
 
-* Possibly in desired: Add hide from taskbar. (So only a icon in bottom right corner, potentially pop-up when done downloading.) 
-* ~~Add general error handling when stuff goes wrong, especially read/write errors if there are some.~~
-* ~~Upload first release executable. (Built with PyInstaller)~~ Done!
-* ~~Add custom profiles. ~~
+
