@@ -174,7 +174,7 @@ class GUI(MainWindow):
         self.tab4.location_btn.clicked.connect(self.textfile_dialog)
 
         # Future tab creation here! Currently 4 tabs
-
+        # TODO: Move stylesheet applying to method, make color picking dialog to customize in realtime
         if self.settings.user_options['use_win_accent']:
             try:
                 color = get_win_accent_color()
@@ -353,7 +353,7 @@ class GUI(MainWindow):
 
             self.tab2.options.load_profile(options)
             self.tab2.favorites.load_profile(favorites)
-
+            self.tab2.find_download_widget()
             self.download_name_handler()
 
             self.tab1.profile_dropdown.blockSignals(True)

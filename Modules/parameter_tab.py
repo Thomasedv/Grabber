@@ -112,8 +112,10 @@ class ParameterTab(QWidget):
         # TODO: Refactor to check the settings file/object, not the parameterTrees.
         for item in self.favorites.topLevelItems():
             if item.data(0, 32) == 'Download location':
+                self.download_option = item
                 return item
         for item in self.options.topLevelItems():
             if item.data(0, 32) == 'Download location':
+                self.download_option = item
                 return item
         raise SettingsError('No download item found in settings.')
