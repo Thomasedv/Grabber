@@ -3,8 +3,8 @@ from collections import deque
 
 from PyQt5.QtCore import pyqtSignal, QProcess, QObject
 
-from Modules import Download
 from utils.utilities import color_text
+from .download_element import Download
 
 
 class Downloader(QObject):

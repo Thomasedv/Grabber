@@ -3,8 +3,8 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLab
     QGridLayout, QAction, QMenu, \
     QFrame
 
-from Modules import ParameterTree
 from utils.utilities import SettingsError
+from .parameterTree import ParameterTree
 
 
 class ParameterTab(QWidget):

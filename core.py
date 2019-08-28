@@ -177,19 +177,20 @@ class GUI(MainWindow):
 
         if self.settings.user_options['use_win_accent']:
             try:
-                bg_color = get_win_accent_color()
+                color = get_win_accent_color()
+                bg_color = f"""
+                QMainWindow {{
+                    background-color: {color};
+                }}
+                QTabBar {{
+                    background-color: {color};
+                }}"""
             except (OSError, PermissionError):
-                bg_color = '#303030'
+                bg_color = ''
         else:
-            bg_color = '#303030'
+            bg_color = ''
 
-        self.style_with_options = f"""
-                                QMainWindow {{
-                                    background-color: {bg_color};
-                                }}
-                                QTabBar {{
-                                    background-color: {bg_color};
-                                }}
+        self.style_with_options = bg_color + f"""
                                 QCheckBox::indicator:unchecked {{
                                     image: url({self.unchecked_icon});
                                 }}

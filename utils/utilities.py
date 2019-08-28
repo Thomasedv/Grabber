@@ -4,7 +4,7 @@ Utilities for Grabber.
 import copy
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QColor
 
 FONT_CONSOLAS = QFont()
 FONT_CONSOLAS.setFamily('Consolas')
@@ -328,12 +328,6 @@ class SettingsClass:
         self._filehandler.save_settings(self.get_settings_data)
 
 
-default_style = {'background_light': '#484848',
-                 'background_dark': '#303030',
-                 'background_lightest': '#606060',
-                 'text_shaded': 'rgb(186,186,186)',
-                 'text_normal': 'white'}
-
 stylesheet = """
                                 QWidget {{
                                     background-color: {background_light};
@@ -377,15 +371,15 @@ stylesheet = """
                                 }}
 
                                 QTabBar {{
-                                    
-                                    background-color: {background_dark};
+                                    color: {background_dark};
+                                    background: {background_dark};
                                 }}
 
                                 QTabBar::tab {{
                                     color: {text_shaded};
                                     background-color: {background_lightest};
                                     border-bottom: none;
-                                    border-left: 1px solid {background_light};
+                                    border-left: 1px solid #00000000;
                                     min-width: 15ex;
                                     min-height: 7ex;
                                 }}
@@ -396,12 +390,11 @@ stylesheet = """
                                 }}
                                 QTabBar::tab:!selected {{
                                     margin-top: 6px;
+                                    background-color: {background_lightest}
                                 }}
 
                                 QTabWidget::tab-bar {{
-                                    border-top: 1px solid {background_lightest};
-                                    color: red;
-                                    background-color: red;
+                                    border-top: 1px solid {background_dark};
                                 }}
 
                                 QLineEdit {{
@@ -419,7 +412,7 @@ stylesheet = """
                                 
                                 QTextEdit {{
                                     background-color: {background_light};
-                                    color: rgb(186,186,186);
+                                    color: {text_shaded};
                                     border: red solid 1px;
                                 }}
 
@@ -921,11 +914,33 @@ def get_base_setting(section, setting):
     return copy.deepcopy(base_settings[section][setting])
 
 
+def darken(color: QColor):
+    return color.darker(150)
+
+
+def lighten(color: QColor):
+    return color.lighter(150)
+
+
+surface = QColor('#484848')
+text = QColor('white')
+
+default_style = {'background_light': surface,
+                 'background_dark': darken(surface),
+                 'background_lightest': lighten(surface),
+                 'text_shaded': darken(text),
+                 'text_normal': text}
+
+
+def qcolorToStr(color_map: dict):
+    return {k: v.name(QColor.HexRgb) for k, v in color_map.items()}
+
+
 def get_stylesheet(**kwargs):
     global default_style
     styles = default_style.copy()
     styles.update(kwargs)
-    return stylesheet.format(**styles)
+    return stylesheet.format(**qcolorToStr(styles))
 
 
 if __name__ == '__main__':
