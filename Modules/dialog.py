@@ -8,10 +8,12 @@ from utils.utilities import color_text
 
 class Dialog(QDialog):
 
-    def __init__(self, parent=None, name: str = '', description: str = '', allow_empty=False):
+    def __init__(self, parent=None, name: str = '', description: str = '', allow_empty=False, password=False):
         super(Dialog, self).__init__(parent)
         self.option = QLineEdit()
+        self.option.setEchoMode(QLineEdit.Password)
         self.allow_empty = allow_empty
+
         self.label = QLabel(color_text('Insert option:', 'limegreen'))
         self.name_label = QLabel(color_text(name + ':', 'limegreen'))
         self.tooltip = QLabel(description)

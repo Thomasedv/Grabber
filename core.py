@@ -1,5 +1,4 @@
 import json
-import json
 import os
 import sys
 
@@ -8,14 +7,10 @@ from PyQt5.QtGui import QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplic
 from PyQt5.QtWidgets import QShortcut, QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
     QTabWidget
 
-from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow
-from Modules.about_tab import AboutTab
-from Modules.download_manager import Downloader
-from Modules.parameter_tab import ParameterTab
-from Modules.text_manager import TextTab
+from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow, AboutTab, Downloader, ParameterTab, TextTab
 from utils.filehandler import FileHandler
-from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, stylesheet, get_win_accent_color, \
-    ProfileLoadError
+from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_stylesheet, \
+    get_win_accent_color, ProfileLoadError
 
 
 class GUI(MainWindow):
@@ -103,15 +98,14 @@ class GUI(MainWindow):
         favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
         options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
 
-        ### Main widget. This will be the ones that holds everything.
-        ## Create top level tab widget system for the UI.
-        self.main_tab = QTabWidget(self)
+        # Main widget. This will be the ones that holds everything.
+        # Create top level tab widget system for the UI.
+        self.tab_widget = QTabWidget(self)
 
         self.onclose.connect(self.confirm)
         self.sendClose.connect(self.closeE)
 
-        ## Connecting stuff for tab 1.
-
+        # Connecting stuff for tab 1.
         # Start buttons starts download
 
         self.tab1 = MainTab(self.settings, self)
@@ -179,7 +173,8 @@ class GUI(MainWindow):
         self.tab4.license_btn.clicked.connect(self.read_license)
         self.tab4.location_btn.clicked.connect(self.textfile_dialog)
 
-        ### Future tab creation here! Currently 4 tabs already.
+        # Future tab creation here! Currently 4 tabs
+
         if self.settings.user_options['use_win_accent']:
             try:
                 bg_color = get_win_accent_color()
@@ -244,14 +239,15 @@ class GUI(MainWindow):
                                 }}
                                 
                                 """
-        ### Configuration main widget.
+
+        # Configuration main widget.
         # Adds tabs to the tab widget, and names the tabs.
-        self.main_tab.addTab(self.tab1, 'Main')
-        self.main_tab.addTab(self.tab2, 'Param')
-        self.main_tab.addTab(self.tab3, 'List')
-        self.main_tab.addTab(self.tab4, 'About')
+        self.tab_widget.addTab(self.tab1, 'Main')
+        self.tab_widget.addTab(self.tab2, 'Param')
+        self.tab_widget.addTab(self.tab3, 'List')
+        self.tab_widget.addTab(self.tab4, 'About')
         # Sets the styling for the GUI, everything from buttons to anything. ##
-        self.setStyleSheet(stylesheet + self.style_with_options)
+        self.setStyleSheet(get_stylesheet() + self.style_with_options)
 
         # Set window title.
         self.setWindowTitle('Grabber')
@@ -281,10 +277,11 @@ class GUI(MainWindow):
                                                     'Then close and reopen this program.', 'darkorange', 'bold'))
         # Sets the download items tooltips to the full file path.
         self.download_name_handler()
+
         # Ensures widets are in correct state at startup and when tab1.lineedit is changed.
         self.allow_start()
         # Shows the main window.
-        self.setCentralWidget(self.main_tab)
+        self.setCentralWidget(self.tab_widget)
 
         self.show()
 
@@ -299,12 +296,12 @@ class GUI(MainWindow):
         self.downloader.stateChanged.connect(self.allow_start)
         self.downloader.clearOutput.connect(self.tab1.textbrowser.clear)
         self.downloader.updateQueue.connect(lambda text: self.tab1.queue_label.setText(text))
-        self.main_tab.currentChanged.connect(self.resize_contents)
+        self.tab_widget.currentChanged.connect(self.resize_contents)
 
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
 
     def save_profile(self):
-        dialog = Dialog(self.main_tab, 'Name profile', 'Give a name to the profile!')
+        dialog = Dialog(self.tab_widget, 'Name profile', 'Give a name to the profile!')
         if dialog.exec() != QDialog.Accepted:
             return
         elif dialog.option.text() in ('Custom', 'None'):
@@ -396,7 +393,7 @@ class GUI(MainWindow):
         """
         Creates dialog for user input
         """
-        dialog = Dialog(self.main_tab, name, description)
+        dialog = Dialog(self.tab_widget, name, description)
         if dialog.exec_() == QDialog.Accepted:
             return dialog.option.text()
         return None
@@ -489,9 +486,9 @@ class GUI(MainWindow):
 
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""
-        if self.main_tab.currentIndex() == 1:
+        if self.tab_widget.currentIndex() == 1:
             size = self.height() - (self.tab2.frame.height() + self.tab2.download_lineedit.height()
-                                    + self.tab2.favlabel.height() + self.main_tab.tabBar().height() + 40)
+                                    + self.tab2.favlabel.height() + self.tab_widget.tabBar().height() + 40)
             ParameterTree.max_size = size
             self.tab2.options.setFixedHeight(size)
             self.tab2.favorites.setFixedHeight(size)
@@ -682,15 +679,15 @@ class GUI(MainWindow):
                 else:
                     self.tab1.textbrowser.append(''.join(['Missing in:', i]))
 
-        self.main_tab.setCurrentIndex(0)
+        self.tab_widget.setCurrentIndex(0)
 
     def update_youtube_dl(self):
         update = Download(self.program_workdir, self.youtube_dl_path, ['-U', '--encoding', 'utf-8'], self)
-        self.main_tab.setCurrentIndex(0)  # Go to main
+        self.tab_widget.setCurrentIndex(0)  # Go to main
         self.downloader.update_youtube_dl(update)
 
     def savefile_dialog(self):
-        location = QFileDialog.getExistingDirectory(parent=self.main_tab)
+        location = QFileDialog.getExistingDirectory(parent=self.tab_widget)
 
         if location == '':
             pass
@@ -702,7 +699,7 @@ class GUI(MainWindow):
 
     def textfile_dialog(self):
         location = \
-            QFileDialog.getOpenFileName(parent=self.main_tab, filter='*.txt',
+            QFileDialog.getOpenFileName(parent=self.tab_widget, filter='*.txt',
                                         caption='Select textfile with video links')[0]
         if location == '':
             pass
@@ -924,7 +921,7 @@ class GUI(MainWindow):
                                         question=True)
 
             if result == QMessageBox.Yes:
-                save_path = QFileDialog.getSaveFileName(parent=self.main_tab, caption='Save as', filter='*.txt')
+                save_path = QFileDialog.getSaveFileName(parent=self.tab_widget, caption='Save as', filter='*.txt')
                 if not save_path[0]:
                     self.file_handler.write_textfile(save_path[0],
                                                      self.tab3.textedit.toPlainText())

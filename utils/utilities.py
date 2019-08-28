@@ -328,13 +328,19 @@ class SettingsClass:
         self._filehandler.save_settings(self.get_settings_data)
 
 
-stylesheet = f"""
+default_style = {'background_light': '#484848',
+                 'background_dark': '#303030',
+                 'background_lightest': '#606060',
+                 'text_shaded': 'rgb(186,186,186)',
+                 'text_normal': 'white'}
+
+stylesheet = """
                                 QWidget {{
-                                    background-color: #484848;
-                                    color: white;
+                                    background-color: {background_light};
+                                    color: {text_normal};
                                 }}
                                 QMainWindow {{
-                                    background-color: #303030;
+                                    background-color: {background_dark};
                                     color: red;
                                 }}
                                 
@@ -342,7 +348,7 @@ stylesheet = f"""
                                     height: 2px;
                                 }}
                                 QFrame#line {{
-                                    color: #303030;
+                                    color: {background_dark};
                                 }}
 
                                 QTabWidget::pane {{
@@ -355,11 +361,11 @@ stylesheet = f"""
                                 }}
 
                                 QMenu {{
-                                    border: 1px solid #303030;
+                                    border: 1px solid {background_dark};
                                 }}
 
                                 QMenu::item:selected {{
-                                    background-color: #303030;
+                                    background-color: {background_dark};
                                 }}
 
                                 QMenu::item:disabled {{
@@ -367,59 +373,59 @@ stylesheet = f"""
                                 }}
 
                                 QTabWidget {{
-                                    background-color: #303030;
+                                    background-color: {background_dark};
                                 }}
 
                                 QTabBar {{
                                     
-                                    background-color: #313131;
+                                    background-color: {background_dark};
                                 }}
 
                                 QTabBar::tab {{
-                                    color: rgb(186,186,186);
-                                    background-color: #606060;
+                                    color: {text_shaded};
+                                    background-color: {background_lightest};
                                     border-bottom: none;
-                                    border-left: 1px solid #484848;
+                                    border-left: 1px solid {background_light};
                                     min-width: 15ex;
                                     min-height: 7ex;
                                 }}
 
                                 QTabBar::tab:selected {{
                                     color: white;
-                                    background-color: #484848;
+                                    background-color: {background_light};
                                 }}
                                 QTabBar::tab:!selected {{
                                     margin-top: 6px;
                                 }}
 
                                 QTabWidget::tab-bar {{
-                                    border-top: 1px solid #505050;
+                                    border-top: 1px solid {background_lightest};
                                     color: red;
                                     background-color: red;
                                 }}
 
                                 QLineEdit {{
-                                    background-color: #303030;
-                                    color: rgb(186,186,186);
+                                    background-color: {background_dark};
+                                    color: {text_shaded};
                                     border-radius: 0px;
                                     padding: 0 3px;
                                 }}
                                 
                                 QLineEdit:disabled {{
-                                    background-color: #303030;
+                                    background-color: {background_dark};
                                     color: #505050;
                                     border-radius: none;
                                 }}
                                 
                                 QTextEdit {{
-                                    background-color: #484848;
+                                    background-color: {background_light};
                                     color: rgb(186,186,186);
                                     border: red solid 1px;
                                 }}
 
                                 QTextEdit#TextFileEdit {{
-                                    background-color: #303030;
-                                    color: rgb(186,186,186);
+                                    background-color: {background_dark};
+                                    color: {text_shaded};
                                     border: red solid 1px;
                                     border-radius: 2px;
                                 }}
@@ -437,7 +443,7 @@ stylesheet = f"""
                                 }}
 
                                 QScrollBar::handle:vertical {{
-                                    background: #303030;
+                                    background: {background_dark};
                                     color: red;
                                     min-height: 20px;
                                     border-radius: 5px;
@@ -448,7 +454,7 @@ stylesheet = f"""
                                 }}
 
                                 QPushButton {{
-                                    background-color: #303030;
+                                    background-color: {background_dark};
                                     color: white;
                                     border: 1px solid transparent;
                                     border-radius: none;
@@ -457,7 +463,7 @@ stylesheet = f"""
                                 }}
 
                                 QPushButton:disabled {{
-                                    border: 1px solid #303030;
+                                    border: 1px solid {background_dark};
                                     background-color: transparent;
                                     color: #757575;
                                 }}
@@ -489,10 +495,10 @@ stylesheet = f"""
                                 }}
 
                                 QComboBox {{
-                                    border: 1px solid #303030;
+                                    border: 1px solid {background_dark};
                                     border-radius: 0px;
-                                    background-color: #303030;
-                                    color: rgb(186,186,186);
+                                    background-color: {background_dark};
+                                    color: {text_shaded};
                                     padding-right: 5px;
                                     padding-left: 5px;
                                 }}
@@ -504,7 +510,7 @@ stylesheet = f"""
                                 }}                        
                                 
                                 QComboBox::disabled {{
-                                    color: #484848;
+                                    color: {background_light};
                                 }}
                                 
                                 """
@@ -913,6 +919,13 @@ def get_base_settings() -> dict:
 
 def get_base_setting(section, setting):
     return copy.deepcopy(base_settings[section][setting])
+
+
+def get_stylesheet(**kwargs):
+    global default_style
+    styles = default_style.copy()
+    styles.update(kwargs)
+    return stylesheet.format(**styles)
 
 
 if __name__ == '__main__':

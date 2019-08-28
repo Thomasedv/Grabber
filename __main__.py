@@ -10,10 +10,12 @@ from utils.filehandler import FileHandler
 from utils.utilities import SettingsError, ProfileLoadError
 
 
+# TODO: Notify on failure to write settings/profiles
 def main():
     while True:
         try:
-            # If Grabber is run from start menu, working directory is set to system32, this changes to file location.
+            # If Grabber is run from start menu search, under specific conditions,
+            # working directory is set to system32, this changes to file location as to not break anything.
 
             if os.getcwd().lower() == r'c:\windows\system32'.lower():  # Bit of a hack, but if you have this, your fault
                 # Check if running as script, or executable.
