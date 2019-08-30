@@ -11,7 +11,8 @@ class Dialog(QDialog):
     def __init__(self, parent=None, name: str = '', description: str = '', allow_empty=False, password=False):
         super(Dialog, self).__init__(parent)
         self.option = QLineEdit()
-        self.option.setEchoMode(QLineEdit.Password)
+        if password:
+            self.option.setEchoMode(QLineEdit.Password)
         self.allow_empty = allow_empty
 
         self.label = QLabel(color_text('Insert option:', 'limegreen'))
