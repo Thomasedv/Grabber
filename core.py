@@ -773,7 +773,8 @@ class GUI(MainWindow):
                         dialog = Dialog(self,
                                         'Password',
                                         f'Input you password for the account "{option}".',
-                                        allow_empty=True)
+                                        allow_empty=True,
+                                        password=True)
 
                         if dialog.exec_() == QDialog.Accepted:
                             self._temp[option] = _password = dialog.option.text()
