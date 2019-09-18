@@ -34,16 +34,12 @@ class GUI(MainWindow):
         # starts checks
         self.initial_checks()
 
+        # Holds temp passwords
         self._temp = {}
 
         # Builds GUI and everything related to that.
         self.build_gui()
 
-        # Set the channel to merged.
-        # self.setProcessChannelMode(QProcess.MergedChannels)
-
-        # connects program output to the GUI part.
-        # self.readyReadStandardOutput.connect(self.read_stdoutput)
 
     def initial_checks(self):
         """Loads settings and finds necessary files. Checks the setting file for errors."""
@@ -1291,9 +1287,9 @@ class GUI(MainWindow):
             self.hide()
             self.file_handler.force_save = True
             self.file_handler.save_settings(self.settings.get_settings_data)
-            print(self.settings.profiles)
+            # print(self.settings.profiles)
             self.file_handler.save_profiles(self.settings.get_profiles_data)
-            print(self.settings.profiles)
+            # print(self.settings.profiles)
             self.sendClose.emit()
         # Ensures that the settings are saved properly before exiting!
 
