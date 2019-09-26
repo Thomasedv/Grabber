@@ -2,6 +2,15 @@ import json
 import os
 import sys
 
+# If Grabber is run from start menu, working directory is set to system32, this changes to file location.
+if os.getcwd().lower() == r'c:\windows\system32'.lower():  # Bit of a hack, but if you have this, your fault
+    # Check if running as script, or executable.
+    if getattr(sys, 'frozen', False):
+        application_path = os.path.dirname(sys.executable)
+    else:
+        application_path = os.path.dirname(__file__)
+    os.chdir(os.path.realpath(application_path))
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
@@ -10,21 +19,9 @@ from utils.filehandler import FileHandler
 from utils.utilities import SettingsError, ProfileLoadError
 
 
-# TODO: Notify on failure to write settings/profiles
 def main():
     while True:
         try:
-            # If Grabber is run from start menu search, under specific conditions,
-            # working directory is set to system32, this changes to file location as to not break anything.
-
-            if os.getcwd().lower() == r'c:\windows\system32'.lower():  # Bit of a hack, but if you have this, your fault
-                # Check if running as script, or executable.
-                if getattr(sys, 'frozen', False):
-                    application_path = os.path.dirname(sys.executable)
-                else:
-                    application_path = os.path.dirname(__file__)
-                os.chdir(os.path.realpath(application_path))
-
             app = QApplication(sys.argv)
             program = GUI()
 
