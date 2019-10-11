@@ -13,6 +13,9 @@ class AboutTab(QWidget):
         self.license_btn = QPushButton('License')
         # Debugging
         self.dirinfo_btn = QPushButton('Dirinfo')
+        # Pallalel / Series toggle
+        self.dl_mode_btn = QPushButton("Singular" if not settings.user_options['parallel'] else "Parallel")
+
         # Reset settings, (requires restart!)
         self.reset_btn = QPushButton('Reset\n settings')
         # Adjust button size to match naming. (Possibly change later in some form)
@@ -39,6 +42,7 @@ class AboutTab(QWidget):
         self.QH.addWidget(self.textbrowser)
 
         self.QV.addWidget(self.update_btn)
+        self.QV.addWidget(self.dl_mode_btn)
         self.QV.addWidget(self.dirinfo_btn)
         self.QV.addWidget(self.license_btn)
         self.QV.addWidget(self.reset_btn)

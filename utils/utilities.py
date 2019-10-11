@@ -431,17 +431,12 @@ stylesheet = """
                                     border: red solid 1px;
                                     border-radius: 2px;
                                 }}
-                                
-                                QListWidget::item{{
-                                    border: none;
-                                    outline: none;
-                                    outline-width: 0px;
-                                }}
                                     
                                 QListWidget {{
                                     outline: none;
                                     outline-width: 0px;
-                                    border-radius: 5px;
+                                    background: {background_dark};
+                                    border-radius: 2px;
                                 }}
                                 
                                 QScrollBar::vertical {{
@@ -534,6 +529,7 @@ base_settings['profiles'] = {}
 base_settings['parameters'] = {}
 base_settings['default'] = {
     'multidl_txt': '',
+    "parallel": False,
     'current_profile': '',
     'select_on_focus': True,
     'favorites': [],

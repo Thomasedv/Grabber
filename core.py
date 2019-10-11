@@ -169,6 +169,7 @@ class GUI(MainWindow):
         self.tab4.reset_btn.clicked.connect(self.reset_settings)
         self.tab4.license_btn.clicked.connect(self.read_license)
         self.tab4.location_btn.clicked.connect(self.textfile_dialog)
+        self.tab4.dl_mode_btn.clicked.connect(self.toggle_modes)
 
         # Future tab creation here! Currently 4 tabs
         # TODO: Move stylesheet applying to method, make color picking dialog to customize in realtime
@@ -297,6 +298,19 @@ class GUI(MainWindow):
         self.tab_widget.currentChanged.connect(self.resize_contents)
 
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
+
+    def toggle_modes(self):
+        if self.downloader.RUNNING or self.downloader.has_pending():
+            self.alert_message('Action failed',
+                               'Mode was not changed',
+                               "Unable to toggle between downlaod mode with active downloads!")
+            return
+
+        else:
+            parallel = not self.settings.user_options['parallel']
+            self.settings.user_options['parallel'] = parallel
+            self.tab4.dl_mode_btn.setText("Singular" if not parallel else "Parallel")
+            self.downloader.set_mode(parallel=parallel)
 
     def save_profile(self):
         dialog = Dialog(self.tab_widget, 'Name profile', 'Give a name to the profile!')
@@ -800,22 +814,29 @@ class GUI(MainWindow):
             command += ['--ffmpeg-location', self.ffmpeg_path]
 
         download = Download(self.program_workdir, self.youtube_dl_path, command, self)
-        self.tab1.start_btn.setDisabled(True)
 
         try:
             slot = QListWidgetItem(parent=self.tab1.process_list)
-            gui_progress = ProcessListItem(download)
-            gui_progress.set_slot(slot)
-
+            gui_progress = ProcessListItem(download, slot)
             self.tab1.process_list.addItem(slot)
-            slot.setSizeHint(gui_progress.sizeHint())
             self.tab1.process_list.setItemWidget(slot, gui_progress)
+            gui_progress.adjust()
         except:
             traceback.print_exc()
         self.downloader.queue_dl(download)
 
     def stop_download(self):
-        if self.downloader.has_pending():
+        parallel = self.settings.user_options['parallel']
+        if parallel and self.downloader.many_active():
+            result = self.alert_message('Stop all?',
+                                        'Parallel mode stops all pending and active donwloads!',
+                                        'Do you want to continue?', True, True)
+            if result == QMessageBox.Yes:
+                self.downloader.stop_download(True)
+        elif parallel:
+            self.downloader.stop_download()
+
+        elif self.downloader.has_pending():
             result = self.alert_message('Stop all?', 'Stop all pending downloads too?', '', True, True)
             if result == QMessageBox.Cancel:
                 return
@@ -880,7 +901,8 @@ class GUI(MainWindow):
     def allow_start(self):
         self.tab1.stop_btn.setDisabled(not self.downloader.RUNNING)
         self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
-        self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '' and not self.tab1.checkbox.isChecked())
+        if not self.tab1.timer.isActive():
+            self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '' and not self.tab1.checkbox.isChecked())
 
     # TODO: Move to tab 3?
     def load_text_from_file(self):

@@ -105,8 +105,12 @@ class MainTab(QWidget):
         self.setLayout(self.QV)
 
     def start_button_timer(self, state):
+        self.start_btn.setDisabled(True)
+        print(state)
+        print(self.start_btn.isEnabled())
         if not state:
             self.timer.start(1000)
+            print('t')
 
 
 if __name__ == '__main__':
