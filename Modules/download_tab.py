@@ -1,8 +1,6 @@
-import textwrap
-
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, \
-    QHBoxLayout, QVBoxLayout, QListWidget, QTableWidgetItem, QTableView, QListView, QScrollBar
+    QHBoxLayout, QVBoxLayout, QListWidget
 
 from Modules.dropdown_widget import DropDown
 from Modules.lineedit import LineEdit
@@ -64,6 +62,7 @@ class MainTab(QWidget):
 
         self.process_list = QListWidget(self)
         self.process_list.setSelectionMode(QListWidget.NoSelection)
+        self.process_list.setFocusPolicy(Qt.NoFocus)
         self.process_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # Start making checkbutton for selecting downloading from text file mode.
@@ -89,7 +88,9 @@ class MainTab(QWidget):
         self.QH3.addStretch(1)
         self.QH3.addWidget(self.profile_label)
         self.QH3.addWidget(self.profile_dropdown)
-        self.QH3.addWidget(self.queue_label)
+        # self.QH3.addWidget(self.queue_label)
+        #
+        # TODO: Remove queue label and things related
 
         # Creates vertical box for tab1.
         self.QV = QVBoxLayout()

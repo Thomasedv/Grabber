@@ -1,9 +1,7 @@
 import os
-import sys
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt
-from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QWidget, QHBoxLayout, QLabel, QVBoxLayout, QListWidget, \
-    QApplication, QSizePolicy, QLayout
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy
 
 from utils.utilities import FONT_CONSOLAS, color_text
 
@@ -177,7 +175,8 @@ class ProcessListItem(QWidget):
         self.setStyleSheet("""QLabel {
             background: #484848;
             padding: 2px;
-            border-radius: 2px;    
+            border-radius: 2px;
+            outline: 0;    
         }""")
 
         self.status_box = QLabel(color_text('In queue', color='lawngreen'))
