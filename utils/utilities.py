@@ -2,6 +2,7 @@
 Utilities for Grabber.
 """
 import copy
+import sys
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
 from PyQt5.QtGui import QFont, QColor
@@ -9,6 +10,14 @@ from PyQt5.QtGui import QFont, QColor
 FONT_CONSOLAS = QFont()
 FONT_CONSOLAS.setFamily('Consolas')
 FONT_CONSOLAS.setPixelSize(13)
+
+
+def except_hook(cls, exception, traceback):
+    sys.__excepthook__(cls, exception, traceback)
+
+
+# If not frozen as .exe, crashes show here
+sys.excepthook = except_hook
 
 
 def path_shortener(full_path: str):
@@ -421,6 +430,18 @@ stylesheet = """
                                     color: {text_shaded};
                                     border: red solid 1px;
                                     border-radius: 2px;
+                                }}
+                                
+                                QListWidget::item{{
+                                    border: none;
+                                    outline: none;
+                                    outline-width: 0px;
+                                }}
+                                    
+                                QListWidget {{
+                                    outline: none;
+                                    outline-width: 0px;
+                                    border-radius: 5px;
                                 }}
                                 
                                 QScrollBar::vertical {{

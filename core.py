@@ -1,13 +1,15 @@
 import json
 import os
 import sys
+import traceback
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData, pyqtSlot
 from PyQt5.QtGui import QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
 from PyQt5.QtWidgets import QShortcut, QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
-    QTabWidget
+    QTabWidget, QListWidgetItem
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow, AboutTab, Downloader, ParameterTab, TextTab
+from Modules.download_element import ProcessListItem
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_stylesheet, \
     get_win_accent_color, ProfileLoadError
@@ -799,6 +801,17 @@ class GUI(MainWindow):
 
         download = Download(self.program_workdir, self.youtube_dl_path, command, self)
         self.tab1.start_btn.setDisabled(True)
+
+        try:
+            slot = QListWidgetItem(parent=self.tab1.process_list)
+            gui_progress = ProcessListItem(download)
+            gui_progress.set_slot(slot)
+
+            self.tab1.process_list.addItem(slot)
+            slot.setSizeHint(gui_progress.sizeHint())
+            self.tab1.process_list.setItemWidget(slot, gui_progress)
+        except:
+            traceback.print_exc()
         self.downloader.queue_dl(download)
 
     def stop_download(self):

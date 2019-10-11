@@ -1,6 +1,8 @@
+import textwrap
+
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, \
-    QHBoxLayout, QVBoxLayout
+    QHBoxLayout, QVBoxLayout, QListWidget, QTableWidgetItem, QTableView, QListView, QScrollBar
 
 from Modules.dropdown_widget import DropDown
 from Modules.lineedit import LineEdit
@@ -60,6 +62,10 @@ class MainTab(QWidget):
         self.textbrowser.append('Welcome!\n\nAdd video url, or load from text file.')
         # self.edit.append('<a href="URL">Showtext</a>') Learning purposes.
 
+        self.process_list = QListWidget(self)
+        self.process_list.setSelectionMode(QListWidget.NoSelection)
+        self.process_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         # Start making checkbutton for selecting downloading from text file mode.
         self.checkbox = QCheckBox('Download from text file.')
 
@@ -91,7 +97,9 @@ class MainTab(QWidget):
         # Adds horizontal layouts, textbrowser and checkbox to create tab1.
         self.QV.addLayout(self.QH2)
         self.QV.addLayout(self.QH3)
-        self.QV.addWidget(self.textbrowser, 1)
+
+        # self.QV.addWidget(self.textbrowser, 1)
+        self.QV.addWidget(self.process_list)
         self.QV.addLayout(self.QH)
 
         self.setLayout(self.QV)

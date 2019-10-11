@@ -1,5 +1,6 @@
 import re
 from collections import deque
+from textwrap import dedent
 
 from PyQt5.QtCore import pyqtSignal, QProcess, QObject
 
@@ -25,11 +26,9 @@ class Downloader(QObject):
         # Make this point to parallel queue for multi dl.
         self.queue_handler = self._single_queue_handler
 
-    def read_process(self, download: Download):
-        data = download.readAllStandardOutput().data()
-        text = data.decode('utf-8', 'replace').strip()
-        text = self.cmdoutput(text)
-        self.output.emit(text)
+    def read_process(self):
+        program = self.active_download
+        self.output.emit(' | '.join(program.get_state()))
 
     def restart_current_download(self):
         # TODO: Trigger this make trigger for restarting download!
@@ -113,22 +112,24 @@ class Downloader(QObject):
                 self.output.emit('No active downloads...')
 
     def queue_dl(self, download: Download):
-        download.readyReadStandardOutput.connect(lambda: self.read_process(download))
+        download.getOutput.connect(self.read_process)
         download.stateChanged.connect(self.program_state_changed)
         self._queue.append(download)
         self.queue_handler()
 
-    def cmdoutput(self, info):
-        replace_dict = {
-            '[ffmpeg] ': '',
-            '[youtube] ': ''
-        }
-        substrs = sorted(replace_dict, key=len, reverse=True)
-        if info.startswith('ERROR'):
-            self.error_count += 1
-            info = info.replace('ERROR', '<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>')
-        info = re.sub(r'\s+$', '', info, 0, re.M)
-        info = re.sub(' +', ' ', info)
-        regexp = re.compile('|'.join(map(re.escape, substrs)))
-
-        return regexp.sub(lambda match: replace_dict[match.group(0)], info)
+    def cmdoutput(self):
+        # # TODO: Remove here, use in download!
+        # replace_dict = {
+        #     '[ffmpeg] ': '',
+        #     '[youtube] ': ''
+        # }
+        # substrs = sorted(replace_dict, key=len, reverse=True)
+        # if info.startswith('ERROR'):
+        #     self.error_count += 1
+        #     info = info.replace('ERROR', '<span style=\"color: darkorange; font-weight: bold;\">ERROR</span>')
+        # info = re.sub(r'\s+$', '', info, 0, re.M)
+        # info = re.sub(' +', ' ', info)
+        # regexp = re.compile('|'.join(map(re.escape, substrs)))
+        # return info
+        # return regexp.sub(lambda match: replace_dict[match.group(0)], info)
+        pass
