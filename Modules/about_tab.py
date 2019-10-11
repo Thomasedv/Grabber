@@ -13,7 +13,7 @@ class AboutTab(QWidget):
         self.license_btn = QPushButton('License')
         # Debugging
         self.dirinfo_btn = QPushButton('Dirinfo')
-        # Pallalel / Series toggle
+        # Parralel / Series toggle
         self.dl_mode_btn = QPushButton("Singular" if not settings.user_options['parallel'] else "Parallel")
 
         # Reset settings, (requires restart!)
