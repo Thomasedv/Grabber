@@ -6,6 +6,7 @@ class AboutTab(QWidget):
     def __init__(self, settings, parent=None):
         super(AboutTab, self).__init__(parent=parent)
 
+        # Select folder for textfile to use as download list
         self.location_btn = QPushButton('Browse')
         # Button to check for youtube-dl updates.
         self.update_btn = QPushButton('Update')
@@ -22,11 +23,11 @@ class AboutTab(QWidget):
         self.reset_btn.setMinimumHeight(30)
 
         # Lineedit to show path to text file. (Can be changed later to use same path naming as other elements.)
-        self.lineedit = QLineEdit()
-        self.lineedit.setReadOnly(True)  # Read only
-        self.lineedit.setText(settings.user_options['multidl_txt'])  # Path from settings.
+        self.txtfile_url = QLineEdit()
+        self.txtfile_url.setReadOnly(True)  # Read only
+        self.txtfile_url.setText(settings.user_options['multidl_txt'])  # Path from settings.
 
-        self.label = QLabel('Textfile:')
+        self.txt_label = QLabel('Textfile:')
 
         # Textbrowser to adds some info about Grabber.
         self.textbrowser = QTextBrowser()
@@ -34,7 +35,6 @@ class AboutTab(QWidget):
         self.textbrowser.setOpenExternalLinks(True)
 
         self.set_standard_text()
-        ## Layout tab 4.
 
         self.QH = QHBoxLayout()
         self.QV = QVBoxLayout()
@@ -52,8 +52,8 @@ class AboutTab(QWidget):
         self.QH.addLayout(self.QV)
 
         self.topQH = QHBoxLayout()
-        self.topQH.addWidget(self.label)
-        self.topQH.addWidget(self.lineedit)
+        self.topQH.addWidget(self.txt_label)
+        self.topQH.addWidget(self.txtfile_url)
         self.topQH.addWidget(self.location_btn)
 
         self.topQV = QVBoxLayout()
