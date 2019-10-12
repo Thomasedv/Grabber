@@ -3,8 +3,8 @@ import os
 import sys
 import traceback
 
-from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData, pyqtSlot
-from PyQt5.QtGui import QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
+from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
+from PyQt5.QtGui import QKeySequence, QIcon, QClipboard, QGuiApplication
 from PyQt5.QtWidgets import QShortcut, QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
     QTabWidget, QListWidgetItem
 
@@ -115,10 +115,10 @@ class GUI(MainWindow):
         # When the check button is checked or unchecked, calls function checked.
         self.tab1.checkbox.stateChanged.connect(self.allow_start)
         # Connects actions to text changes and adds action to when you press Enter.
-        self.tab1.lineedit.textChanged.connect(self.allow_start)
+        self.tab1.url_input.textChanged.connect(self.allow_start)
 
         # Queue downloading
-        self.tab1.lineedit.returnPressed.connect(self.tab1.start_btn.click)
+        self.tab1.url_input.returnPressed.connect(self.tab1.start_btn.click)
 
         # Change profile
         self.tab1.profile_dropdown.currentTextChanged.connect(self.load_profile)
@@ -258,7 +258,7 @@ class GUI(MainWindow):
         if self.settings.user_options['select_on_focus']:
             self.gotfocus.connect(self.window_focus_event)
         else:
-            self.tab1.lineedit.setFocus()
+            self.tab1.url_input.setFocus()
 
         # Other functionality.
         self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3.textedit)
@@ -271,9 +271,10 @@ class GUI(MainWindow):
         # Check for youtube
         if self.youtube_dl_path is None:
             self.tab4.update_btn.setDisabled(True)
-            self.tab1.textbrowser.append(color_text('\nNo youtube-dl.exe found! Add to path, '
-                                                    'or make sure it\'s in the same folder as this program. '
-                                                    'Then close and reopen this program.', 'darkorange', 'bold'))
+            # TODO: Warn if no file is found.
+            self.alert_message('Warning!', '\nNo youtube-dl.exe found! Add to path, '
+                                           'or make sure it\'s in the same folder as this program. '
+                                           'Then close and reopen this program.', '')
         # Sets the download items tooltips to the full file path.
         self.download_name_handler()
 
@@ -284,17 +285,12 @@ class GUI(MainWindow):
 
         self.show()
 
-        # self.main_tab.show() # Old method.
-
         # Connect after show!!
         self.resizedByUser.connect(self.resize_contents)
         # To make sure the window is updated on first enter
         # if resized before tab2 is shown, i'll be blank.
 
-        self.downloader.output.connect(self.print_process_output)
         self.downloader.stateChanged.connect(self.allow_start)
-        self.downloader.clearOutput.connect(self.tab1.textbrowser.clear)
-        self.downloader.updateQueue.connect(lambda text: self.tab1.queue_label.setText(text))
         self.tab_widget.currentChanged.connect(self.resize_contents)
 
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
@@ -498,7 +494,9 @@ class GUI(MainWindow):
 
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""
-        if self.tab_widget.currentIndex() == 1:
+        if self.tab_widget.currentIndex() == 0:
+            self.tab1.process_list.setMinimumWidth(self.window().width() - 18)
+        elif self.tab_widget.currentIndex() == 1:
             size = self.height() - (self.tab2.frame.height() + self.tab2.download_lineedit.height()
                                     + self.tab2.favlabel.height() + self.tab_widget.tabBar().height() + 40)
             ParameterTree.max_size = size
@@ -508,9 +506,9 @@ class GUI(MainWindow):
     def window_focus_event(self):
         """ Selects text in tab1 line edit on window focus. """
         # self.tab2.options.max_size =
-        if self.tab1.lineedit.isEnabled():
-            self.tab1.lineedit.setFocus()
-            self.tab1.lineedit.selectAll()
+        if self.tab1.url_input.isEnabled():
+            self.tab1.url_input.setFocus()
+            self.tab1.url_input.selectAll()
 
     def copy_to_cliboard(self):
         """ Adds text to clipboard. """
@@ -666,32 +664,33 @@ class GUI(MainWindow):
 
     def dir_info(self):
 
-        file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
-
-        debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
-                 color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
-                 color_text('Filedir:'), file_dir,
-                 color_text('Workdir:'), self.file_handler.work_dir,
-                 color_text('Youtube-dl working directory:'), self.program_workdir,
-                 color_text('\nIcon paths:'), *self.icon_list]
-
-        for i in debug:
-            self.tab1.textbrowser.append(str(i))
-
-        self.tab1.textbrowser.append(color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
-
-        for i in self.icon_list:
-            if i is not None:
-
-                if self.file_handler.is_file(str(i)):
-                    try:
-                        self.tab1.textbrowser.append(''.join(['Found: ', os.path.split(i)[1]]))
-                    except IndexError:
-                        self.tab1.textbrowser.append(''.join(['Found: ', i]))
-                else:
-                    self.tab1.textbrowser.append(''.join(['Missing in:', i]))
-
-        self.tab_widget.setCurrentIndex(0)
+        return
+        # TODO: Print this info to GUI.
+        # file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
+        # debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
+        #          color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
+        #          color_text('Filedir:'), file_dir,
+        #          color_text('Workdir:'), self.file_handler.work_dir,
+        #          color_text('Youtube-dl working directory:'), self.program_workdir,
+        #          color_text('\nIcon paths:'), *self.icon_list]
+        #
+        # for i in debug:
+        #     self.tab1.textbrowser.append(str(i))
+        #
+        # self.tab1.textbrowser.append(color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
+        #
+        # for i in self.icon_list:
+        #     if i is not None:
+        #
+        #         if self.file_handler.is_file(str(i)):
+        #             try:
+        #                 self.tab1.textbrowser.append(''.join(['Found: ', os.path.split(i)[1]]))
+        #             except IndexError:
+        #                 self.tab1.textbrowser.append(''.join(['Found: ', i]))
+        #         else:
+        #             self.tab1.textbrowser.append(''.join(['Missing in:', i]))
+        #
+        # self.tab_widget.setCurrentIndex(0)
 
     def update_youtube_dl(self):
         update = Download(self.program_workdir, self.youtube_dl_path, ['-U', '--encoding', 'utf-8'], self)
@@ -748,13 +747,12 @@ class GUI(MainWindow):
         if self.tab1.checkbox.isChecked():
             if self.tab4.txt_lineedit.text() == '':
                 self.alert_message('Error!', 'No textfile selected!', '')
-                self.tab1.textbrowser.append('No textfile selected...\n\nNo download queued!')
                 return
 
             txt = self.settings.user_options['multidl_txt']
             command += ['-a', f'{txt}']
         else:
-            txt = self.tab1.lineedit.text()
+            txt = self.tab1.url_input.text()
             command.append(f'{txt}')
 
         # for i in range(len(command)):
@@ -790,7 +788,8 @@ class GUI(MainWindow):
                         if dialog.exec_() == QDialog.Accepted:
                             self._temp[option] = _password = dialog.option.text()
                         else:
-                            self.tab1.textbrowser.append(color_text('ERROR: No password was entered.', sections=(0, 6)))
+                            self.alert_message('Error', color_text('ERROR: No password was entered.', sections=(0, 6)),
+                                               '')
                             return
 
                     add = format_in_list(options['command'], option)
@@ -845,64 +844,12 @@ class GUI(MainWindow):
         else:
             self.downloader.stop_download()
 
-    @pyqtSlot(str)
-    def print_process_output(self, text):
-        scrollbar = self.tab1.textbrowser.verticalScrollBar()
-        place = scrollbar.sliderPosition()
-
-        if place == scrollbar.maximum():
-            keep_position = False
-        else:
-            keep_position = True
-
-        # get the last line of QTextEdit
-        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
-        self.tab1.textbrowser.moveCursor(QTextCursor.StartOfLine, QTextCursor.MoveAnchor)
-        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.KeepAnchor)
-        last_line = self.tab1.textbrowser.textCursor().selectedText()
-
-        # Check if a percentage has already been placed.
-        if "%" in last_line and 'ETA' in last_line and "%" in text:
-            self.tab1.textbrowser.textCursor().removeSelectedText()
-            self.tab1.textbrowser.textCursor().deletePreviousChar()
-            # Last line of text
-            self.tab1.textbrowser.append(color_text(text.split("[download]")[-1][1:],
-                                                    color='lawngreen',
-                                                    weight='bold',
-                                                    sections=(0, 5)))
-            if '100%' in text:
-                self.tab1.textbrowser.append('')
-
-        else:
-            if ("%" in text and 'ETA' in text) or '100% of ' in text:
-                # Last line of text
-                self.tab1.textbrowser.append(color_text(text.split("[download]")[-1][1:],
-                                                        color='lawngreen',
-                                                        weight='bold',
-                                                        sections=(0, 5)))
-            elif '[download]' in text:
-                self.tab1.textbrowser.append(''.join([text.replace('[download] ', ''), '\n']))
-
-            else:
-                self.tab1.textbrowser.append(''.join([text, '\n']))
-
-        # Prevents some leftover highlighted text on errors and such.
-        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
-
-        # Ensures slider position is kept when not at bottom, and stays at bottom with new text when there.
-        if keep_position:
-            scrollbar.setSliderPosition(place)
-        else:
-            scrollbar.setSliderPosition(scrollbar.maximum())
-
-    # Startup function, sets the startbutton to disabled, if lineEdit is empty,
-    # And disables the lineEdit if the textbox is checked.
-    # Stop button is set to disabled, since no process is running.
     def allow_start(self):
+        """ Adjusts buttons depending on users input and program state """
         self.tab1.stop_btn.setDisabled(not self.downloader.RUNNING)
-        self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
+        self.tab1.url_input.setDisabled(self.tab1.checkbox.isChecked())
         if not self.tab1.timer.isActive():
-            self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '' and not self.tab1.checkbox.isChecked())
+            self.tab1.start_btn.setDisabled(self.tab1.url_input.text() == '' and not self.tab1.checkbox.isChecked())
 
     # TODO: Move to tab 3?
     def load_text_from_file(self):
@@ -965,7 +912,7 @@ class GUI(MainWindow):
                     self.tab3.SAVED = True
 
     def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
-
+        """ A quick dialog for providing warnings or asking for user questions."""
         warning_window = QMessageBox(parent=self)
         warning_window.setText(text)
         warning_window.setIcon(QMessageBox.Warning)
@@ -993,6 +940,7 @@ class GUI(MainWindow):
             
             self.sendClose.emit()
 
+        # If something is still running
         if self.downloader.RUNNING:
             result = self.alert_message('Want to quit?',
                                         'Still downloading!',
@@ -1002,6 +950,7 @@ class GUI(MainWindow):
             if result != QMessageBox.Yes:
                 return None
 
+        # Nothing is unsaved in textbox
         if ((self.tab3.textedit.toPlainText() == '') or (not self.tab3.saveButton.isEnabled())) or self.tab3.SAVED:
             do_proper_shutdown()
 
@@ -1020,7 +969,6 @@ class GUI(MainWindow):
             do_proper_shutdown()
 
     def read_license(self):
-        # TODO: Refactor code, keep string for UI out of code.
         if not self.license_shown:
             content = self.file_handler.read_textfile(self.license_path)
             if content is None:

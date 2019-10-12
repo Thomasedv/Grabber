@@ -353,6 +353,12 @@ stylesheet = """
                                 QFrame#line {{
                                     color: {background_dark};
                                 }}
+                                QLabel {{
+                                    background: #484848;
+                                    padding: 2px;
+                                    border-radius: 2px;
+                                    outline: 0;    
+                                }}
 
                                 QTabWidget::pane {{
                                     border: none;

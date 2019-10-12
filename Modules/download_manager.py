@@ -1,11 +1,9 @@
-import re
 from collections import deque
-from textwrap import dedent
 
 from PyQt5.QtCore import pyqtSignal, QProcess, QObject
 
-from utils.utilities import color_text
 from Modules.download_element import Download
+from utils.utilities import color_text
 
 
 class Downloader(QObject):
@@ -13,7 +11,6 @@ class Downloader(QObject):
 
     output = pyqtSignal(str)
     clearOutput = pyqtSignal()
-    updateQueue = pyqtSignal(str)
 
     def __init__(self, file_handler, mode=0):
         super(Downloader, self).__init__()
@@ -109,7 +106,6 @@ class Downloader(QObject):
 
             if self._queue:
                 download = self._queue.popleft()
-                self.updateQueue.emit(f'Items in queue: {len(self._queue):3}')
                 self.active_download = download
                 try:
                     download.start_dl()
@@ -128,7 +124,6 @@ class Downloader(QObject):
                 error_report = 0 if not self.error_count else color_text(str(self.error_count), "darkorange", "bold")
                 self.output.emit(f'Error count: {error_report}.')
                 self.error_count = 0
-        self.updateQueue.emit(f'Items in queue: {len(self._queue):3}')
 
     # When the current download is started/stopped then this runs.
     def program_state_changed(self, program: Download):

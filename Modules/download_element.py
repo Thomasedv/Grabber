@@ -172,12 +172,7 @@ class ProcessListItem(QWidget):
         self.process.getOutput.connect(self.stat_update)
         self.line = QHBoxLayout()
         self.setFocusPolicy(Qt.NoFocus)
-        self.setStyleSheet("""QLabel {
-            background: #484848;
-            padding: 2px;
-            border-radius: 2px;
-            outline: 0;    
-        }""")
+        # self.setStyleSheet()
 
         self.status_box = QLabel(color_text('In queue', color='lawngreen'))
         self.progress = QLabel(parent=self)
