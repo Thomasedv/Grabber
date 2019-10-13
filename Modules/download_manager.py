@@ -52,11 +52,11 @@ class Downloader(QObject):
                 for i in self.active_download:
                     i.kill()
                     i.start()
-        else:
-            self.output.emit('No active download to restart!')
+        # else:
+        #     self.output.emit('No active download to restart!')
 
     def update_youtube_dl(self, update: Download):
-        self.output.emit('Update queued!')
+        # self.output.emit('Update queued!')
         self.queue_dl(update)
 
     def _parallel_queue_handler(self, process_finished=False):
@@ -129,7 +129,6 @@ class Downloader(QObject):
     def program_state_changed(self, program: Download):
         new_state = program.state()
         if new_state == QProcess.NotRunning:
-
             program.disconnect()
             # self.output.emit('\nDone\n')
             if self.mode:

@@ -2,6 +2,7 @@
 Utilities for Grabber.
 """
 import copy
+import re
 import sys
 from traceback import format_exception
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
@@ -15,15 +16,17 @@ FONT_CONSOLAS.setPixelSize(13)
 
 
 def except_hook(cls, exception, traceback):
-    app = QApplication.instance()
-    if not app:
-        app = QApplication(sys.argv)
-    QMessageBox.warning(None,
-                        'ERROR!',
-                        'An critical error happened running the program. Please forward this error to developer:\n\n'
-                        f'{"".join(format_exception(cls, exception, traceback))}', QMessageBox.Ok)
-    QApplication.exit(1)
-
+    if getattr(sys, 'frozen', False):
+        app = QApplication.instance()
+        if not app:
+            app = QApplication(sys.argv)
+        QMessageBox.warning(None,
+                            'ERROR!',
+                            'An critical error happened running the program. Please forward this error to developer:\n\n'
+                            f'{"".join(format_exception(cls, exception, traceback))}', QMessageBox.Ok)
+        QApplication.exit(1)
+    else:
+        sys.__excepthook__(cls, exception, traceback)
 
 
 # If not frozen as .exe, crashes show here
@@ -87,9 +90,10 @@ def color_text(text: str, color: str = 'darkorange', weight: str = 'bold', secti
 
 
 def format_in_list(command, option):
+    com = re.compile(r'{.+\}')
     split_command = command.split()
     for index, item in enumerate(split_command):
-        if '{}' in item:
+        if '{}' in item and com.search(item) is None:
             split_command[index] = item.format(option)
             return split_command
     return split_command

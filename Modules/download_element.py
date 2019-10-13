@@ -1,4 +1,5 @@
 import os
+import traceback
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy
@@ -32,6 +33,7 @@ class Download(QProcess):
         self.name = ''
         self.playlist = ''
         self.error_log = ''
+        self.pot_error_log = ''
 
     def get_status(self):
         return self.status, self.progress, self.eta, self.filesize, self.speed
@@ -39,8 +41,18 @@ class Download(QProcess):
     def program_state_changed(self, new_state):
         if new_state == QProcess.NotRunning:
             if self.status not in ('Aborted', 'ERROR', 'Already Downloaded'):
-                self.status = 'Finished'
-                self.progress = '100%'
+                if self.exitCode() != 0:
+                    self.status = 'ERROR'
+                    self.progress = ''
+
+                    if not self.error_log and self.pot_error_log:
+                        self.error_log = self.pot_error_log
+                    elif not self.error_log:
+                        self.error_log = 'Unknown error'
+
+                else:
+                    self.status = 'Finished'
+                    self.progress = '100%'
                 self.eta = ''
                 self.filesize = ''
                 self.speed = ''
@@ -67,101 +79,109 @@ class Download(QProcess):
         https://github.com/MrS0m30n3/youtube-dl-gui/blob/master/youtube_dl_gui/downloaders.py
         """
 
-        stdout = self.readAllStandardOutput().data().decode('utf-8', 'replace')
+        output = self.readAllStandardOutput().data().decode('utf-8', 'replace')
 
-        if not stdout:
+        if not output:
             return
 
-        print(stdout)
+        try:
+            for line in output.split('\n'):
+                print(line)
+                if not line:
+                    continue
 
-        for stdout in stdout.split('\n'):
-            if not stdout:
-                continue
+                stdout_with_spaces = line.split(' ')
 
-            stdout_with_spaces = stdout.split(' ')
-            stdout = stdout.split()
+                stdout = line.split()
 
-            stdout[0] = stdout[0].lstrip('\r')
-            # print(stdout)
+                if not stdout:
+                    continue
 
-            if stdout[0] == '[download]':
-                self.status = 'Downloading'
+                stdout[0] = stdout[0].lstrip('\r')
 
-                if stdout[1] == 'Destination:':
-                    path, fullname = os.path.split(' '.join(stdout[2:]).strip("\""))
-                    self.name = fullname
+                if stdout[0] == '[download]':
+                    self.status = 'Downloading'
 
-                # Get progress info
-                if '%' in stdout[1]:
-                    if stdout[1] == '100%':
+                    if stdout[1] == 'Destination:':
+                        path, fullname = os.path.split(' '.join(stdout[2:]).strip("\""))
+                        self.name = fullname
+
+                    # Get progress info
+                    if '%' in stdout[1]:
+                        if stdout[1] == '100%':
+                            self.progress = '100%'
+                            self.eta = ''
+                            self.filesize = stdout[3]
+                            self.speed = ''
+                        else:
+                            self.progress = stdout[1]
+                            self.eta = stdout[7]
+                            self.filesize = stdout[3]
+                            self.speed = stdout[5]
+
+                    # Get playlist info
+
+                    if stdout[1] == 'Downloading' and stdout[2] == 'video':
+                        self.playlist = stdout[3] + '/' + stdout[5]
+
+                    # Remove the 'and merged' part from stdout when using ffmpeg to merge the formats
+                    if stdout[-3] == 'downloaded' and stdout[-1] == 'merged':
+                        stdout = stdout[:-2]
                         self.progress = '100%'
-                        self.eta = ''
-                        self.filesize = stdout[3]
-                        self.speed = ''
-                    else:
-                        self.progress = stdout[1]
-                        self.eta = stdout[7]
-                        self.filesize = stdout[3]
-                        self.speed = stdout[5]
 
-                # Get playlist info
+                    # Get file already downloaded status
+                    if stdout[-1] == 'downloaded':
+                        self.status = 'Already Downloaded'
+                        self.error_log = ' '.join(stdout)
 
-                if stdout[1] == 'Downloading' and stdout[2] == 'video':
-                    self.playlist = stdout[3] + '/' + stdout[5]
+                    if stdout[-3:] == ['recorded', 'in', 'archive']:
+                        self.status = 'Already Downloaded'
+                        self.error_log = ' '.join(stdout)
 
-                # Remove the 'and merged' part from stdout when using ffmpeg to merge the formats
-                if stdout[-3] == 'downloaded' and stdout[-1] == 'merged':
-                    stdout = stdout[:-2]
-                    self.progress = '100%'
+                    # Get filesize abort status
+                    if stdout[-1] == 'Aborting.':
+                        self.status = 'Filesize Error'
 
-                # Get file already downloaded status
-                if stdout[-1] == 'downloaded':
-                    self.status = 'Already Downloaded'
-                    self.error_log = ' '.join(stdout)
+                elif stdout[0] == '[hlsnative]':
+                    # native hls extractor
+                    # see: https://github.com/rg3/youtube-dl/blob/master/youtube_dl/downloader/hls.py#L54
+                    self.status = 'Downloading'
 
-                if stdout[-3:] == ['recorded', 'in', 'archive']:
-                    self.status = 'Already Downloaded'
-                    self.error_log = ' '.join(stdout)
+                    if len(stdout) == 7:
+                        segment_no = float(stdout[6])
+                        current_segment = float(stdout[4])
 
-                # Get filesize abort status
-                if stdout[-1] == 'Aborting.':
-                    self.status = 'Filesize Error'
+                        # Get the percentage
+                        percent = '{0:.1f}%'.format(current_segment / segment_no * 100)
+                        self.status = percent
 
-            elif stdout[0] == '[hlsnative]':
-                # native hls extractor
-                # see: https://github.com/rg3/youtube-dl/blob/master/youtube_dl/downloader/hls.py#L54
-                self.status = 'Downloading'
+                elif stdout[0] == '[ffmpeg]':
+                    self.status = 'Post Processing'
 
-                if len(stdout) == 7:
-                    segment_no = float(stdout[6])
-                    current_segment = float(stdout[4])
+                    if stdout[1] == 'Merging':
+                        path, fullname = os.path.split(' '.join(stdout_with_spaces[4:]).strip("\""))
+                        self.name = fullname
 
-                    # Get the percentage
-                    percent = '{0:.1f}%'.format(current_segment / segment_no * 100)
-                    self.status = percent
+                        # Get final extension ffmpeg post process simple (not file merge)
+                    if stdout[1] == 'Destination:':
+                        path, fullname = os.path.split(' '.join(stdout_with_spaces[2:]).strip("\""))
+                        self.name = fullname
 
-            elif stdout[0] == '[ffmpeg]':
-                self.status = 'Post Processing'
+                        # Get final extension after recoding process
+                    if stdout[1] == 'Converting':
+                        path, fullname = os.path.split(' '.join(stdout_with_spaces[8:]).strip("\""))
+                        self.name = fullname
 
-                if stdout[1] == 'Merging':
-                    path, fullname = os.path.split(' '.join(stdout_with_spaces[4:]).strip("\""))
-                    self.name = fullname
+                elif stdout[0] == 'ERROR:':
+                    self.status = 'ERROR'
+                    self.error_log += ' '.join(stdout)
 
-                    # Get final extension ffmpeg post process simple (not file merge)
-                if stdout[1] == 'Destination:':
-                    path, fullname = os.path.split(' '.join(stdout_with_spaces[2:]).strip("\""))
-                    self.name = fullname
+                elif 'youtube-dl.exe: error:' in line:
+                    self.pot_error_log += ' '.join(stdout).replace('youtube-dl.exe: ', '')
+                self.getOutput.emit()
+        except IndexError:
+            traceback.print_exc()
 
-                    # Get final extension after recoding process
-                if stdout[1] == 'Converting':
-                    path, fullname = os.path.split(' '.join(stdout_with_spaces[8:]).strip("\""))
-                    self.name = fullname
-
-            elif stdout[0] == 'ERROR:':
-                self.status = 'ERROR'
-                self.error_log = ' '.join(stdout)
-
-            self.getOutput.emit()
 
 
 class ProcessListItem(QWidget):
@@ -244,7 +264,7 @@ class ProcessListItem(QWidget):
 
             self.status_box.setText(color_text(self.process.status))
             self.info_text.setText(f'{self.process.name if self.process.name else "Process"}'
-                                   f' failed with message:\n{self.process.error_log[7:]}')
+                                   f' failed with message:\n{self.process.error_log.replace("ERROR:", "")}')
         elif self.process.status == 'Aborted':
             self.status_box.setText(color_text(self.process.status))
             if not self.it_in_layout:

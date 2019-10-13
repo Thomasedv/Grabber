@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import traceback
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
 from PyQt5.QtGui import QKeySequence, QIcon, QClipboard, QGuiApplication
@@ -757,6 +756,7 @@ class GUI(MainWindow):
 
         # for i in range(len(command)):
         #    command[i] = command[i].format(txt=txt)'
+        # TODO: Let user pick naming format
         file_name_format = '%(title)s.%(ext)s'
 
         for parameter, options in self.settings.parameters.items():
@@ -814,14 +814,12 @@ class GUI(MainWindow):
 
         download = Download(self.program_workdir, self.youtube_dl_path, command, self)
 
-        try:
-            slot = QListWidgetItem(parent=self.tab1.process_list)
-            gui_progress = ProcessListItem(download, slot)
-            self.tab1.process_list.addItem(slot)
-            self.tab1.process_list.setItemWidget(slot, gui_progress)
-            gui_progress.adjust()
-        except:
-            traceback.print_exc()
+        slot = QListWidgetItem(parent=self.tab1.process_list)
+        gui_progress = ProcessListItem(download, slot)
+        self.tab1.process_list.addItem(slot)
+        self.tab1.process_list.setItemWidget(slot, gui_progress)
+        gui_progress.adjust()
+
         self.downloader.queue_dl(download)
 
     def stop_download(self):
