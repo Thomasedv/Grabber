@@ -109,7 +109,7 @@ def get_win_accent_color():
     key_value = QueryValueEx(key, 'AccentColor')
     accent_int = key_value[0]
     accent_hex = hex(accent_int)  # Remove FF offset and convert to HEX again
-    accent_hex = str(accent_hex)[4:]  # Remove prefix and suffix
+    accent_hex = str(accent_hex)[4:]  # Remove prefix
 
     accent = accent_hex[4:6] + accent_hex[2:4] + accent_hex[0:2]
 
