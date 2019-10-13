@@ -483,6 +483,8 @@ stylesheet = """
                                 QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
                                     border: none;
                                     background: none;
+                                    width: 0px;
+                                    height: 0px;
                                 }}
 
                                 QScrollBar::handle:vertical {{
