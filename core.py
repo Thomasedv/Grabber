@@ -11,7 +11,7 @@ from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow, AboutT
 from Modules.download_element import ProcessListItem
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_stylesheet, \
-    get_win_accent_color, ProfileLoadError
+    get_win_accent_color, ProfileLoadError, LessNiceDict
 
 
 class GUI(MainWindow):
@@ -32,7 +32,7 @@ class GUI(MainWindow):
         self.initial_checks()
 
         # Holds temp passwords
-        self._temp = {}
+        self._temp = LessNiceDict()
 
         # Builds GUI and everything related to that.
         self.build_gui()
@@ -776,8 +776,8 @@ class GUI(MainWindow):
             elif parameter == 'Username':
                 if options['state']:
                     option = self.settings.get_active_setting(parameter)
-                    if option in self._temp:
-                        _password = self._temp[option]
+                    if hash(option) in self._temp:
+                        _password = self._temp[hash(option)]
                     else:
                         dialog = Dialog(self,
                                         'Password',
@@ -786,7 +786,7 @@ class GUI(MainWindow):
                                         password=True)
 
                         if dialog.exec_() == QDialog.Accepted:
-                            self._temp[option] = _password = dialog.option.text()
+                            self._temp[hash(option)] = _password = dialog.option.text()
                         else:
                             self.alert_message('Error', color_text('ERROR: No password was entered.', sections=(0, 6)),
                                                '')

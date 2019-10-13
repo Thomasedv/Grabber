@@ -116,6 +116,20 @@ def get_win_accent_color():
     return '#' + accent
 
 
+class LessNiceDict(dict):
+    def values(self):
+        return
+
+    def items(self):
+        return
+
+    def __str__(self):
+        return 'No printing'
+
+    def __repr__(self):
+        return 'No printing'
+
+
 class SettingsError(Exception):
     pass
 
