@@ -743,7 +743,7 @@ class GUI(MainWindow):
 
     def queue_dl(self):
         command = []
-
+        raise Exception('sdf')
         if self.tab1.checkbox.isChecked():
             if self.tab4.txt_lineedit.text() == '':
                 self.alert_message('Error!', 'No textfile selected!', '')

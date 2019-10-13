@@ -3,9 +3,11 @@ Utilities for Grabber.
 """
 import copy
 import sys
+from traceback import format_exception
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
 from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 FONT_CONSOLAS = QFont()
 FONT_CONSOLAS.setFamily('Consolas')
@@ -13,7 +15,15 @@ FONT_CONSOLAS.setPixelSize(13)
 
 
 def except_hook(cls, exception, traceback):
-    sys.__excepthook__(cls, exception, traceback)
+    app = QApplication.instance()
+    if not app:
+        app = QApplication(sys.argv)
+    QMessageBox.warning(None,
+                        'ERROR!',
+                        'An critical error happened running the program. Please forward this error to developer:\n\n'
+                        f'{"".join(format_exception(cls, exception, traceback))}', QMessageBox.Ok)
+    QApplication.exit(1)
+
 
 
 # If not frozen as .exe, crashes show here

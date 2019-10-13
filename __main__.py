@@ -21,6 +21,7 @@ from utils.utilities import SettingsError, ProfileLoadError
 
 def main():
     while True:
+        EXIT_CODE = 1
         try:
             app = QApplication(sys.argv)
             program = GUI()
@@ -53,7 +54,7 @@ def main():
                 app = None  # Ensures the app instance is properly removed!
                 continue
 
-        break
+        sys.exit(EXIT_CODE)
 
 
 if __name__ == '__main__':
