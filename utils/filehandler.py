@@ -182,9 +182,6 @@ class FileHandler:
             if FileHandler.is_file(exe_file):
                 # print(f'Returning existing exe: {os.path.abspath(exe_file)}')
                 return os.path.abspath(exe_file)
-        # TODO: Check if not covered by path above!
-
-        # print(f'No found: {program}')
         return None
 
     @staticmethod

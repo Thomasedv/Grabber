@@ -60,7 +60,6 @@ class Downloader(QObject):
         self.queue_dl(update)
 
     def _parallel_queue_handler(self, process_finished=False):
-        # TODO: Add parallel downloads!
         if not self.RUNNING:
             self.clearOutput.emit()
 
@@ -90,19 +89,11 @@ class Downloader(QObject):
                     self.error_count = 0
 
     def _single_queue_handler(self, process_finished=False):
-        # TODO: Add parallel downloads!
         if not self.RUNNING:
             self.clearOutput.emit()
 
         if not self.RUNNING or process_finished:
             # TODO: Detect crash when redistributable C++ is not present, if possible
-
-            # if process_finished:
-            #     error_code = self.active_download.exitCode()
-            #     if error_code:
-            #         self.output.emit(color_text(f'Youtube-dl closed with error code {error_code}! '
-            #                                     'Is the required C++ distributable installed?'))
-            #         self.error_count += 1
 
             if self._queue:
                 download = self._queue.popleft()

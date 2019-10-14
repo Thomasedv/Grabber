@@ -2,6 +2,7 @@
 Utilities for Grabber.
 """
 import copy
+import logging
 import re
 import sys
 from traceback import format_exception
@@ -14,8 +15,27 @@ FONT_CONSOLAS = QFont()
 FONT_CONSOLAS.setFamily('Consolas')
 FONT_CONSOLAS.setPixelSize(13)
 
+LOG_FILE = 'Grabber_error.log'
+
+log = logging.getLogger('Grabber')
+log.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('{name:<15}:{levelname:<7}:{lineno:4d}: {message}', style="{")
+filehandler = logging.FileHandler(LOG_FILE, encoding='utf-8')
+filehandler.setFormatter(formatter)
+filehandler.setLevel(logging.CRITICAL)
+log.addHandler(filehandler)
+
+
+def get_logger(string):
+    return logging.getLogger(string)
+
 
 def except_hook(cls, exception, traceback):
+    critical_log = get_logger('Grabber.Critical')
+    error = "".join(format_exception(cls, exception, traceback))
+    critical_log.critical(f'Encountered fatal error:\n\n{error}')
+
     if getattr(sys, 'frozen', False):
         app = QApplication.instance()
         if not app:
@@ -23,7 +43,7 @@ def except_hook(cls, exception, traceback):
         QMessageBox.warning(None,
                             'ERROR!',
                             'An critical error happened running the program. Please forward this error to developer:\n\n'
-                            f'{"".join(format_exception(cls, exception, traceback))}', QMessageBox.Ok)
+                            f'{error}', QMessageBox.Ok)
         QApplication.exit(1)
     else:
         sys.__excepthook__(cls, exception, traceback)

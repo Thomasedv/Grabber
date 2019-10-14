@@ -25,7 +25,6 @@ class GUI(MainWindow):
         """
         GUI that wraps a youtube-dl.exe to download videos and more.
         """
-        # TODO: Add some animations! Most notably when adding download.
         super().__init__()
 
         # starts checks
@@ -263,14 +262,9 @@ class GUI(MainWindow):
         self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3.textedit)
         self.shortcut.activated.connect(self.tab3.saveButton.click)
 
-        # TODO: Hook up to button, or change output to somewhere the user can get it.
-        # self.trigger_queue_print = QShortcut(QKeySequence('Ctrl+P'), self)
-        # self.trigger_queue_print.activated.connect(self.print_queue)
-
         # Check for youtube
         if self.youtube_dl_path is None:
             self.tab4.update_btn.setDisabled(True)
-            # TODO: Warn if no file is found.
             self.alert_message('Warning!', '\nNo youtube-dl.exe found! Add to path, '
                                            'or make sure it\'s in the same folder as this program. '
                                            'Then close and reopen this program.', '')
@@ -399,6 +393,7 @@ class GUI(MainWindow):
     def design_option_dialog(self, name, description):
         """
         Creates dialog for user input
+        # TODO: Use this method where possible
         """
         dialog = Dialog(self.tab_widget, name, description)
         if dialog.exec_() == QDialog.Accepted:
