@@ -25,6 +25,14 @@ Open the ffmpeg zip, copy 3 executables in the **bin** folder to the locations m
 
 **USE THE 4.X.X static ffmpeg version!** Extract the 3 executables from the bin folder to the Grabber folder or PATH
 
+If you don't put anything in path, this is what your folder should have:
+- Grabber.exe
+- ffmpeg.exe
+- ffprobe.exe
+- ffplay.exe (is included in ffmpeg bin folder, but not really needed)
+- youtube-dl.exe
+
+Remember, if nothng happens when you try a download, to install "Microsoft Visual C++ 2010 Redistributable Package (x86)" from the microsoft link above! 
 ______
 
 Requirements to use source code:
