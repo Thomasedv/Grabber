@@ -39,6 +39,7 @@ class Download(QProcess):
         return self.status, self.progress, self.eta, self.filesize, self.speed
 
     def program_state_changed(self, new_state):
+        print(new_state)
         if new_state == QProcess.NotRunning:
             if self.status not in ('Aborted', 'ERROR', 'Already Downloaded'):
                 if self.exitCode() != 0:
@@ -72,6 +73,9 @@ class Download(QProcess):
             raise TypeError('Can\'t find youtube-dl executable')
 
         self.start(self.program_path, self.commands)
+        self.status = 'Started'
+        print(self.exitCode())
+
 
     def process_output(self):
         """
@@ -181,7 +185,6 @@ class Download(QProcess):
                 self.getOutput.emit()
         except IndexError:
             traceback.print_exc()
-
 
 
 class ProcessListItem(QWidget):

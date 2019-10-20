@@ -11,6 +11,8 @@ if os.getcwd().lower() == r'c:\windows\system32'.lower():  # Bit of a hack, but 
         application_path = os.path.dirname(__file__)
     os.chdir(os.path.realpath(application_path))
 
+import utils.utilities
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QMessageBox
 

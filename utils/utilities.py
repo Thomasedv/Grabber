@@ -5,15 +5,9 @@ import copy
 import logging
 import re
 import sys
+
 from traceback import format_exception
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
-
-from PyQt5.QtGui import QFont, QColor
-from PyQt5.QtWidgets import QApplication, QMessageBox
-
-FONT_CONSOLAS = QFont()
-FONT_CONSOLAS.setFamily('Consolas')
-FONT_CONSOLAS.setPixelSize(13)
 
 LOG_FILE = 'Grabber_error.log'
 
@@ -32,25 +26,43 @@ def get_logger(string):
 
 
 def except_hook(cls, exception, traceback):
-    critical_log = get_logger('Grabber.Critical')
+    critical_log = get_logger('Grabber')
     error = "".join(format_exception(cls, exception, traceback))
     critical_log.critical(f'Encountered fatal error:\n\n{error}')
 
-    if getattr(sys, 'frozen', False):
-        app = QApplication.instance()
-        if not app:
-            app = QApplication(sys.argv)
-        QMessageBox.warning(None,
-                            'ERROR!',
-                            'An critical error happened running the program. Please forward this error to developer:\n\n'
-                            f'{error}', QMessageBox.Ok)
-        QApplication.exit(1)
-    else:
-        sys.__excepthook__(cls, exception, traceback)
+    # If imports fail below, the error, the error is still printed!
+    try:
+        if getattr(sys, 'frozen', False):
+            warn_user(error)
+        else:
+            sys.__excepthook__(cls, exception, traceback)
+    except:
+        pass
 
 
 # If not frozen as .exe, crashes show here
 sys.excepthook = except_hook
+
+# Imported after this, due to possible compression errors during packaging.
+# Above code ensure error is properly sent back to user.
+
+from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtWidgets import QApplication, QMessageBox
+
+FONT_CONSOLAS = QFont()
+FONT_CONSOLAS.setFamily('Consolas')
+FONT_CONSOLAS.setPixelSize(13)
+
+
+def warn_user(error):
+    app = QApplication.instance()
+    if not app:
+        app = QApplication(sys.argv)
+    QMessageBox.warning(None,
+                        'ERROR!',
+                        'An critical error happened running the program. Please forward this error to developer:\n\n'
+                        f'{error}', QMessageBox.Ok)
+    QApplication.exit(1)
 
 
 def path_shortener(full_path: str):

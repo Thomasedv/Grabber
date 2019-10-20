@@ -7,7 +7,7 @@ A wrapper for Youtube-dl for Windows.
 If you want to convert the videos, or otherwise use features of youtube-dl that require ffmpeg,
 that also has to be in the same folder (or path) as Grabber.** 
 
-Short installation guide:
+#### Installation guide
 
 * Download Grabber.exe and place in a folder.
 * Download youtube-dl.exe and *either* place it in the same folder as above, or in PATH, if you know how. 
@@ -23,16 +23,36 @@ https://ffmpeg.zeranoe.com/builds/
 
 Open the ffmpeg zip, copy 3 executables in the **bin** folder to the locations mentioned above.
 
-**USE THE 4.X.X static ffmpeg version!** Extract the 3 executables from the bin folder to the Grabber folder or PATH
+**Again use the 4.X.X static ffmpeg version!** Extract the 3 executables from the bin folder to the Grabber folder or PATH
 
 If you don't put anything in path, this is what your folder should have:
 - Grabber.exe
 - ffmpeg.exe
 - ffprobe.exe
-- ffplay.exe (is included in ffmpeg bin folder, but not really needed)
+- ffplay.exe (is included in ffmpeg bin folder, but not actually needed)
 - youtube-dl.exe
 
-Remember, if nothng happens when you try a download, to install "Microsoft Visual C++ 2010 Redistributable Package (x86)" from the microsoft link above! 
+Remember, if nothing happens when you try a download, to install "Microsoft Visual C++ 2010 Redistributable Package (x86)" from the microsoft link above! 
+
+______
+
+#### Features
+
+The core of Grabber is to let you use Youtube-dl more easily on a regular basis. It has easy checkboxes for adding the parameters you'd normally use. 
+
+Some core highlights:
+* Serial downloads, or parallel downloads (up to 4, currently hard coded to that, make an issue if u want it changed to more!)
+* You can queue up as many downlaods as you need, regardless of serial download or parallel mode. The first ones in are the first ones to be started. 
+* Automatically highlight the URL text when the window get's focus or when you click the url box. 
+ 
+  This means you copy any URL, alt-tab(go to Grabber), Paste the ULR (Ctrl+V), and press Enter. No clicking with the mouse needed!
+ * Built in super simple textfile editor, and the option to let youtube-dl use the textfile for downloading url.
+ * Profiles, so when you want to change something around, it's not too many clicks away! 
+ * Favorite parameters, so they are up and front, to easier tweak often used parameters. 
+ * Right-click to add or remove options to a parameter, or a favorite the parameter.
+ * Right click the folder path at the top of the param tab to go to the folder.  
+ * Pro-tip: Many sites change often, and causes youtube-dl to break, so update often using the Update button in the About tab. 
+ 
 ______
 
 Requirements to use source code:
