@@ -34,23 +34,22 @@ class Download(QProcess):
         self.name = ''
         self.playlist = ''
         self.info = info
-        self.pot_error_log = ''
+        self.potential_error_log = ''
 
-        self.program_log = deque(maxlen=5)
+        self.program_log = deque(maxlen=3)
 
     def get_status(self):
         return self.status, self.progress, self.eta, self.filesize, self.speed
 
     def program_state_changed(self, new_state):
-        print(new_state)
         if new_state == QProcess.NotRunning:
             if self.status not in ('Aborted', 'ERROR', 'Already Downloaded'):
                 if self.exitCode() != 0:
                     self.status = 'ERROR'
                     self.progress = ''
 
-                    if not self.info and self.pot_error_log:
-                        self.info = self.pot_error_log
+                    if not self.info and self.potential_error_log:
+                        self.info = self.potential_error_log
                     elif not self.info:
                         self.info = 'Unknown error'
 
@@ -102,7 +101,7 @@ class Download(QProcess):
                 if not stdout:
                     continue
 
-                self.program_log.append(line)
+                self.program_log.append(line.strip())
 
                 stdout[0] = stdout[0].lstrip('\r')
 
@@ -184,10 +183,12 @@ class Download(QProcess):
                     self.info += ' '.join(stdout)
 
                 elif 'youtube-dl.exe: error:' in line:
-                    self.pot_error_log += ' '.join(stdout).replace('youtube-dl.exe: ', '')
+                    self.potential_error_log += ' '.join(stdout).replace('youtube-dl.exe: ', '')
                 self.getOutput.emit()
         except IndexError:
             traceback.print_exc()
+        finally:
+            self.getOutput.emit()
 
 
 class MockDownload(Download):
@@ -200,7 +201,7 @@ class MockDownload(Download):
 
 
 class ProcessListItem(QWidget):
-    def __init__(self, process: Download, slot, parent=None):
+    def __init__(self, process: Download, slot, debug=False, parent=None):
         super(ProcessListItem, self).__init__(parent=parent)
         self.process = process
         self.slot = slot
@@ -253,10 +254,10 @@ class ProcessListItem(QWidget):
         self.filesize.setStyleSheet(f'background: {"#484848" if self.process.filesize else "#303030"}')
         self.playlist.setStyleSheet(f'background: {"#484848" if self.process.playlist else "#303030"}')
 
-        self._debug = True
+        self._debug = debug
 
-    def toggle_debug(self):
-        self._debug = not self._debug
+    def toggle_debug(self, debug_state):
+        self._debug = debug_state
         self.stat_update()
 
     def adjust(self):
@@ -307,12 +308,13 @@ class ProcessListItem(QWidget):
             content = []
 
             if self.process.name:
-                content.append(self.process.name)
+                content.append(self.process.name.strip())
 
             if self.process.info:
                 content.append(self.process.info.replace("[download] ", ""))
+
             if self._debug:
-                content += list(self.process.program_log)
+                content += ['<br>Debug info:<br>'] + list(self.process.program_log)
 
             self.info_label.setText('<br>'.join(content))
 

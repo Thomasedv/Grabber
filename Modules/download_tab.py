@@ -1,7 +1,9 @@
+import typing
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QCheckBox, \
     QHBoxLayout, QVBoxLayout, QListWidget
 
+from Modules.download_element import ProcessListItem
 from Modules.dropdown_widget import DropDown
 from Modules.lineedit import LineEdit
 from utils.utilities import SettingsClass
@@ -18,6 +20,10 @@ class ProcessList(QListWidget):
             item = self.itemWidget(self.item(i))
             if hasattr(item, 'info_text'):
                 item.info_text.setFixedWidth(self.width() - 18)
+
+    def iter_items(self) -> typing.Iterator[ProcessListItem]:
+        for i in range(self.count()):
+            yield self.itemWidget(self.item(i))
 
 
 class MainTab(QWidget):

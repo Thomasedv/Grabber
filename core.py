@@ -40,6 +40,7 @@ class GUI(MainWindow):
         """Loads settings and finds necessary files. Checks the setting file for errors."""
         QApplication.setEffectEnabled(Qt.UI_AnimateCombo, False)
 
+        self._debug = None
         self.file_handler = FileHandler()
         self.settings = self.file_handler.load_settings()
         self.downloader = Downloader(self.file_handler)
@@ -167,6 +168,7 @@ class GUI(MainWindow):
         self.tab4.reset_btn.clicked.connect(self.reset_settings)
         self.tab4.license_btn.clicked.connect(self.read_license)
         self.tab4.location_btn.clicked.connect(self.textfile_dialog)
+        self.tab4.debug_info.clicked.connect(self.toggle_debug)
         self.tab4.dl_mode_btn.clicked.connect(self.toggle_modes)
 
         # Future tab creation here! Currently 4 tabs
@@ -287,6 +289,13 @@ class GUI(MainWindow):
         self.tab_widget.currentChanged.connect(self.resize_contents)
 
         # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
+
+    def toggle_debug(self):
+        self._debug = not self._debug
+
+        self.tab4.debug_info.setText(f'Debug:\n{self._debug}')
+        for i in self.tab1.process_list.iter_items():
+            i.toggle_debug(self._debug)
 
     def toggle_modes(self):
         if self.downloader.RUNNING or self.downloader.has_pending():
@@ -697,7 +706,6 @@ class GUI(MainWindow):
         self.add_download_to_gui(update)
         self.downloader.queue_dl(update)
 
-
     def savefile_dialog(self):
         location = QFileDialog.getExistingDirectory(parent=self.tab_widget)
 
@@ -821,7 +829,7 @@ class GUI(MainWindow):
 
     def add_download_to_gui(self, download):
         slot = QListWidgetItem(parent=self.tab1.process_list)
-        gui_progress = ProcessListItem(download, slot)
+        gui_progress = ProcessListItem(download, slot, debug=self._debug)
         self.tab1.process_list.addItem(slot)
         self.tab1.process_list.setItemWidget(slot, gui_progress)
         gui_progress.adjust()

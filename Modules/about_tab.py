@@ -16,7 +16,9 @@ class AboutTab(QWidget):
         self.dirinfo_btn = QPushButton('Dirinfo')
         # Parralel / Series toggle
         self.dl_mode_btn = QPushButton("Singular" if not settings.user_options['parallel'] else "Parallel")
-
+        # Debug info mode
+        self.debug_info = QPushButton('Debug:\nFalse')
+        self.debug_info.setMinimumHeight(30)
         # Reset settings, (requires restart!)
         self.reset_btn = QPushButton('Reset\n settings')
         # Adjust button size to match naming. (Possibly change later in some form)
@@ -45,6 +47,7 @@ class AboutTab(QWidget):
         self.QV.addWidget(self.dl_mode_btn)
         self.QV.addWidget(self.dirinfo_btn)
         self.QV.addWidget(self.license_btn)
+        self.QV.addWidget(self.debug_info)
         self.QV.addWidget(self.reset_btn)
 
         self.QV.addStretch(1)

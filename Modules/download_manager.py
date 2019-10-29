@@ -136,9 +136,9 @@ class Downloader(QObject):
                 download.disconnect()
                 del download
             self._queue.clear()
-            self.output.emit('Stopped all downloads...')
-        else:
-            self.output.emit('Stopped a download...')
+        #     self.output.emit('Stopped all downloads...')
+        # else:
+        #     self.output.emit('Stopped a download...')
 
         if self.active_download is not None:
             if isinstance(self.active_download, Download):
@@ -149,8 +149,8 @@ class Downloader(QObject):
                 for i in self.active_download:
                     i.kill()
                     i.set_status_killed()
-            else:
-                self.output.emit('No active downloads...')
+            # else:
+            #     self.output.emit('No active downloads...')
 
     def queue_dl(self, download: Download):
         download.stateChanged.connect(lambda x, dl=download: self.program_state_changed(dl))
