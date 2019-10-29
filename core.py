@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QShortcut, QFileDialog, QTreeWidgetItem, qApp, QDial
     QTabWidget, QListWidgetItem
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow, AboutTab, Downloader, ParameterTab, TextTab
-from Modules.download_element import ProcessListItem
+from Modules.download_element import ProcessListItem, MockDownload
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_stylesheet, \
     get_win_accent_color, ProfileLoadError, LessNiceDict
@@ -251,7 +251,7 @@ class GUI(MainWindow):
         self.setWindowIcon(self.windowIcon)
         # Set base size.
         self.setMinimumWidth(340)
-        self.setMinimumHeight(200)
+        self.setMinimumHeight(400)
 
         if self.settings.user_options['select_on_focus']:
             self.gotfocus.connect(self.window_focus_event)
@@ -292,7 +292,7 @@ class GUI(MainWindow):
         if self.downloader.RUNNING or self.downloader.has_pending():
             self.alert_message('Action failed',
                                'Mode was not changed',
-                               "Unable to toggle between downlaod mode with active downloads!")
+                               "Unable to toggle between download mode with active downloads!")
             return
 
         else:
@@ -657,39 +657,46 @@ class GUI(MainWindow):
             self.file_handler.save_settings(self.settings.get_settings_data)
 
     def dir_info(self):
-
-        return
         # TODO: Print this info to GUI.
-        # file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
-        # debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
-        #          color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
-        #          color_text('Filedir:'), file_dir,
-        #          color_text('Workdir:'), self.file_handler.work_dir,
-        #          color_text('Youtube-dl working directory:'), self.program_workdir,
-        #          color_text('\nIcon paths:'), *self.icon_list]
-        #
-        # for i in debug:
-        #     self.tab1.textbrowser.append(str(i))
-        #
-        # self.tab1.textbrowser.append(color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
-        #
-        # for i in self.icon_list:
-        #     if i is not None:
-        #
-        #         if self.file_handler.is_file(str(i)):
-        #             try:
-        #                 self.tab1.textbrowser.append(''.join(['Found: ', os.path.split(i)[1]]))
-        #             except IndexError:
-        #                 self.tab1.textbrowser.append(''.join(['Found: ', i]))
-        #         else:
-        #             self.tab1.textbrowser.append(''.join(['Missing in:', i]))
-        #
-        # self.tab_widget.setCurrentIndex(0)
+        file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
+        debug_1 = [color_text('Youtube-dl.exe path:'), self.youtube_dl_path,
+                   color_text('ffmpeg.exe path:'), self.ffmpeg_path,
+                   color_text('Filedir:'), file_dir,
+                   color_text('Workdir:'), self.file_handler.work_dir,
+                   color_text('Youtube-dl working directory:'), self.program_workdir]
+
+        debug_2 = [color_text('Icon paths:'), *self.icon_list]
+
+        debug_3 = [color_text('Checking if icons are in place:', 'darkorange', 'bold')]
+
+        for i in self.icon_list:
+            if i is not None:
+                if self.file_handler.is_file(str(i)):
+                    try:
+                        debug_3.append(f'Found: {os.path.split(i)[1]}')
+                    except IndexError:
+                        debug_3.append(f'Found: {i}')
+
+        if self.icon_list.count(None):
+            debug_3.append(color_text(f'Missing {self.icon_list.count(None)} icon file(s)!'))
+
+        for debug in [debug_1, debug_2, debug_3]:
+            debug_info = '<br>'.join([text.replace('\n', '<br>') for text in debug if text is not None])
+            mock_download = MockDownload(info=debug_info)
+            self.add_download_to_gui(mock_download)
+
+        self.tab_widget.setCurrentIndex(0)
 
     def update_youtube_dl(self):
-        update = Download(self.program_workdir, self.youtube_dl_path, ['-U', '--encoding', 'utf-8'], self)
+        update = Download(self.program_workdir,
+                          self.youtube_dl_path,
+                          ['-U', '--encoding', 'utf-8'],
+                          info='Youtube-dl update',
+                          parent=self)
         self.tab_widget.setCurrentIndex(0)  # Go to main
-        self.downloader.update_youtube_dl(update)
+        self.add_download_to_gui(update)
+        self.downloader.queue_dl(update)
+
 
     def savefile_dialog(self):
         location = QFileDialog.getExistingDirectory(parent=self.tab_widget)
@@ -807,15 +814,18 @@ class GUI(MainWindow):
         if self.ffmpeg_path is not None:
             command += ['--ffmpeg-location', self.ffmpeg_path]
 
-        download = Download(self.program_workdir, self.youtube_dl_path, command, self)
+        download = Download(self.program_workdir, self.youtube_dl_path, command, parent=self)
 
+        self.add_download_to_gui(download)
+        self.downloader.queue_dl(download)
+
+    def add_download_to_gui(self, download):
         slot = QListWidgetItem(parent=self.tab1.process_list)
         gui_progress = ProcessListItem(download, slot)
         self.tab1.process_list.addItem(slot)
         self.tab1.process_list.setItemWidget(slot, gui_progress)
         gui_progress.adjust()
-
-        self.downloader.queue_dl(download)
+        gui_progress.stat_update()
 
     def stop_download(self):
         parallel = self.settings.user_options['parallel']

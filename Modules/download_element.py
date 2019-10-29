@@ -1,5 +1,6 @@
 import os
 import traceback
+from collections import deque
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy
@@ -10,7 +11,7 @@ from utils.utilities import FONT_CONSOLAS, color_text
 class Download(QProcess):
     getOutput = pyqtSignal()
 
-    def __init__(self, working_dir: str, program_path: str, commands: list, parent=None):
+    def __init__(self, working_dir: str, program_path: str, commands: list, info='', parent=None):
         """
         Download objects take required elements, and will start a process on command.
         """
@@ -32,8 +33,10 @@ class Download(QProcess):
 
         self.name = ''
         self.playlist = ''
-        self.error_log = ''
+        self.info = info
         self.pot_error_log = ''
+
+        self.program_log = deque(maxlen=5)
 
     def get_status(self):
         return self.status, self.progress, self.eta, self.filesize, self.speed
@@ -46,10 +49,10 @@ class Download(QProcess):
                     self.status = 'ERROR'
                     self.progress = ''
 
-                    if not self.error_log and self.pot_error_log:
-                        self.error_log = self.pot_error_log
-                    elif not self.error_log:
-                        self.error_log = 'Unknown error'
+                    if not self.info and self.pot_error_log:
+                        self.info = self.pot_error_log
+                    elif not self.info:
+                        self.info = 'Unknown error'
 
                 else:
                     self.status = 'Finished'
@@ -65,7 +68,7 @@ class Download(QProcess):
         self.eta = ''
         self.filesize = ''
         self.speed = ''
-        self.error_log = 'Aborted by user'
+        self.info = 'Aborted by user'
         self.getOutput.emit()
 
     def start_dl(self):
@@ -74,8 +77,6 @@ class Download(QProcess):
 
         self.start(self.program_path, self.commands)
         self.status = 'Started'
-        print(self.exitCode())
-
 
     def process_output(self):
         """
@@ -100,6 +101,8 @@ class Download(QProcess):
 
                 if not stdout:
                     continue
+
+                self.program_log.append(line)
 
                 stdout[0] = stdout[0].lstrip('\r')
 
@@ -136,11 +139,11 @@ class Download(QProcess):
                     # Get file already downloaded status
                     if stdout[-1] == 'downloaded':
                         self.status = 'Already Downloaded'
-                        self.error_log = ' '.join(stdout)
+                        self.info = ' '.join(stdout)
 
                     if stdout[-3:] == ['recorded', 'in', 'archive']:
                         self.status = 'Already Downloaded'
-                        self.error_log = ' '.join(stdout)
+                        self.info = ' '.join(stdout)
 
                     # Get filesize abort status
                     if stdout[-1] == 'Aborting.':
@@ -178,13 +181,22 @@ class Download(QProcess):
 
                 elif stdout[0] == 'ERROR:':
                     self.status = 'ERROR'
-                    self.error_log += ' '.join(stdout)
+                    self.info += ' '.join(stdout)
 
                 elif 'youtube-dl.exe: error:' in line:
                     self.pot_error_log += ' '.join(stdout).replace('youtube-dl.exe: ', '')
                 self.getOutput.emit()
         except IndexError:
             traceback.print_exc()
+
+
+class MockDownload(Download):
+    def __init__(self, info, parent=None):
+        super(MockDownload, self).__init__('', '', [], info=info, parent=parent)
+        self.status = 'Debug Info'
+
+    def process_output(self):
+        pass
 
 
 class ProcessListItem(QWidget):
@@ -197,7 +209,7 @@ class ProcessListItem(QWidget):
         self.setFocusPolicy(Qt.NoFocus)
         # self.setStyleSheet()
 
-        self.status_box = QLabel(color_text('In queue', color='lawngreen'))
+        self.status_box = QLabel(color_text(self.process.status, color='lawngreen'))
         self.progress = QLabel(parent=self)
         self.progress.setAlignment(Qt.AlignCenter)
         self.eta = QLabel('', parent=self)
@@ -223,15 +235,15 @@ class ProcessListItem(QWidget):
         self.line.addWidget(self.filesize, 0)
         self.line.addWidget(self.playlist, 0)
 
-        self.it_in_layout = False
-        self.info_text = QLabel('', parent=self)
-        self.info_text.setWordWrap(True)
-        self.info_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        self.info_text.hide()
+        self.info_label_in_layout = False
+        self.info_label = QLabel('', parent=self)
+        self.info_label.setWordWrap(True)
+        self.info_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.info_label.hide()
 
         self.vline = QVBoxLayout()
         self.vline.addLayout(self.line, 0)
-        self.vline.addWidget(self.info_text, 1)
+        self.vline.addWidget(self.info_label, 1)
 
         self.setLayout(self.vline)
 
@@ -241,12 +253,24 @@ class ProcessListItem(QWidget):
         self.filesize.setStyleSheet(f'background: {"#484848" if self.process.filesize else "#303030"}')
         self.playlist.setStyleSheet(f'background: {"#484848" if self.process.playlist else "#303030"}')
 
+        self._debug = True
+
+    def toggle_debug(self):
+        self._debug = not self._debug
+        self.stat_update()
+
     def adjust(self):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.setFixedHeight(self.sizeHint().height())
         self.slot.setSizeHint(self.sizeHint())
 
     def stat_update(self):
+        def show_infolabel():
+            nonlocal self
+            if not self.info_label_in_layout:
+                self.info_label.show()
+                self.info_label_in_layout = True
+
         self.status_box.setText(color_text(self.process.status, color='lawngreen'))
         self.progress.setText(color_text(self.process.progress, color='lawngreen'))
         self.eta.setText(self.process.eta)
@@ -261,35 +285,35 @@ class ProcessListItem(QWidget):
         self.playlist.setStyleSheet(f'background: {"#484848" if self.process.playlist else "#303030"}')
 
         if self.process.status == 'ERROR':
-            if not self.it_in_layout:
-                self.info_text.show()
-                self.it_in_layout = True
+            show_infolabel()
 
             self.status_box.setText(color_text(self.process.status))
-            self.info_text.setText(f'{self.process.name if self.process.name else "Process"}'
-                                   f' failed with message:\n{self.process.error_log.replace("ERROR:", "")}')
+            self.info_label.setText(f'{self.process.name if self.process.name else "Process"}'
+                                    f' failed with message:\n{self.process.info.replace("ERROR:", "")}')
         elif self.process.status == 'Aborted':
             self.status_box.setText(color_text(self.process.status))
-            if not self.it_in_layout:
-                self.info_text.show()
-                self.it_in_layout = True
-                self.info_text.setText(self.process.error_log)
+            show_infolabel()
+            self.info_label.setText(self.process.info +
+                                    ' | ' + self.process.name)
+
+        elif self.process.info or self._debug or self.process.name:
+            # Shows the info label if there is debug info, or if any other field has info
+            if self._debug and not any((self.process.info, self.process.name)):
+                if self.process.program_log:
+                    show_infolabel()
             else:
-                self.info_text.setText(self.process.error_log +
-                                       ' | ' + self.process.name)
+                show_infolabel()
 
-        elif self.process.error_log:
-            if not self.it_in_layout:
-                self.info_text.show()
-                self.it_in_layout = True
-            self.info_text.setText(f'{self.process.error_log.replace("[download] ", "")}')
-
-        else:
-            if self.process.name and not self.it_in_layout:
-                self.info_text.show()
-                self.it_in_layout = True
+            content = []
 
             if self.process.name:
-                self.info_text.setText(self.process.name)
+                content.append(self.process.name)
+
+            if self.process.info:
+                content.append(self.process.info.replace("[download] ", ""))
+            if self._debug:
+                content += list(self.process.program_log)
+
+            self.info_label.setText('<br>'.join(content))
 
         self.adjust()

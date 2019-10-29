@@ -55,10 +55,6 @@ class Downloader(QObject):
         # else:
         #     self.output.emit('No active download to restart!')
 
-    def update_youtube_dl(self, update: Download):
-        # self.output.emit('Update queued!')
-        self.queue_dl(update)
-
     def _parallel_queue_handler(self, process_finished=False):
         if not self.RUNNING:
             self.clearOutput.emit()
@@ -73,7 +69,7 @@ class Downloader(QObject):
                     self.stateChanged.emit()
                 except TypeError as e:
                     self.error_count += 1
-                    self.output.emit(color_text(f'FAILED with error {e}'))
+                    # self.output.emit(color_text(f'FAILED with error {e}'))
                     return self.queue_handler(process_finished=True)
                 self.active += 1
 
@@ -85,12 +81,12 @@ class Downloader(QObject):
 
                     error_report = 0 if not self.error_count else color_text(str(self.error_count), "darkorange",
                                                                              "bold")
-                    self.output.emit(f'Error count: {error_report}.')
+                    # self.output.emit(f'Error count: {error_report}.')
                     self.error_count = 0
 
     def _single_queue_handler(self, process_finished=False):
-        if not self.RUNNING:
-            self.clearOutput.emit()
+        # if not self.RUNNING:
+        #     self.clearOutput.emit()
 
         if not self.RUNNING or process_finished:
             # TODO: Detect crash when redistributable C++ is not present, if possible
@@ -104,7 +100,7 @@ class Downloader(QObject):
                     self.stateChanged.emit()
                 except TypeError as e:
                     self.error_count += 1
-                    self.output.emit(color_text(f'FAILED with error {e}'))
+                    # self.output.emit(color_text(f'FAILED with error {e}'))
                     return self.queue_handler(process_finished=True)
 
             else:
@@ -113,7 +109,7 @@ class Downloader(QObject):
                 self.stateChanged.emit()
 
                 error_report = 0 if not self.error_count else color_text(str(self.error_count), "darkorange", "bold")
-                self.output.emit(f'Error count: {error_report}.')
+                # self.output.emit(f'Error count: {error_report}.')
                 self.error_count = 0
 
     # When the current download is started/stopped then this runs.

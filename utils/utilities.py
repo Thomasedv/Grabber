@@ -502,6 +502,7 @@ stylesheet = """
                                     outline: none;
                                     outline-width: 0px;
                                     background: {background_dark};
+                                    border: 1px solid {background_dark};
                                     border-radius: 2px;
                                 }}
                                 
