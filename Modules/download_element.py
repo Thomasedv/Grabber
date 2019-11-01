@@ -36,6 +36,8 @@ class Download(QProcess):
         self.info = info
         self.potential_error_log = ''
 
+        self.done = False
+
         self.program_log = deque(maxlen=3)
 
     def get_status(self):
@@ -43,6 +45,8 @@ class Download(QProcess):
 
     def program_state_changed(self, new_state):
         if new_state == QProcess.NotRunning:
+            self.done = True
+
             if self.status not in ('Aborted', 'ERROR', 'Already Downloaded'):
                 if self.exitCode() != 0:
                     self.status = 'ERROR'
@@ -59,6 +63,7 @@ class Download(QProcess):
                 self.eta = ''
                 self.filesize = ''
                 self.speed = ''
+
                 self.getOutput.emit()
 
     def set_status_killed(self):
@@ -264,6 +269,9 @@ class ProcessListItem(QWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.setFixedHeight(self.sizeHint().height())
         self.slot.setSizeHint(self.sizeHint())
+
+    def is_running(self):
+        return not self.process.done
 
     def stat_update(self):
         def show_infolabel():

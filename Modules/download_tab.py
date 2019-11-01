@@ -25,6 +25,11 @@ class ProcessList(QListWidget):
         for i in range(self.count()):
             yield self.itemWidget(self.item(i))
 
+    def clear(self) -> None:
+        for item in self.iter_items():
+            if not item.is_running():
+                self.takeItem(self.indexFromItem(item.slot).row())
+
 
 class MainTab(QWidget):
     """ QWidget for starting downloads, swapping profiles, and showing progress"""
@@ -40,6 +45,7 @@ class MainTab(QWidget):
         # Closes the program
         self.close_btn = QPushButton('Close')
 
+        self.clear_btn = QPushButton('Clear')
         self.label = QLabel("Url: ")
 
         self.url_input = LineEdit()
@@ -74,6 +80,7 @@ class MainTab(QWidget):
 
         self.process_list.setSelectionMode(QListWidget.NoSelection)
         self.process_list.setFocusPolicy(Qt.NoFocus)
+        self.process_list.setVerticalScrollMode(self.process_list.ScrollPerPixel)
         self.process_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # Start making checkbutton for selecting downloading from text file mode.
@@ -82,6 +89,7 @@ class MainTab(QWidget):
         # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
         self.button_bar = QHBoxLayout()
 
+        self.button_bar.addWidget(self.clear_btn)
         self.button_bar.addStretch(1)
         self.button_bar.addWidget(self.start_btn)
         self.button_bar.addWidget(self.stop_btn)
@@ -104,6 +112,8 @@ class MainTab(QWidget):
         self.vertical_layout.addLayout(self.button_bar)
 
         self.setLayout(self.vertical_layout)
+
+        self.clear_btn.clicked.connect(self.process_list.clear)
 
     def start_button_timer(self, state):
         """ Disables start button for a second. Prevents double queueing. """

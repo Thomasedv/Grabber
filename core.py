@@ -111,6 +111,8 @@ class GUI(MainWindow):
         self.tab1.stop_btn.clicked.connect(self.stop_download)
         # Close button closes the window/process.
         self.tab1.close_btn.clicked.connect(self.close)
+        # Clears finished items in the download list
+
         # When the check button is checked or unchecked, calls function checked.
         self.tab1.checkbox.stateChanged.connect(self.allow_start)
         # Connects actions to text changes and adds action to when you press Enter.
@@ -668,31 +670,30 @@ class GUI(MainWindow):
     def dir_info(self):
         # TODO: Print this info to GUI.
         file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
-        debug_1 = [color_text('Youtube-dl.exe path:'), self.youtube_dl_path,
-                   color_text('ffmpeg.exe path:'), self.ffmpeg_path,
-                   color_text('Filedir:'), file_dir,
-                   color_text('Workdir:'), self.file_handler.work_dir,
-                   color_text('Youtube-dl working directory:'), self.program_workdir]
+        debug = [color_text('Youtube-dl.exe path: ') + self.youtube_dl_path,
+                 color_text('ffmpeg.exe path: ') + self.ffmpeg_path,
+                 color_text('Filedir: ') + file_dir,
+                 color_text('Workdir: ') + self.file_handler.work_dir,
+                 color_text('Youtube-dl working directory: ') + self.program_workdir]
 
-        debug_2 = [color_text('Icon paths:'), *self.icon_list]
+        debug += [color_text('\nIcon paths:'), *self.icon_list]
 
-        debug_3 = [color_text('Checking if icons are in place:', 'darkorange', 'bold')]
+        debug += [color_text('\nChecking if icons are in place:', 'darkorange', 'bold')]
 
         for i in self.icon_list:
             if i is not None:
                 if self.file_handler.is_file(str(i)):
                     try:
-                        debug_3.append(f'Found: {os.path.split(i)[1]}')
+                        debug.append(f'Found: {os.path.split(i)[1]}')
                     except IndexError:
-                        debug_3.append(f'Found: {i}')
+                        debug.append(f'Found: {i}')
 
         if self.icon_list.count(None):
-            debug_3.append(color_text(f'Missing {self.icon_list.count(None)} icon file(s)!'))
+            debug.append(color_text(f'Missing {self.icon_list.count(None)} icon file(s)!'))
 
-        for debug in [debug_1, debug_2, debug_3]:
-            debug_info = '<br>'.join([text.replace('\n', '<br>') for text in debug if text is not None])
-            mock_download = MockDownload(info=debug_info)
-            self.add_download_to_gui(mock_download)
+        debug_info = '<br>'.join([text.replace('\n', '<br>') for text in debug if text is not None])
+        mock_download = MockDownload(info=debug_info)
+        self.add_download_to_gui(mock_download)
 
         self.tab_widget.setCurrentIndex(0)
 
