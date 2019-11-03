@@ -15,6 +15,7 @@ class TextTab(QWidget):
         self.textedit = QTextEdit()
         self.textedit.setObjectName('TextFileEdit')
         self.textedit.setFont(FONT_CONSOLAS)
+        self.textedit.verticalScrollBar().setObjectName('main')
 
         # Create load button and label.
         self.label = QLabel('Add videos to textfile:')

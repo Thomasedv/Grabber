@@ -3,7 +3,7 @@ import traceback
 from collections import deque
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QLayout, QTextBrowser
 
 from utils.utilities import FONT_CONSOLAS, color_text
 
@@ -106,7 +106,7 @@ class Download(QProcess):
                 if not stdout:
                     continue
 
-                self.program_log.append(line.strip())
+                self.program_log.append(line.split('\r')[-1].strip())
 
                 stdout[0] = stdout[0].lstrip('\r')
 
@@ -200,6 +200,7 @@ class MockDownload(Download):
     def __init__(self, info, parent=None):
         super(MockDownload, self).__init__('', '', [], info=info, parent=parent)
         self.status = 'Debug Info'
+        self.done = True
 
     def process_output(self):
         pass
@@ -244,13 +245,12 @@ class ProcessListItem(QWidget):
         self.info_label_in_layout = False
         self.info_label = QLabel('', parent=self)
         self.info_label.setWordWrap(True)
-        self.info_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.info_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.info_label.hide()
 
         self.vline = QVBoxLayout()
         self.vline.addLayout(self.line, 0)
         self.vline.addWidget(self.info_label, 1)
-
         self.setLayout(self.vline)
 
         self.progress.setStyleSheet(f'background: {"#484848" if self.process.progress else "#303030"}')
@@ -266,8 +266,9 @@ class ProcessListItem(QWidget):
         self.stat_update()
 
     def adjust(self):
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        # self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setFixedHeight(self.sizeHint().height())
+        self.info_label.setFixedWidth(self.parent().width() - 18)
         self.slot.setSizeHint(self.sizeHint())
 
     def is_running(self):

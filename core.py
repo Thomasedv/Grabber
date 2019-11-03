@@ -829,11 +829,18 @@ class GUI(MainWindow):
         self.downloader.queue_dl(download)
 
     def add_download_to_gui(self, download):
+        scrollbar = self.tab1.process_list.verticalScrollBar()
+        place = scrollbar.sliderPosition()
+        go_bottom = (place == scrollbar.maximum())
         slot = QListWidgetItem(parent=self.tab1.process_list)
         gui_progress = ProcessListItem(download, slot, debug=self._debug)
         self.tab1.process_list.addItem(slot)
         self.tab1.process_list.setItemWidget(slot, gui_progress)
         gui_progress.adjust()
+        self.tab1.process_list.resize(self.tab1.process_list.size())
+        if go_bottom:
+            self.tab1.process_list.scrollToBottom()
+
         gui_progress.stat_update()
 
     def stop_download(self):

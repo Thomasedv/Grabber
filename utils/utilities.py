@@ -406,7 +406,6 @@ stylesheet = """
                                     background-color: {background_dark};
                                     color: red;
                                 }}
-                                
                                 QMenu::separator {{
                                     height: 2px;
                                 }}
@@ -508,11 +507,13 @@ stylesheet = """
                                 
                                 QScrollBar::vertical {{
                                     border: none;
-                                    background-color: rgba(255,255,255,0);
+                                    background-color: transparent;
                                     width: 10px;
-                                    margin: 0px 0px 1px 0px;
+                                    margin: 0px 0px 0px 0px;
                                 }}
-
+                                QScrollBar::vertical#main {{
+                                    background-color: {background_dark};
+                                }}
                                 QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
                                     border: none;
                                     background: none;
@@ -522,9 +523,12 @@ stylesheet = """
 
                                 QScrollBar::handle:vertical {{
                                     background: {background_dark};
-                                    color: red;
                                     min-height: 20px;
                                     border-radius: 5px;
+                                }}
+                                
+                                QScrollBar::handle:vertical#main {{
+                                    background: {background_darkest};
                                 }}
 
                                 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
@@ -1013,6 +1017,7 @@ text = QColor('white')
 
 default_style = {'background_light': surface,
                  'background_dark': darken(surface),
+                 'background_darkest': darken(darken(surface)),
                  'background_lightest': lighten(surface),
                  'text_shaded': darken(text),
                  'text_normal': text}

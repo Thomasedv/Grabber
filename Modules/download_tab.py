@@ -12,18 +12,23 @@ from utils.utilities import SettingsClass
 class ProcessList(QListWidget):
     """ Subclass to tweak resizing of widget. Holds ProcessListItems. """
 
+    def __init__(self, *args, **kwargs):
+        super(ProcessList, self).__init__(*args, **kwargs)
+        self.verticalScrollBar().setObjectName('main')
+
     def resizeEvent(self, a0):
         super(ProcessList, self).resizeEvent(a0)
 
         # Ensure the length of long labels are not too long at small window sizes
-        for i in range(self.count()):
-            item = self.itemWidget(self.item(i))
-            if hasattr(item, 'info_text'):
-                item.info_text.setFixedWidth(self.width() - 18)
+        for item in self.iter_items():
+            if self.verticalScrollBar().isVisible():
+                padding = self.verticalScrollBar().width()
+            else:
+                padding = 0
+            item.info_label.setFixedWidth(self.width() - 18 - padding)
 
     def iter_items(self) -> typing.Iterator[ProcessListItem]:
-        for i in range(self.count()):
-            yield self.itemWidget(self.item(i))
+        yield from [self.itemWidget(self.item(i)) for i in range(self.count())]
 
     def clear(self) -> None:
         for item in self.iter_items():
