@@ -207,7 +207,7 @@ class MockDownload(Download):
 
 
 class ProcessListItem(QWidget):
-    def __init__(self, process: Download, slot, debug=False, parent=None):
+    def __init__(self, process: Download, slot, debug=False, parent=None, tooltip=''):
         super(ProcessListItem, self).__init__(parent=parent)
         self.process = process
         self.slot = slot
@@ -217,6 +217,7 @@ class ProcessListItem(QWidget):
         # self.setStyleSheet()
 
         self.status_box = QLabel(color_text(self.process.status, color='lawngreen'))
+
         self.progress = QLabel(parent=self)
         self.progress.setAlignment(Qt.AlignCenter)
         self.eta = QLabel('', parent=self)
@@ -229,27 +230,34 @@ class ProcessListItem(QWidget):
         self.playlist.setAlignment(Qt.AlignCenter)
         font_size_pixels = FONT_CONSOLAS.pixelSize()
 
+        self.status_box.setBaseSize(20 * font_size_pixels, self.sizeHint().height())
+
         self.progress.setFixedWidth(5 * font_size_pixels)
         self.eta.setFixedWidth(4 * font_size_pixels)
         self.speed.setFixedWidth(6 * font_size_pixels)
         self.filesize.setFixedWidth(6 * font_size_pixels)
         self.playlist.setFixedWidth(4 * font_size_pixels)
 
-        self.line.addWidget(self.status_box, 1)
         self.line.addWidget(self.progress, 0)
         self.line.addWidget(self.eta, 0)
         self.line.addWidget(self.speed, 0)
         self.line.addWidget(self.filesize, 0)
         self.line.addWidget(self.playlist, 0)
 
+        self.line2 = QHBoxLayout()
+        self.line2.addWidget(self.status_box)
+        self.line2.addStretch(1)
+        self.line2.addLayout(self.line, 1)
+
         self.info_label_in_layout = False
         self.info_label = QLabel('', parent=self)
+        self.info_label.setToolTip(tooltip)
         self.info_label.setWordWrap(True)
         self.info_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.info_label.hide()
 
         self.vline = QVBoxLayout()
-        self.vline.addLayout(self.line, 0)
+        self.vline.addLayout(self.line2, 0)
         self.vline.addWidget(self.info_label, 1)
         self.setLayout(self.vline)
 
@@ -266,7 +274,6 @@ class ProcessListItem(QWidget):
         self.stat_update()
 
     def adjust(self):
-        # self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setFixedHeight(self.sizeHint().height())
         self.info_label.setFixedWidth(self.parent().width() - 18)
         self.slot.setSizeHint(self.sizeHint())

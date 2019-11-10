@@ -825,19 +825,23 @@ class GUI(MainWindow):
 
         download = Download(self.program_workdir, self.youtube_dl_path, command, parent=self)
 
-        self.add_download_to_gui(download)
+        self.add_download_to_gui(download, tooltip=f'URL: {txt}')
         self.downloader.queue_dl(download)
 
-    def add_download_to_gui(self, download):
+    def add_download_to_gui(self, download, tooltip=''):
         scrollbar = self.tab1.process_list.verticalScrollBar()
         place = scrollbar.sliderPosition()
         go_bottom = (place == scrollbar.maximum())
+
         slot = QListWidgetItem(parent=self.tab1.process_list)
-        gui_progress = ProcessListItem(download, slot, debug=self._debug)
+        gui_progress = ProcessListItem(download, slot, debug=self._debug, tooltip=tooltip)
+
         self.tab1.process_list.addItem(slot)
         self.tab1.process_list.setItemWidget(slot, gui_progress)
+
         gui_progress.adjust()
         self.tab1.process_list.resize(self.tab1.process_list.size())
+
         if go_bottom:
             self.tab1.process_list.scrollToBottom()
 
