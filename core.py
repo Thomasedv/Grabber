@@ -43,7 +43,7 @@ class GUI(MainWindow):
         self._debug = None
         self.file_handler = FileHandler()
         self.settings = self.file_handler.load_settings()
-        self.downloader = Downloader(self.file_handler)
+        self.downloader = Downloader(self.file_handler, self.settings.user_options['parallel'])
         # Find resources.
         # Find youtube-dl
 
@@ -866,6 +866,9 @@ class GUI(MainWindow):
                 self.downloader.stop_download(all_dls=(result == QMessageBox.Yes))
         else:
             self.downloader.stop_download()
+
+        for item in self.tab1.process_list.iter_items():
+            item.is_running()
 
     def allow_start(self):
         """ Adjusts buttons depending on users input and program state """

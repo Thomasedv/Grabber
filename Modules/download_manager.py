@@ -133,6 +133,7 @@ class Downloader(QObject):
     def stop_download(self, all_dls=False):
         if all_dls:
             for download in self._queue:
+                download.set_status_killed()
                 download.disconnect()
                 del download
             self._queue.clear()

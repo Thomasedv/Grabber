@@ -33,6 +33,7 @@ class Download(QProcess):
 
         self.name = ''
         self.playlist = ''
+        self.error_count = 0
         self.info = info
         self.potential_error_log = ''
 
@@ -185,7 +186,8 @@ class Download(QProcess):
 
                 elif stdout[0] == 'ERROR:':
                     self.status = 'ERROR'
-                    self.info += ' '.join(stdout)
+                    self.error_count += 1
+                    self.info = f'Total errors {self.error_count}\n' + ' '.join(stdout)
 
                 elif 'youtube-dl.exe: error:' in line:
                     self.potential_error_log += ' '.join(stdout).replace('youtube-dl.exe: ', '')
@@ -236,7 +238,7 @@ class ProcessListItem(QWidget):
         self.eta.setFixedWidth(4 * font_size_pixels)
         self.speed.setFixedWidth(6 * font_size_pixels)
         self.filesize.setFixedWidth(6 * font_size_pixels)
-        self.playlist.setFixedWidth(4 * font_size_pixels)
+        self.playlist.setFixedWidth(6 * font_size_pixels)
 
         self.line.addWidget(self.progress, 0)
         self.line.addWidget(self.eta, 0)
@@ -310,8 +312,8 @@ class ProcessListItem(QWidget):
         elif self.process.status == 'Aborted':
             self.status_box.setText(color_text(self.process.status))
             show_infolabel()
-            self.info_label.setText(self.process.info +
-                                    ' | ' + self.process.name)
+            name = ' | ' + self.process.name if self.process.name else ''
+            self.info_label.setText(self.process.info + name)
 
         elif self.process.info or self._debug or self.process.name:
             # Shows the info label if there is debug info, or if any other field has info
