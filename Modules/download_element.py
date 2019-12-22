@@ -3,7 +3,8 @@ import traceback
 from collections import deque
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QLayout, QTextBrowser
+from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QLayout, QTextBrowser, QMenu
 
 from utils.utilities import FONT_CONSOLAS, color_text
 
@@ -32,6 +33,7 @@ class Download(QProcess):
         self.speed = ''
 
         self.name = ''
+        self.file_path = ''
         self.playlist = ''
         self.error_count = 0
         self.info = info
@@ -117,6 +119,7 @@ class Download(QProcess):
                     if stdout[1] == 'Destination:':
                         path, fullname = os.path.split(' '.join(stdout[2:]).strip("\""))
                         self.name = fullname
+                        self.file_path = os.path.join(path, fullname)
 
                     # Get progress info
                     if '%' in stdout[1]:
@@ -173,21 +176,24 @@ class Download(QProcess):
                     if stdout[1] == 'Merging':
                         path, fullname = os.path.split(' '.join(stdout_with_spaces[4:]).strip("\""))
                         self.name = fullname
+                        self.file_path = os.path.join(path, fullname)
 
                         # Get final extension ffmpeg post process simple (not file merge)
                     if stdout[1] == 'Destination:':
                         path, fullname = os.path.split(' '.join(stdout_with_spaces[2:]).strip("\""))
                         self.name = fullname
+                        self.file_path = os.path.join(path, fullname)
 
                         # Get final extension after recoding process
                     if stdout[1] == 'Converting':
                         path, fullname = os.path.split(' '.join(stdout_with_spaces[8:]).strip("\""))
                         self.name = fullname
+                        self.file_path = os.path.join(path, fullname)
 
                 elif stdout[0] == 'ERROR:':
                     self.status = 'ERROR'
                     self.error_count += 1
-                    self.info = f'Total errors {self.error_count}\n' + ' '.join(stdout)
+                    self.info = ' '.join(stdout) + f'\nTotal errors {self.error_count}'
 
                 elif 'youtube-dl.exe: error:' in line:
                     self.potential_error_log += ' '.join(stdout).replace('youtube-dl.exe: ', '')
@@ -257,6 +263,8 @@ class ProcessListItem(QWidget):
         self.info_label.setWordWrap(True)
         self.info_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.info_label.hide()
+        self.info_label.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.info_label.customContextMenuRequested.connect(self.open_menu)
 
         self.vline = QVBoxLayout()
         self.vline.addLayout(self.line2, 0)
@@ -270,6 +278,28 @@ class ProcessListItem(QWidget):
         self.playlist.setStyleSheet(f'background: {"#484848" if self.process.playlist else "#303030"}')
 
         self._debug = debug
+
+    def open_file(self):
+        if self.is_running() or not self.process.file_path or self.process.status == 'ERROR':
+            old_text = self.info_label.text()
+            if old_text.endswith('\nNo file to open!'):
+                return
+
+            self.info_label.setText(old_text + '\nNo file to open!')
+            self.adjust()
+            return
+
+        try:
+            QProcess.startDetached('explorer', [self.process.file_path])
+        except:
+            self.info_label.setText(self.info_label.text() + '\nFailed to open in explorer')
+            pass
+            # Print failes to open file to user!
+
+    def open_menu(self, event):
+        menu = QMenu(self.sender())
+        menu.addAction('Open folder', self.open_file)
+        menu.exec(QCursor.pos())
 
     def toggle_debug(self, debug_state):
         self._debug = debug_state
