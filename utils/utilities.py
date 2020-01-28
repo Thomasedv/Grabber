@@ -134,6 +134,7 @@ def format_in_list(command, option):
 def get_win_accent_color():
     """
     Return the Windows 10 accent color used by the user in a HEX format
+    Windows specific
     """
     # Open the registry
     registry = ConnectRegistry(None, HKEY_CURRENT_USER)

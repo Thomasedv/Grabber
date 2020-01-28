@@ -135,7 +135,6 @@ class Downloader(QObject):
             for download in self._queue:
                 download.set_status_killed()
                 download.disconnect()
-                del download
             self._queue.clear()
         #     self.output.emit('Stopped all downloads...')
         # else:

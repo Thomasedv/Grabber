@@ -1,9 +1,10 @@
 import os
+import re
 import traceback
 from collections import deque
 
-from PyQt5.QtCore import QProcess, pyqtSignal, Qt
-from PyQt5.QtGui import QCursor
+from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QUrl
+from PyQt5.QtGui import QCursor, QDesktopServices
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QLayout, QTextBrowser, QMenu
 
 from utils.utilities import FONT_CONSOLAS, color_text
@@ -76,6 +77,8 @@ class Download(QProcess):
         self.filesize = ''
         self.speed = ''
         self.info = 'Aborted by user'
+
+        self.done = True
         self.getOutput.emit()
 
     def start_dl(self):
@@ -84,6 +87,7 @@ class Download(QProcess):
 
         self.start(self.program_path, self.commands)
         self.status = 'Started'
+        self.getOutput.emit()
 
     def process_output(self):
         """
@@ -148,10 +152,13 @@ class Download(QProcess):
                     if stdout[-1] == 'downloaded':
                         self.status = 'Already Downloaded'
                         self.info = ' '.join(stdout)
+                        path, fullname = os.path.split(' '.join(stdout_with_spaces[1:-4]).strip("\""))
+                        self.file_path = os.path.join(path, fullname)
 
                     if stdout[-3:] == ['recorded', 'in', 'archive']:
                         self.status = 'Already Downloaded'
                         self.info = ' '.join(stdout)
+                        # Path not provided in output, possible manual fix later
 
                     # Get filesize abort status
                     if stdout[-1] == 'Aborting.':
@@ -168,7 +175,7 @@ class Download(QProcess):
 
                         # Get the percentage
                         percent = '{0:.1f}%'.format(current_segment / segment_no * 100)
-                        self.status = percent
+                        self.progress = percent
 
                 elif stdout[0] == '[ffmpeg]':
                     self.status = 'Post Processing'
@@ -189,6 +196,23 @@ class Download(QProcess):
                         path, fullname = os.path.split(' '.join(stdout_with_spaces[8:]).strip("\""))
                         self.name = fullname
                         self.file_path = os.path.join(path, fullname)
+
+                elif 'frame=' in stdout:
+                    progress_pattern = re.compile(
+                        r'(frame|fps|size|time|bitrate|speed)\s*\=\s*(\S+)'
+                    )
+
+                    items = {
+                        key: value for key, value in progress_pattern.findall(line)
+                    }
+                    if not items:
+                        continue
+
+                    if not self.info.startswith('[ffmpeg download mode]'):
+                        self.info = '[ffmpeg download mode] Progress shows the frame count' + self.info
+                    self.speed = items.get('bitrate', self.speed)
+                    self.progress = items.get('frame', self.progress)
+                    self.filesize = items.get('size', self.filesize)
 
                 elif stdout[0] == 'ERROR:':
                     self.status = 'ERROR'
@@ -253,7 +277,7 @@ class ProcessListItem(QWidget):
         self.line.addWidget(self.playlist, 0)
 
         self.line2 = QHBoxLayout()
-        self.line2.addWidget(self.status_box)
+        self.line2.addWidget(self.status_box, 0)
         self.line2.addStretch(1)
         self.line2.addLayout(self.line, 1)
 
@@ -290,7 +314,8 @@ class ProcessListItem(QWidget):
             return
 
         try:
-            QProcess.startDetached('explorer', [self.process.file_path])
+            # Windows specific implementation
+            QProcess.startDetached('explorer', ['/select,', self.process.file_path])
         except:
             self.info_label.setText(self.info_label.text() + '\nFailed to open in explorer')
             pass
@@ -309,6 +334,10 @@ class ProcessListItem(QWidget):
         self.setFixedHeight(self.sizeHint().height())
         self.info_label.setFixedWidth(self.parent().width() - 18)
         self.slot.setSizeHint(self.sizeHint())
+
+    def resizeEvent(self, event) -> None:
+        super(ProcessListItem, self).resizeEvent(event)
+        self.adjust()
 
     def is_running(self):
         return not self.process.done

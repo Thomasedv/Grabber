@@ -172,6 +172,7 @@ class FileHandler:
 
     def find_exe(self, program):
         """Used to find executables."""
+        # Possible Windows specific implementation
         local_path = os.path.join(self.work_dir, program)
         if FileHandler.is_file(local_path):
             # print(f'Returning existing isfile exe: {os.path.join(self.work_dir, program)}')

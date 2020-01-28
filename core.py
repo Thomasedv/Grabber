@@ -31,6 +31,7 @@ class GUI(MainWindow):
         self.initial_checks()
 
         # Holds temp passwords
+        # TODO: Better password solution
         self._temp = LessNiceDict()
 
         # Builds GUI and everything related to that.
@@ -104,7 +105,7 @@ class GUI(MainWindow):
         # Connecting stuff for tab 1.
         # Start buttons starts download
 
-        self.tab1 = MainTab(self.settings, self)
+        self.tab1 = MainTab(self.settings, self.tab_widget)
 
         self.tab1.start_btn.clicked.connect(self.queue_dl)
         # Stop button kills the process, aka youtube-dl.
