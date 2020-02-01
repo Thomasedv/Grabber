@@ -3,9 +3,9 @@ import re
 import traceback
 from collections import deque
 
-from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QUrl
-from PyQt5.QtGui import QCursor, QDesktopServices
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QLayout, QTextBrowser, QMenu
+from PyQt5.QtCore import QProcess, pyqtSignal, Qt
+from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QMenu
 
 from utils.utilities import FONT_CONSOLAS, color_text
 
@@ -367,7 +367,7 @@ class ProcessListItem(QWidget):
 
             self.status_box.setText(color_text(self.process.status))
             self.info_label.setText(f'{self.process.name if self.process.name else "Process"}'
-                                    f' failed with message:\n{self.process.info.replace("ERROR:", "")}')
+                                    f' failed with message:\n{self.process.info.replace("ERROR:", "").lstrip()}')
         elif self.process.status == 'Aborted':
             self.status_box.setText(color_text(self.process.status))
             show_infolabel()
