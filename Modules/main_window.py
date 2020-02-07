@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QMainWindow
 
 
 class MainWindow(QMainWindow):
+    """Top level window, custom close method to ensure safe exit."""
     gotfocus = pyqtSignal()
     resizedByUser = pyqtSignal()
     onclose = pyqtSignal()

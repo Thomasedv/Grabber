@@ -1,7 +1,6 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, \
-    QGridLayout, QAction, QMenu, \
-    QFrame
+    QGridLayout, QAction, QFrame
 
 from utils.utilities import SettingsError
 from .parameterTree import ParameterTree
@@ -14,13 +13,12 @@ class ParameterTab(QWidget):
 
         #  Building widget tab 2.
 
-        # Button for browsing download location.
+        # Button for selecting download location.
         self.browse_btn = QPushButton('Browse')
 
         self.save_profile_btn = QPushButton('Save Profile')
         self.save_profile_btn.resize(self.save_profile_btn.sizeHint())
 
-        # Label for the lineEdit.
         self.download_label = QLabel('Download to:')
 
         self.favlabel = QLabel('Favorites:')
@@ -43,6 +41,7 @@ class ParameterTab(QWidget):
         self.favorites = ParameterTree(favorites, self)
         self.favorites.favorite = True
 
+        # Can only be toggled in settings manually
         if settings.user_options['show_collapse_arrows']:
             self.options.setRootIsDecorated(True)
             self.favorites.setRootIsDecorated(True)
@@ -50,34 +49,25 @@ class ParameterTab(QWidget):
             self.options.setRootIsDecorated(False)
             self.favorites.setRootIsDecorated(False)
 
-        # Menu creation for download_lineedit
-        menu = QMenu()
-        # Makes an action for the download_lineedit
         self.open_folder_action = QAction('Open location', parent=self.download_lineedit)
-        # open_folder_action.setEnabled(True)
-
         self.copy_action = QAction('Copy', parent=self.download_lineedit)
 
-        menu.addAction(self.copy_action)
         self.download_lineedit.addAction(self.open_folder_action)
         self.download_lineedit.addAction(self.copy_action)
 
-        ## Layout tab 2.
+        # Layout tab 2.
 
-        # Horizontal layout for the download line.
         self.QH = QHBoxLayout()
 
-        # Adds widgets to the horizontal layout. label, lineedit and button. LineEdit stretches by deafult.
+        # Adds widgets to the horizontal layout. label, lineedit and button.
         self.QH.addWidget(self.download_label)
         self.QH.addWidget(self.download_lineedit)
         self.QH.addWidget(self.browse_btn)
         self.QH.addWidget(self.save_profile_btn)
-        # Vertical layout creation
+
         self.QV = QVBoxLayout()
-        # Adds the dl layout to the vertical one.
         self.QV.addLayout(self.QH, stretch=0)
 
-        # Adds stretch to the layout.
         self.grid = QGridLayout()
 
         self.frame = QFrame()
