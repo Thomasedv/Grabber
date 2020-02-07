@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QWidget
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QWidget, QShortcut
 
 from utils.utilities import FONT_CONSOLAS
 
@@ -9,6 +10,7 @@ class TextTab(QWidget):
         """Handles text files for batch downloads from a list of links."""
 
         super().__init__(parent=parent)
+
         # Denotes if the textfile is saved.
         self.SAVED = True
 
@@ -24,6 +26,10 @@ class TextTab(QWidget):
         self.saveButton.setDisabled(True)
 
         self.textedit.textChanged.connect(self.enable_saving)
+
+        # Other functionality.
+        self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.textedit)
+        self.shortcut.activated.connect(self.saveButton.click)
 
         # Layout
         # Create horizontal layout.

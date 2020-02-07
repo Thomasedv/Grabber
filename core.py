@@ -3,8 +3,8 @@ import os
 import sys
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
-from PyQt5.QtGui import QKeySequence, QIcon, QClipboard, QGuiApplication
-from PyQt5.QtWidgets import QShortcut, QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
+from PyQt5.QtGui import QIcon, QClipboard, QGuiApplication
+from PyQt5.QtWidgets import QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
     QTabWidget, QListWidgetItem
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow, AboutTab, Downloader, ParameterTab, TextTab
@@ -39,7 +39,6 @@ class GUI(MainWindow):
 
     def initial_checks(self):
         """Loads settings and finds necessary files. Checks the setting file for errors."""
-        QApplication.setEffectEnabled(Qt.UI_AnimateCombo, False)
 
         self._debug = None
         self.file_handler = FileHandler()
@@ -87,32 +86,34 @@ class GUI(MainWindow):
     def build_gui(self):
         """Generates the GUI elements, and hooks everything up."""
 
+        # Removes anim from combobox opening
+        QApplication.setEffectEnabled(Qt.UI_AnimateCombo, False)
+
         # Sorts the parameters, so that favorite ones are added to the favorite widget.
         favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
         options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
 
-        # Main widget. This will be the ones that holds everything.
-        # Create top level tab widget system for the UI.
+        # Create top level tab widget system for the UI
         self.tab_widget = QTabWidget(self)
 
+        # Close signal
         self.onclose.connect(self.confirm)
+        # Confirmation to close signal
         self.sendClose.connect(self.closeE)
 
         # Connecting stuff for tab 1.
         # Start buttons starts download
 
+        # First Tab
         self.tab1 = MainTab(self.settings, self.tab_widget)
 
-        self.tab1.start_btn.clicked.connect(self.queue_dl)
-        # Stop button kills the process, aka youtube-dl.
+        self.tab1.start_btn.clicked.connect(self.queue_download)
+        # Stop button stops downloads, and may clear queue.
         self.tab1.stop_btn.clicked.connect(self.stop_download)
-        # Close button closes the window/process.
         self.tab1.close_btn.clicked.connect(self.close)
-        # Clears finished items in the download list
 
-        # When the check button is checked or unchecked, calls function checked.
+        # Perform check if enough is present to start a download after user actions
         self.tab1.checkbox.stateChanged.connect(self.allow_start)
-        # Connects actions to text changes and adds action to when you press Enter.
         self.tab1.url_input.textChanged.connect(self.allow_start)
 
         # Queue downloading
@@ -125,7 +126,6 @@ class GUI(MainWindow):
 
         # Tab 2
         self.tab2 = ParameterTab(options, favorites, self.settings, self)
-        # Adds the tab2 layout to the widget.
 
         # Connection stuff tab 2.
         self.tab2.open_folder_action.triggered.connect(self.open_folder)
@@ -144,24 +144,19 @@ class GUI(MainWindow):
         self.tab2.browse_btn.clicked.connect(self.savefile_dialog)
         self.tab2.save_profile_btn.clicked.connect(self.save_profile)
 
-        # Tab 3.
-        # Tab creation.
+        # Tab 3
         self.tab3 = TextTab(parent=self)
-
-        # Connecting stuff tab 3.
 
         # When loadbutton is clicked, launch load textfile.
         self.tab3.loadButton.clicked.connect(self.load_text_from_file)
-        # When savebutton clicked, save text to document.
+        # When savebutton clicked, save text to file.
         self.tab3.saveButton.clicked.connect(self.save_text_to_file)
 
         # Tab 4
         # Button to browse for .txt file to download files.
         self.tab4 = AboutTab(self.settings, parent=self)
 
-        ## Connecting stuff tab 4.
-
-        # Starts self.update_youtube_dl, locate_program_path checks for updates.
+        # Connect buttons to functions
         self.tab4.update_btn.clicked.connect(self.update_youtube_dl)
         self.tab4.dirinfo_btn.clicked.connect(self.dir_info)
         self.tab4.reset_btn.clicked.connect(self.reset_settings)
@@ -171,6 +166,8 @@ class GUI(MainWindow):
 
         # Future tab creation here! Currently 4 tabs
         # TODO: Move stylesheet applying to method, make color picking dialog to customize in realtime
+
+        # Windows specific, only triggered in settings manually
         if self.settings.user_options['use_win_accent']:
             try:
                 color = get_win_accent_color()
@@ -237,30 +234,27 @@ class GUI(MainWindow):
                                 
                                 """
 
-        # Configuration main widget.
-        # Adds tabs to the tab widget, and names the tabs.
+        # Adds tabs to the tab widget
         self.tab_widget.addTab(self.tab1, 'Main')
         self.tab_widget.addTab(self.tab2, 'Param')
         self.tab_widget.addTab(self.tab3, 'List')
         self.tab_widget.addTab(self.tab4, 'About')
-        # Sets the styling for the GUI, everything from buttons to anything. ##
+
+        # Sets the styling for GUI
         self.setStyleSheet(get_stylesheet() + self.style_with_options)
 
-        # Set window title.
         self.setWindowTitle('Grabber')
         self.setWindowIcon(self.windowIcon)
+
         # Set base size.
         self.setMinimumWidth(340)
         self.setMinimumHeight(400)
 
+        # Selects the text in the URL box when focus is gained
         if self.settings.user_options['select_on_focus']:
             self.gotfocus.connect(self.window_focus_event)
         else:
             self.tab1.url_input.setFocus()
-
-        # Other functionality.
-        self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3.textedit)
-        self.shortcut.activated.connect(self.tab3.saveButton.click)
 
         # Check for youtube
         if self.youtube_dl_path is None:
@@ -285,8 +279,6 @@ class GUI(MainWindow):
 
         self.downloader.stateChanged.connect(self.allow_start)
         self.tab_widget.currentChanged.connect(self.resize_contents)
-
-        # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
 
     def toggle_debug(self):
         self._debug = not self._debug
@@ -747,7 +739,7 @@ class GUI(MainWindow):
             # Check if the checkbox is toggled, and disables the line edit if it is.
             #  Also disables start button if lineEdit is empty and checkbox is not checked
 
-    def queue_dl(self):
+    def queue_download(self):
         command = []
 
         if self.tab1.checkbox.isChecked():
