@@ -730,14 +730,14 @@ class GUI(MainWindow):
 
                 if result == QMessageBox.Yes:
                     self.settings.user_options['multidl_txt'] = location
-                    self.tab4.textbrowser.setText(location)
+                    self.tab4.textfile_url.setText(location)
                     self.tab3.SAVED = True
                     self.load_text_from_file()
 
                     self.file_handler.save_settings(self.settings.get_settings_data)
             else:
                 self.settings.user_options['multidl_txt'] = location
-                self.tab4.textbrowser.setText(location)
+                self.tab4.textfile_url.setText(location)
                 self.tab3.SAVED = True
                 self.load_text_from_file()
 

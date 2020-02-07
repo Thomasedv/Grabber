@@ -33,9 +33,9 @@ class AboutTab(QWidget):
         self.reset_btn.setMinimumHeight(30)
 
         # Lineedit to show path to text file. (Can be changed later to use same path naming as other elements.)
-        self.txtfile_url = QLineEdit()
-        self.txtfile_url.setReadOnly(True)  # Read only
-        self.txtfile_url.setText(settings.user_options['multidl_txt'])  # Path from settings.
+        self.textfile_url = QLineEdit()
+        self.textfile_url.setReadOnly(True)  # Read only
+        self.textfile_url.setText(settings.user_options['multidl_txt'])  # Path from settings.
 
         self.txt_label = QLabel('Textfile:')
 
@@ -65,7 +65,7 @@ class AboutTab(QWidget):
 
         self.topQH = QHBoxLayout()
         self.topQH.addWidget(self.txt_label)
-        self.topQH.addWidget(self.txtfile_url)
+        self.topQH.addWidget(self.textfile_url)
         self.topQH.addWidget(self.location_btn)
 
         self.topQV = QVBoxLayout()
