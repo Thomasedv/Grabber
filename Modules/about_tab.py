@@ -44,6 +44,7 @@ class AboutTab(QWidget):
         self.textbrowser.setObjectName('AboutText')
         self.textbrowser.setOpenExternalLinks(True)
 
+        # Sets textbroswer content at startup
         self.set_standard_text()
 
         self.QH = QHBoxLayout()
