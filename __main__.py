@@ -11,8 +11,6 @@ if os.getcwd().lower() == r'c:\windows\system32'.lower():  # Bit of a hack, but 
         application_path = os.path.dirname(__file__)
     os.chdir(os.path.realpath(application_path))
 
-import utils.utilities
-
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
@@ -22,6 +20,8 @@ from utils.utilities import SettingsError, ProfileLoadError
 
 
 def main():
+    # Main loop
+
     while True:
         EXIT_CODE = 1
         try:
@@ -29,11 +29,12 @@ def main():
             program = GUI()
 
             EXIT_CODE = app.exec_()
-            app = None
+            app = None  # Required! Crashes on restart without.
 
             if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
                 continue
 
+        # For when startup fails
         except (SettingsError, ProfileLoadError, json.decoder.JSONDecodeError) as e:
             if isinstance(e, ProfileLoadError):
                 file = 'profiles file'
@@ -45,6 +46,7 @@ def main():
                                           ''.join([str(e), '\nRestore to defaults?']),
                                           buttons=QMessageBox.Yes | QMessageBox.No)
 
+            # If yes, do settings or profile reset.
             if warning == QMessageBox.Yes:
                 filehandler = FileHandler()
                 if isinstance(e, ProfileLoadError):

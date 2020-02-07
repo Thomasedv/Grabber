@@ -87,10 +87,6 @@ class GUI(MainWindow):
     def build_gui(self):
         """Generates the GUI elements, and hooks everything up."""
 
-        # Indicates if license is shown. (For license tab)
-        # TODO: Move to license tab?
-        self.license_shown = False
-
         # Sorts the parameters, so that favorite ones are added to the favorite widget.
         favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
         options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
@@ -169,7 +165,6 @@ class GUI(MainWindow):
         self.tab4.update_btn.clicked.connect(self.update_youtube_dl)
         self.tab4.dirinfo_btn.clicked.connect(self.dir_info)
         self.tab4.reset_btn.clicked.connect(self.reset_settings)
-        self.tab4.license_btn.clicked.connect(self.read_license)
         self.tab4.location_btn.clicked.connect(self.textfile_dialog)
         self.tab4.debug_info.clicked.connect(self.toggle_debug)
         self.tab4.dl_mode_btn.clicked.connect(self.toggle_modes)
@@ -310,7 +305,7 @@ class GUI(MainWindow):
         else:
             parallel = not self.settings.user_options['parallel']
             self.settings.user_options['parallel'] = parallel
-            self.tab4.dl_mode_btn.setText("Singular" if not parallel else "Parallel")
+            self.tab4.dl_mode_btn.setText(("Singular" if not parallel else "Parallel") + '\nDownloads')
             self.downloader.set_mode(parallel=parallel)
 
     def save_profile(self):
@@ -994,19 +989,6 @@ class GUI(MainWindow):
                 return
 
             do_proper_shutdown()
-
-    def read_license(self):
-        if not self.license_shown:
-            content = self.file_handler.read_textfile(self.license_path)
-            if content is None:
-                self.alert_message('Error!', 'Failed to read textfile!')
-                return
-            self.tab4.abouttext_textedit.clear()
-            self.tab4.abouttext_textedit.append(content)
-            self.license_shown = True
-        else:
-            self.tab4.set_standard_text()
-            self.license_shown = False
 
 
 if __name__ == '__main__':
