@@ -3,10 +3,10 @@ from collections import deque
 from PyQt5.QtCore import pyqtSignal, QProcess, QObject
 
 from Modules.download_element import Download
-from utils.utilities import color_text
 
 
 class Downloader(QObject):
+    """ Handles Download objects, can run in two states, parallel or singular"""
     stateChanged = pyqtSignal()
 
     output = pyqtSignal(str)
@@ -17,10 +17,12 @@ class Downloader(QObject):
         self.active_download: Download = None
         self._queue = deque()
         self.mode = mode
+
         self.RUNNING = False
         self.error_count = 0
         self.file_handler = file_handler
-        # Make this point to parallel queue for multi dl.
+
+        # Download mode
         if mode:
             self.queue_handler = self._parallel_queue_handler
             self.active_download = []
@@ -42,23 +44,21 @@ class Downloader(QObject):
 
     def restart_current_download(self):
         # TODO: Trigger this make trigger for restarting download!
-        # Only works in single mode
+        # Only works in single mode!
         if self.active_download is not None:
             if isinstance(self.active_download, Download) and self.active_download.state() == QProcess.Running:
                 self.active_download.kill()
-                # self.output.emit(color_text('Restarting download!', weight='normal'))
+
                 self.active_download.start()
             elif isinstance(self.active_download, list):
                 for i in self.active_download:
                     i.kill()
                     i.start()
-        # else:
-        #     self.output.emit('No active download to restart!')
 
     def _parallel_queue_handler(self, process_finished=False):
         if not self.RUNNING:
             self.clearOutput.emit()
-
+        # TODO: Error count currently not used. Remove later?
         if not self.RUNNING or process_finished or self.active < 4:
             if self._queue:
                 download = self._queue.popleft()
@@ -69,27 +69,20 @@ class Downloader(QObject):
                     self.stateChanged.emit()
                 except TypeError as e:
                     self.error_count += 1
-                    # self.output.emit(color_text(f'FAILED with error {e}'))
+
                     return self.queue_handler(process_finished=True)
                 self.active += 1
-
             else:
 
                 if not self.active:
                     self.RUNNING = False
                     self.stateChanged.emit()
 
-                    error_report = 0 if not self.error_count else color_text(str(self.error_count), "darkorange",
-                                                                             "bold")
-                    # self.output.emit(f'Error count: {error_report}.')
                     self.error_count = 0
 
     def _single_queue_handler(self, process_finished=False):
-        # if not self.RUNNING:
-        #     self.clearOutput.emit()
-
         if not self.RUNNING or process_finished:
-            # TODO: Detect crash when redistributable C++ is not present, if possible
+            # TODO: Detect crash when redistributable C++ is not present, if possible. Needs research.
 
             if self._queue:
                 download = self._queue.popleft()
@@ -100,7 +93,6 @@ class Downloader(QObject):
                     self.stateChanged.emit()
                 except TypeError as e:
                     self.error_count += 1
-                    # self.output.emit(color_text(f'FAILED with error {e}'))
                     return self.queue_handler(process_finished=True)
 
             else:
@@ -108,16 +100,13 @@ class Downloader(QObject):
                 self.RUNNING = False
                 self.stateChanged.emit()
 
-                error_report = 0 if not self.error_count else color_text(str(self.error_count), "darkorange", "bold")
-                # self.output.emit(f'Error count: {error_report}.')
                 self.error_count = 0
 
-    # When the current download is started/stopped then this runs.
     def program_state_changed(self, program: Download):
+        """ When a Download stops, this triggers, and callbacks to the queue handler"""
         new_state = program.state()
         if new_state == QProcess.NotRunning:
             program.disconnect()
-            # self.output.emit('\nDone\n')
             if self.mode:
                 self.active -= 1
             self.queue_handler(process_finished=True)
@@ -136,9 +125,6 @@ class Downloader(QObject):
                 download.set_status_killed()
                 download.disconnect()
             self._queue.clear()
-        #     self.output.emit('Stopped all downloads...')
-        # else:
-        #     self.output.emit('Stopped a download...')
 
         if self.active_download is not None:
             if isinstance(self.active_download, Download):
@@ -149,10 +135,9 @@ class Downloader(QObject):
                 for i in self.active_download:
                     i.kill()
                     i.set_status_killed()
-            # else:
-            #     self.output.emit('No active downloads...')
 
     def queue_dl(self, download: Download):
+        """ Adds element to queue, calls queue handler """
         download.stateChanged.connect(lambda x, dl=download: self.program_state_changed(dl))
         self._queue.append(download)
         self.queue_handler()
