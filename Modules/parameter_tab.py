@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLab
     QGridLayout, QAction, QFrame
 
 from utils.utilities import SettingsError
-from .parameterTree import ParameterTree
+from .parameter_tree import ParameterTree
 
 
 class ParameterTab(QWidget):

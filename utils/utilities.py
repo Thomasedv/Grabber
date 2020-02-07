@@ -22,10 +22,12 @@ log.addHandler(filehandler)
 
 
 def get_logger(string):
+    """ Ensure logger is configured before use. """
     return logging.getLogger(string)
 
 
 def except_hook(cls, exception, traceback):
+    """ If frozen, catch error and exit. Dev, prints error but may continue if possible. """
     critical_log = get_logger('Grabber')
     error = "".join(format_exception(cls, exception, traceback))
     critical_log.critical(f'Encountered fatal error:\n\n{error}')
@@ -40,11 +42,8 @@ def except_hook(cls, exception, traceback):
         pass
 
 
-# If not frozen as .exe, crashes show here
+# Override PyQt exception handling
 sys.excepthook = except_hook
-
-# Imported after this, due to possible compression errors during packaging.
-# Above code ensure error is properly sent back to user.
 
 from PyQt5.QtGui import QFont, QColor
 from PyQt5.QtWidgets import QApplication, QMessageBox
@@ -82,7 +81,7 @@ def path_shortener(full_path: str):
                 times += 1
                 if times == 3 and full_path.count('/') >= 4:
                     short_path = ''.join([full_path[:full_path.find('/')+1], '...', full_path[split:]])
-                    # print(short_path)
+
                     break
                 elif times == 3:
                     split = full_path.find('/', split)
@@ -172,6 +171,8 @@ class ProfileLoadError(Exception):
 
 
 class SettingsClass:
+    """Holds settings and handles manipulation"""
+
     def __init__(self, settings, profiles, filehandler=None):
         if not settings:
             raise SettingsError('Empty settings file!')
@@ -196,9 +197,6 @@ class SettingsClass:
         self.need_parameters = []
 
         self._validate_settings()
-
-        # print(self._profiles)
-        # print(self.get_settings_data)
 
     def __enter__(self):
         return self._parameters

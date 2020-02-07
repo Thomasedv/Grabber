@@ -8,10 +8,13 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAction, QMenu
 
 class TreeWidgetItem(QTreeWidgetItem):
     def __lt__(self, other):
+        """Disables sorting"""
         return False
 
 
 class ParameterTree(QTreeWidget):
+    """Holds parameters and their respective options"""
+
     max_size = 400
     move_request = pyqtSignal(QTreeWidgetItem, bool)
     addOption = pyqtSignal(QTreeWidgetItem)
@@ -80,7 +83,7 @@ class ParameterTree(QTreeWidget):
         elif item.data(0, 33) == 2:
             take_item = item
         else:
-            print('Something went wrong!')
+            # TODO: Log error, shouldn't be reached either way
             return
 
         add_option = QAction('Add option')
@@ -157,7 +160,7 @@ class ParameterTree(QTreeWidget):
             top_level_names.append([item.data(0, 32), item.data(0, 34), self.indexFromItem(item)])
 
         # Locate matches, and store in dict
-        # TODO: Make readable
+        # TODO: Make readable. THIS IS DARK MAGIC
         indices = {t[0]: i for i, t in enumerate(top_level_names)}
         for index, (first, second, third) in enumerate(top_level_names):
             if second in indices:
@@ -250,7 +253,6 @@ class ParameterTree(QTreeWidget):
         parent_size = 20 * self.topLevelItemCount()
 
         # Unhandled lengths when the program exceeds the window size. Might implement a max factor, and allow scrolling.
-        # Future cases might implement two ParameterTrees side by side, for better use of space and usability.
         if ParameterTree.max_size < (child_size + parent_size):
             self.setFixedHeight(ParameterTree.max_size)
         else:
@@ -285,26 +287,25 @@ class ParameterTree(QTreeWidget):
         if item.data(0, 33) == 0:
             self.expand_options(item)
             self.resizer(item)
-            # print('item is parent box')
+
         elif item.data(0, 33) == 1:
             self.blockSignals(True)
             for i in range(item.parent().childCount()):
-                # print(type(self.itemFromIndex(i)))
+
                 TWI = item.parent().child(i)
                 try:
                     if TWI == item:
                         TWI.setFlags(TWI.flags() ^ Qt.ItemIsUserCheckable)
-                        # print('Skipping self')
                     else:
-                        # print('Unchecking')
                         TWI.setCheckState(0, Qt.Unchecked)
                         TWI.setFlags(TWI.flags() | Qt.ItemIsUserCheckable)
                 except Exception as e:
+                    # Log error
                     print(e)
         elif item.data(0, 33) == 2:
             pass  # Custom options should not have options, not now at least.
         else:
-            print('Parent/child state not set. ' + str(item.data(0, 32)))
+            pass  # TODO: Log error: state state not set.
 
         if unblock:
             self.blockSignals(False)

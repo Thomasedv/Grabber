@@ -206,8 +206,8 @@ class FileHandler:
                     f.write(content)
                 return True
             except (OSError, IOError) as e:
-                print('Error! ', e)
+                # TODO: Logging error
                 return False
         else:
-            print('Error!')
+            # TODO: Logging error
             return False

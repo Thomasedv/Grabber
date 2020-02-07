@@ -5,6 +5,6 @@ from Modules.download_element import Download
 from Modules.download_manager import Downloader
 from Modules.download_tab import MainTab
 from Modules.main_window import MainWindow
-from Modules.parameterTree import ParameterTree
 from Modules.parameter_tab import ParameterTab
+from Modules.parameter_tree import ParameterTree
 from Modules.text_manager import TextTab
