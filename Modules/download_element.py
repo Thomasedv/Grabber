@@ -15,7 +15,7 @@ class Download(QProcess):
 
     def __init__(self, working_dir: str, program_path: str, commands: list, info='', parent=None):
         """
-        Download objects take required elements, and will start a process on command.
+        Download objects take commands, and will start a process on triggered.
         """
         super(Download, self).__init__(parent=parent)
 
@@ -44,10 +44,8 @@ class Download(QProcess):
 
         self.program_log = deque(maxlen=3)
 
-    def get_status(self):
-        return self.status, self.progress, self.eta, self.filesize, self.speed
-
     def program_state_changed(self, new_state):
+        """Triggers actions when the QProcess stops"""
         if new_state == QProcess.NotRunning:
             self.done = True
 
@@ -71,6 +69,8 @@ class Download(QProcess):
                 self.getOutput.emit()
 
     def set_status_killed(self):
+        """ When killed, set this state"""
+
         self.status = 'Aborted'
         self.progress = ''
         self.eta = ''
@@ -82,6 +82,7 @@ class Download(QProcess):
         self.getOutput.emit()
 
     def start_dl(self):
+        """ Starts program, youtube-dl.exe """
         if self.program_path is None:
             raise TypeError('Can\'t find youtube-dl executable')
 
@@ -229,6 +230,7 @@ class Download(QProcess):
 
 
 class MockDownload(Download):
+    """Used for showing debug info"""
     def __init__(self, info, parent=None):
         super(MockDownload, self).__init__('', '', [], info=info, parent=parent)
         self.status = 'Debug Info'
@@ -239,6 +241,7 @@ class MockDownload(Download):
 
 
 class ProcessListItem(QWidget):
+    """ ListItem that shows attached process state"""
     def __init__(self, process: Download, slot, debug=False, parent=None, tooltip=''):
         super(ProcessListItem, self).__init__(parent=parent)
         self.process = process
@@ -318,8 +321,7 @@ class ProcessListItem(QWidget):
             QProcess.startDetached('explorer', ['/select,', self.process.file_path])
         except:
             self.info_label.setText(self.info_label.text() + '\nFailed to open in explorer')
-            pass
-            # Print failes to open file to user!
+            # Print failed to open file to user!
 
     def open_menu(self, event):
         menu = QMenu(self.sender())
