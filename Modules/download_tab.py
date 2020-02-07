@@ -1,4 +1,5 @@
 import typing
+
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QCheckBox, \
     QHBoxLayout, QVBoxLayout, QListWidget
@@ -31,6 +32,7 @@ class ProcessList(QListWidget):
         yield from [self.itemWidget(self.item(i)) for i in range(self.count())]
 
     def clear(self) -> None:
+        """ Only removed finished downloads from display"""
         for item in self.iter_items():
             if not item.is_running():
                 self.takeItem(self.indexFromItem(item.slot).row())
@@ -129,7 +131,7 @@ class MainTab(QWidget):
 
 
 if __name__ == '__main__':
-    # Only visual aspects work here!!
+    # Only visuals work
     import sys
     from PyQt5.QtWidgets import QApplication
     from utils.filehandler import FileHandler
