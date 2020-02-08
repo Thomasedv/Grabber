@@ -17,6 +17,7 @@ class TextTab(QWidget):
         self.textedit = QTextEdit()
         self.textedit.setObjectName('TextFileEdit')
         self.textedit.setFont(FONT_CONSOLAS)
+        self.textedit.setAcceptRichText(False)
         self.textedit.verticalScrollBar().setObjectName('main')
 
         # Create load button and label.
@@ -48,5 +49,9 @@ class TextTab(QWidget):
         self.setLayout(self.VB)
 
     def enable_saving(self):
-        self.saveButton.setDisabled(False)
-        self.SAVED = False
+        if not self.textedit.toPlainText():
+            self.SAVED = True
+
+        else:
+            self.saveButton.setDisabled(False)
+            self.SAVED = False

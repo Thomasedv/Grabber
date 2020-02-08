@@ -743,11 +743,12 @@ class GUI(MainWindow):
         command = []
 
         if self.tab1.checkbox.isChecked():
-            if self.tab4.txt_lineedit.text() == '':
+            txt = self.settings.user_options['multidl_txt']
+
+            if not txt:
                 self.alert_message('Error!', 'No textfile selected!', '')
                 return
 
-            txt = self.settings.user_options['multidl_txt']
             command += ['-a', f'{txt}']
         else:
             txt = self.tab1.url_input.text()
@@ -867,8 +868,9 @@ class GUI(MainWindow):
 
     # TODO: Move to tab 3?
     def load_text_from_file(self):
-        if self.tab3.textedit.toPlainText() or (not self.tab3.saveButton.isEnabled()) or self.tab3.SAVED:
+        if self.tab3.SAVED:
             content = self.file_handler.read_textfile(self.settings.user_options['multidl_txt'])
+
             if content is not None:
                 self.tab3.textedit.clear()
                 for line in content.split():
@@ -881,22 +883,18 @@ class GUI(MainWindow):
 
             else:
                 if self.settings.user_options['multidl_txt']:
-                    warning = 'No textfile selected!'
+                    warning = 'No textfile selected!\nBrowse for one in the About tab.'
                 else:
-                    warning = 'Could not find file!'
+                    warning = 'Could not find/load file!'
                 self.alert_message('Error!', warning, '')
         else:
-            if self.tab4.txt_lineedit.text() == '':
+            result = self.alert_message('Warning',
+                                        'Overwrite?',
+                                        'Do you want to load over the unsaved changes?',
+                                        question=True)
+            if result == QMessageBox.Yes:
                 self.tab3.SAVED = True
                 self.load_text_from_file()
-            else:
-                result = self.alert_message('Warning',
-                                            'Overwrite?',
-                                            'Do you want to load over the unsaved changes?',
-                                            question=True)
-                if result == QMessageBox.Yes:
-                    self.tab3.SAVED = True
-                    self.load_text_from_file()
 
     def save_text_to_file(self):
         # TODO: Implement Ctrl+L for loading of files.
@@ -915,13 +913,13 @@ class GUI(MainWindow):
 
             if result == QMessageBox.Yes:
                 save_path = QFileDialog.getSaveFileName(parent=self.tab_widget, caption='Save as', filter='*.txt')
-                if not save_path[0]:
+                if save_path[0]:
                     self.file_handler.write_textfile(save_path[0],
                                                      self.tab3.textedit.toPlainText())
                     self.settings.user_options['multidl_txt'] = save_path[0]
                     self.file_handler.save_settings(self.settings.get_settings_data)
 
-                    self.tab4.txt_lineedit.setText(self.settings.user_options['multidl_txt'])
+                    self.tab4.textfile_url.setText(self.settings.user_options['multidl_txt'])
                     self.tab3.saveButton.setDisabled(True)
                     self.tab3.SAVED = True
 
