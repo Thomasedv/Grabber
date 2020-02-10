@@ -5,7 +5,7 @@ from collections import deque
 
 from PyQt5.QtCore import QProcess, pyqtSignal, Qt
 from PyQt5.QtGui import QCursor
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QMenu
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QMenu, QTextBrowser
 
 from utils.utilities import FONT_CONSOLAS, color_text
 
@@ -37,9 +37,13 @@ class Download(QProcess):
         self.file_path = ''
         self.playlist = ''
         self.error_count = 0
-        self.info = info
-        self.potential_error_log = ''
 
+        # Info channel
+        self.info = info
+        # Potential error for user
+        self.potential_error_log = ''
+        # Raw logs from program. TODO: Maybe add some info here when initializing, plus return code perhaps?
+        self.debug_log = []
         self.done = False
 
         self.program_log = deque(maxlen=3)
@@ -48,7 +52,7 @@ class Download(QProcess):
         """Triggers actions when the QProcess stops"""
         if new_state == QProcess.NotRunning:
             self.done = True
-
+            self.debug_log.append(f'Program closed with error code: {self.exitCode()}')
             if self.status not in ('Aborted', 'ERROR', 'Already Downloaded'):
                 if self.exitCode() != 0:
                     self.status = 'ERROR'
@@ -103,7 +107,7 @@ class Download(QProcess):
 
         try:
             for line in output.split('\n'):
-                print(line)
+                self.debug_log.append(line)
                 if not line:
                     continue
 
@@ -250,8 +254,11 @@ class ProcessListItem(QWidget):
         self.line = QHBoxLayout()
         self.setFocusPolicy(Qt.NoFocus)
         # self.setStyleSheet()
+        self._open_window = None
 
         self.status_box = QLabel(color_text(self.process.status, color='lawngreen'))
+        self.status_box.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.status_box.customContextMenuRequested.connect(self.open_info_menu)
 
         self.progress = QLabel(parent=self)
         self.progress.setAlignment(Qt.AlignCenter)
@@ -291,7 +298,7 @@ class ProcessListItem(QWidget):
         self.info_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.info_label.hide()
         self.info_label.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.info_label.customContextMenuRequested.connect(self.open_menu)
+        self.info_label.customContextMenuRequested.connect(self.open_file_menu)
 
         self.vline = QVBoxLayout()
         self.vline.addLayout(self.line2, 0)
@@ -323,10 +330,36 @@ class ProcessListItem(QWidget):
             self.info_label.setText(self.info_label.text() + '\nFailed to open in explorer')
             # Print failed to open file to user!
 
-    def open_menu(self, event):
+    def open_file_menu(self, event):
+        if self.process.status in ('ERROR', 'Aborted', 'Filesize Error'):
+            return
         menu = QMenu(self.sender())
         menu.addAction('Open folder', self.open_file)
         menu.exec(QCursor.pos())
+
+    def open_info_menu(self, event):
+        menu = QMenu(self.sender())
+        menu.addAction('Show complete log', self.open_log)
+        menu.exec(QCursor.pos())
+
+    def open_log(self):
+        info_log = QTextBrowser()
+        info_log.setObjectName('TextFileEdit')
+        info_log.setStyleSheet(self.window().styleSheet())
+        info_log.setWindowTitle('Raw output')
+        # Sets value to None when closed
+        info_log.closeEvent = lambda _, inflog=info_log: setattr(self, '_open_window', None)
+
+        # If a window already has been opened
+        if self._open_window is not None:
+            try:
+                self._open_window.close()
+            except:
+                pass
+        self._open_window = info_log
+
+        info_log.setText('\n'.join(self.process.debug_log))
+        info_log.show()
 
     def toggle_debug(self, debug_state):
         self._debug = debug_state
@@ -350,6 +383,9 @@ class ProcessListItem(QWidget):
             if not self.info_label_in_layout:
                 self.info_label.show()
                 self.info_label_in_layout = True
+
+        if self._open_window is not None:
+            self._open_window.setText('\n'.join(self.process.debug_log))
 
         self.status_box.setText(color_text(self.process.status, color='lawngreen'))
         self.progress.setText(color_text(self.process.progress, color='lawngreen'))

@@ -35,6 +35,7 @@ class ProcessList(QListWidget):
         """ Only removed finished downloads from display"""
         for item in self.iter_items():
             if not item.is_running():
+                item._open_window.close()
                 self.takeItem(self.indexFromItem(item.slot).row())
 
 
