@@ -109,17 +109,10 @@ class FileHandler:
 
         path = os.path.join(base_path, relative_path).replace('\\', '/')
 
-        if exist:
-            if FileHandler.is_file(path):
-                # print(f'Returning existing path: {path}')
-                return path
-            else:
-                # print(f'No found: {relative_path}')
-                return None
-
-        else:
-            # print(f'Returning path: {path}')
+        if FileHandler.is_file(path) or not exist:
             return path
+        else:
+            return None
 
     @threaded_cooldown
     def save_settings(self, settings):

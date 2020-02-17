@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePoli
 from utils.utilities import FONT_CONSOLAS, color_text
 
 
+# TODO: Enum with states (because keeping track of strings is messy + possiblity a define a broad "error" states
 class Download(QProcess):
     getOutput = pyqtSignal()
 
