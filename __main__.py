@@ -53,7 +53,7 @@ def main():
                     filehandler.save_profiles({})
                 else:
                     setting = filehandler.load_settings(reset=True)
-                    filehandler.save_settings(setting.get_settings_data)
+                    filehandler.save_settings(setting.settings_data)
 
                 app = None  # Ensures the app instance is properly removed!
                 continue

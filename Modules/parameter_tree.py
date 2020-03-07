@@ -79,7 +79,7 @@ class ParameterTree(QTreeWidget):
             take_item = item.parent()
 
             remove_option = QAction('Remove option')
-            remove_option.triggered.connect(lambda: self.del_option(take_item, item))
+            remove_option.triggered.connect(lambda: self.try_del_option(take_item, item))
         elif item.data(0, 33) == 2:
             take_item = item
         else:
@@ -104,11 +104,14 @@ class ParameterTree(QTreeWidget):
 
         menu.exec_(QCursor.pos())
 
-    def del_option(self, parent: QTreeWidgetItem, child: QTreeWidgetItem):
+    def try_del_option(self, parent: QTreeWidgetItem, child: QTreeWidgetItem):
+        self.itemRemoved.emit(parent, parent.indexOfChild(child))
+
+    def _del_option(self, parent: QTreeWidgetItem, child: QTreeWidgetItem):
 
         self.blockSignals(True)
-        parent.removeChild(child)
 
+        parent.removeChild(child)
         selected_option = False
         for i in range(parent.childCount()):
             parent.child(i).setData(0, 35, i)
@@ -118,8 +121,12 @@ class ParameterTree(QTreeWidget):
         if parent.childCount() > 0 and not selected_option:
             parent.child(0).setCheckState(0, Qt.Checked)
 
+        # Deselects if no options left
+        if not parent.childCount():
+            parent.setCheckState(0, Qt.Unchecked)
+
         self.blockSignals(False)
-        self.itemRemoved.emit(parent, parent.indexOfChild(child))
+
         self.update_size()
 
     def move_widget(self, item: QTreeWidgetItem):

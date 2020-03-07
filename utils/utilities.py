@@ -203,7 +203,7 @@ class SettingsClass:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._filehandler is not None:
-            self._filehandler.save_settings(self.get_settings_data)
+            self._filehandler.save_settings(self.settings_data)
 
     def __getitem__(self, item):
         return self._parameters[item]
@@ -229,7 +229,7 @@ class SettingsClass:
         return self._parameters
 
     @property
-    def get_settings_data(self):
+    def settings_data(self):
         return {'default': self._userdefined, 'parameters': self._parameters}
 
     @property
@@ -241,7 +241,7 @@ class SettingsClass:
         return list(self._profiles.keys())
 
     @property
-    def get_profiles_data(self):
+    def profiles_data(self):
         return self._profiles
 
     def create_profile(self, profile):
@@ -392,8 +392,8 @@ class SettingsClass:
         except TypeError as error:
             raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
 
-        self._filehandler.save_profiles(self.get_profiles_data)
-        self._filehandler.save_settings(self.get_settings_data)
+        self._filehandler.save_profiles(self.profiles_data)
+        self._filehandler.save_settings(self.settings_data)
 
 
 stylesheet = """

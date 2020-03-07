@@ -329,8 +329,8 @@ class GUI(MainWindow):
 
         self.settings.create_profile(profile_name)
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
-        self.file_handler.save_profiles(self.settings.get_profiles_data)
+        self.file_handler.save_settings(self.settings.settings_data)
+        self.file_handler.save_profiles(self.settings.profiles_data)
 
     def load_profile(self):
         try:
@@ -360,7 +360,7 @@ class GUI(MainWindow):
             self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('Custom'))
             self.tab1.profile_dropdown.blockSignals(False)
 
-            self.file_handler.save_settings(self.settings.get_settings_data)
+            self.file_handler.save_settings(self.settings.settings_data)
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -379,15 +379,54 @@ class GUI(MainWindow):
         self.tab1.profile_dropdown.setCurrentText('Custom')
         self.tab1.profile_dropdown.blockSignals(False)
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+        self.file_handler.save_settings(self.settings.settings_data)
 
     def item_removed(self, item: QTreeWidgetItem, index):
-        """Parent who had child removed. Updates settings and numbering of get_settings_data 35"""
-        self.settings.remove_parameter_option(item.data(0, 0), index)
-        if not item.childCount():
-            item.setCheckState(0, Qt.Unchecked)
+        """Parent who had child removed. Updates settings and numbering of settings_data 35"""
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+        def get_index(data, option_name):
+            try:
+                return data[parameter_name]['options'].index(option_name)
+            except KeyError:
+                # TODO: Logging
+                print(f'Profile {profile} has no parameter {parameter_name}, skipping')
+                return None
+            except ValueError:
+                print(f'Profile {profile} does not have the option {option_name}, skipping')
+                return None
+
+        parameter_name = item.data(0, 0)
+        option_name = self.settings.parameters[parameter_name]['options'][index]
+
+        has_option = []
+        for profile, data in self.settings.profiles_data.items():
+            new_index = get_index(data, option_name)
+
+            if new_index is not None and data[parameter_name]['active option'] == new_index:
+                has_option.append(profile)
+
+        if has_option:
+            self.alert_message('Error',
+                               f'One or more profiles has this as the selected option:',
+                               f'\t{", ".join(has_option)}')
+            return
+
+        item.treeWidget()._del_option(item, item.child(index))
+
+        self.settings.remove_parameter_option(item.data(0, 0), index)
+
+        # Deletes from profiles
+        for profile, data in self.settings.profiles_data.items():
+            new_index = get_index(data, option_name)
+            if new_index is None:
+                continue
+            del data[parameter_name]['options'][new_index]
+            new_index = data[parameter_name]['active option']
+            new_index -= 1 if new_index > 0 else 0
+            data[parameter_name]['active option'] = new_index
+
+        self.file_handler.save_profiles(self.settings.profiles_data)
+        self.file_handler.save_settings(self.settings.settings_data)
 
     def design_option_dialog(self, name, description):
         """
@@ -405,9 +444,11 @@ class GUI(MainWindow):
         """
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
+            return
 
         if item.data(0, 33) == 2:
             self.alert_message('Error!', 'Custom option does not take a command!', None)
+            return
 
         # TODO: Standardise setting an parameter to checked, and updating to expanded state.
         elif '{}' in self.settings[item.data(0, 32)]['command']:
@@ -452,7 +493,7 @@ class GUI(MainWindow):
                 except ValueError:
                     pass
 
-                self.file_handler.save_settings(self.settings.get_settings_data)
+                self.file_handler.save_settings(self.settings.settings_data)
 
             item.treeWidget().blockSignals(False)
 
@@ -476,7 +517,7 @@ class GUI(MainWindow):
         self.tab2.options.update_size()
         self.tab2.favorites.update_size()
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+        self.file_handler.save_settings(self.settings.settings_data)
 
         if item.checkState(0) == Qt.Checked:
             item.setExpanded(True)
@@ -597,7 +638,7 @@ class GUI(MainWindow):
         item.setCheckState(0, Qt.Checked)
         sub.setCheckState(0, Qt.Checked)
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+        self.file_handler.save_settings(self.settings.settings_data)
 
     # TODO: Show queue option
 
@@ -653,7 +694,7 @@ class GUI(MainWindow):
                     self.tab2.download_lineedit.setToolTip(item.data(0, 32))
 
         if save:
-            self.file_handler.save_settings(self.settings.get_settings_data)
+            self.file_handler.save_settings(self.settings.settings_data)
 
     def dir_info(self):
         # TODO: Print this info to GUI.
@@ -726,14 +767,14 @@ class GUI(MainWindow):
                     self.tab3.SAVED = True
                     self.load_text_from_file()
 
-                    self.file_handler.save_settings(self.settings.get_settings_data)
+                    self.file_handler.save_settings(self.settings.settings_data)
             else:
                 self.settings.user_options['multidl_txt'] = location
                 self.tab4.textfile_url.setText(location)
                 self.tab3.SAVED = True
                 self.load_text_from_file()
 
-                self.file_handler.save_settings(self.settings.get_settings_data)
+                self.file_handler.save_settings(self.settings.settings_data)
         else:
             self.alert_message('Error!', 'Could not find file!', '')
             # Check if the checkbox is toggled, and disables the line edit if it is.
@@ -917,7 +958,7 @@ class GUI(MainWindow):
                     self.file_handler.write_textfile(save_path[0],
                                                      self.tab3.textedit.toPlainText())
                     self.settings.user_options['multidl_txt'] = save_path[0]
-                    self.file_handler.save_settings(self.settings.get_settings_data)
+                    self.file_handler.save_settings(self.settings.settings_data)
 
                     self.tab4.textfile_url.setText(self.settings.user_options['multidl_txt'])
                     self.tab3.saveButton.setDisabled(True)
@@ -947,8 +988,8 @@ class GUI(MainWindow):
             nonlocal self
             self.hide()
             self.file_handler.force_save = True
-            self.file_handler.save_settings(self.settings.get_settings_data)
-            self.file_handler.save_profiles(self.settings.get_profiles_data)
+            self.file_handler.save_settings(self.settings.settings_data)
+            self.file_handler.save_profiles(self.settings.profiles_data)
             
             self.sendClose.emit()
 
@@ -1010,7 +1051,7 @@ if __name__ == '__main__':
                     filehandler.save_profiles({})
                 else:
                     setting = filehandler.load_settings(reset=True)
-                    filehandler.save_settings(setting.get_settings_data)
+                    filehandler.save_settings(setting.settings_data)
 
                 app = None  # Ensures the app instance is properly removed!
                 continue
