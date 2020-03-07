@@ -25,7 +25,7 @@ def threaded_cooldown(func):
      """
 
     timer = QTimer()
-    timer.setInterval(5000)
+    timer.setInterval(10000)
     timer.setSingleShot(True)
     timer.setTimerType(Qt.VeryCoarseTimer)
 
