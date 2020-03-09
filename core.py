@@ -2,8 +2,8 @@ import json
 import os
 import sys
 
-from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData
-from PyQt5.QtGui import QIcon, QClipboard, QGuiApplication
+from PyQt5.QtCore import QProcess, pyqtSignal, Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
     QTabWidget, QListWidgetItem
 
@@ -11,7 +11,7 @@ from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow, AboutT
 from Modules.download_element import ProcessListItem, MockDownload
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_stylesheet, \
-    get_win_accent_color, ProfileLoadError, LessNiceDict
+    get_win_accent_color, ProfileLoadError, LessNiceDict, to_clipboard
 
 
 class GUI(MainWindow):
@@ -546,10 +546,8 @@ class GUI(MainWindow):
 
     def copy_to_cliboard(self):
         """ Adds text to clipboard. """
-        mime = QMimeData()
-        mime.setText(self.tab2.download_lineedit.text())
-        board = QGuiApplication.clipboard()
-        board.setMimeData(mime, mode=QClipboard.Clipboard)
+        text = self.tab2.download_lineedit.text()
+        to_clipboard(text)
 
     def open_folder(self):
         """ Opens a folder at specified location. """
@@ -785,7 +783,7 @@ class GUI(MainWindow):
 
         if self.tab1.checkbox.isChecked():
             txt = self.settings.user_options['multidl_txt']
-
+            url = None
             if not txt:
                 self.alert_message('Error!', 'No textfile selected!', '')
                 return
@@ -793,6 +791,7 @@ class GUI(MainWindow):
             command += ['-a', f'{txt}']
         else:
             txt = self.tab1.url_input.text()
+            url = txt
             command.append(f'{txt}')
 
         # for i in range(len(command)):
@@ -855,16 +854,16 @@ class GUI(MainWindow):
 
         download = Download(self.program_workdir, self.youtube_dl_path, command, parent=self)
 
-        self.add_download_to_gui(download, tooltip=f'URL: {txt}')
+        self.add_download_to_gui(download, url=url)
         self.downloader.queue_dl(download)
 
-    def add_download_to_gui(self, download, tooltip=''):
+    def add_download_to_gui(self, download, url=None):
         scrollbar = self.tab1.process_list.verticalScrollBar()
         place = scrollbar.sliderPosition()
         go_bottom = (place == scrollbar.maximum())
 
         slot = QListWidgetItem(parent=self.tab1.process_list)
-        gui_progress = ProcessListItem(download, slot, debug=self._debug, tooltip=tooltip)
+        gui_progress = ProcessListItem(download, slot, debug=self._debug, url=url)
 
         self.tab1.process_list.addItem(slot)
         self.tab1.process_list.setItemWidget(slot, gui_progress)

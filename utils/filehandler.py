@@ -5,8 +5,8 @@ from functools import wraps, partial
 
 from PyQt5.QtCore import QThreadPool, QTimer, Qt
 
-from .task import Task
-from .utilities import get_base_settings, SettingsClass, ProfileLoadError
+from utils.task import Task
+from utils.utilities import get_base_settings, SettingsClass, ProfileLoadError
 
 
 def threaded_cooldown(func):
@@ -87,16 +87,19 @@ class FileHandler:
     # TODO: Implement logging, since returned values from threaded functions are discarded.
     # Need to know if errors hanppen!
 
-    def __init__(self, settings='settings.json', profiles='profiles.json'):
+    def __init__(self, settings_path='settings.json', profiles_path='profiles.json'):
 
-        self.profile_path = profiles
-        self.settings_path = settings
+        self.profile_path = profiles_path
+        self.settings_path = settings_path
         self.work_dir = os.getcwd().replace('\\', '/')
 
         self.force_save = False
 
         self.threadpool = QThreadPool()
         self.threadpool.setMaxThreadCount(1)
+
+    def __repr__(self):
+        return f'{__name__}(settings_path={self.settings_path}, profile_path={self.profile_path})'
 
     @staticmethod
     def find_file(relative_path, exist=True):

@@ -7,7 +7,7 @@ from PyQt5.QtCore import QProcess, pyqtSignal, Qt
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QSizePolicy, QMenu, QTextBrowser
 
-from utils.utilities import FONT_CONSOLAS, color_text
+from utils.utilities import FONT_CONSOLAS, color_text, to_clipboard
 
 
 # TODO: Enum with states (because keeping track of strings is messy + possiblity a define a broad "error" states
@@ -247,10 +247,12 @@ class MockDownload(Download):
 
 class ProcessListItem(QWidget):
     """ ListItem that shows attached process state"""
-    def __init__(self, process: Download, slot, debug=False, parent=None, tooltip=''):
+
+    def __init__(self, process: Download, slot, debug=False, parent=None, url=None):
         super(ProcessListItem, self).__init__(parent=parent)
         self.process = process
         self.slot = slot
+        self.url = url
         self.process.getOutput.connect(self.stat_update)
         self.line = QHBoxLayout()
         self.setFocusPolicy(Qt.NoFocus)
@@ -294,7 +296,7 @@ class ProcessListItem(QWidget):
 
         self.info_label_in_layout = False
         self.info_label = QLabel('', parent=self)
-        self.info_label.setToolTip(tooltip)
+        self.info_label.setToolTip(f'URL: {url} (Right-click to copy)')
         self.info_label.setWordWrap(True)
         self.info_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.info_label.hide()
@@ -332,15 +334,21 @@ class ProcessListItem(QWidget):
             # Print failed to open file to user!
 
     def open_file_menu(self, event):
-        if self.process.status in ('ERROR', 'Aborted', 'Filesize Error'):
-            return
         menu = QMenu(self.sender())
-        menu.addAction('Open folder', self.open_file)
+
+        if self.process.status not in ('ERROR', 'Aborted', 'Filesize Error'):
+            menu.addAction('Open folder', self.open_file)
+        if self.url is not None:
+            menu.addAction('Copy URL', lambda: to_clipboard(self.url))
+        if not menu.actions():
+            return
         menu.exec(QCursor.pos())
 
     def open_info_menu(self, event):
         menu = QMenu(self.sender())
         menu.addAction('Show complete log', self.open_log)
+        if self.url is not None:
+            menu.addAction('Copy URL', lambda: to_clipboard(self.url))
         menu.exec(QCursor.pos())
 
     def open_log(self):

@@ -9,6 +9,7 @@ import sys
 from traceback import format_exception
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
+
 LOG_FILE = 'Grabber_error.log'
 
 log = logging.getLogger('Grabber')
@@ -45,7 +46,8 @@ def except_hook(cls, exception, traceback):
 # Override PyQt exception handling
 sys.excepthook = except_hook
 
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtCore import QMimeData
+from PyQt5.QtGui import QFont, QColor, QGuiApplication, QClipboard
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 FONT_CONSOLAS = QFont()
@@ -62,6 +64,13 @@ def warn_user(error):
                         'An critical error happened running the program. Please forward this error to developer:\n\n'
                         f'{error}', QMessageBox.Ok)
     QApplication.exit(1)
+
+
+def to_clipboard(text):
+    mime = QMimeData()
+    mime.setText(text)
+    board = QGuiApplication.clipboard()
+    board.setMimeData(mime, mode=QClipboard.Clipboard)
 
 
 def path_shortener(full_path: str):
