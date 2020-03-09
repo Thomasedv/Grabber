@@ -232,6 +232,8 @@ class SettingsClass:
         if '{}' in param['command']:
             active = param['active option']
             return param['options'][active]
+        else:
+            return ''
 
     @property
     def parameters(self) -> dict:

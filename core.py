@@ -839,10 +839,7 @@ class GUI(MainWindow):
 
             else:
                 if options['state']:
-                    if self.settings.get_active_setting(parameter):
-                        option = self.settings.get_active_setting(parameter)
-                    else:
-                        option = ''
+                    option = self.settings.get_active_setting(parameter)
                     add = format_in_list(options['command'], option)
                     command += add
 
@@ -985,6 +982,10 @@ class GUI(MainWindow):
             """Ensures that the settings are saved properly before exiting!"""
 
             nonlocal self
+            for item in self.tab1.process_list.iter_items():
+                if item._open_window is not None:
+                    item._open_window.close()
+            
             self.hide()
             self.file_handler.force_save = True
             self.file_handler.save_settings(self.settings.settings_data)
@@ -1041,7 +1042,7 @@ if __name__ == '__main__':
 
             warning = QMessageBox.warning(None,
                                           f'Corruption of {file}!',
-                                          ''.join([str(e), '\nRestore to defaults?']),
+                                          f'{e}\nRestore to defaults?',
                                           buttons=QMessageBox.Yes | QMessageBox.No)
 
             if warning == QMessageBox.Yes:

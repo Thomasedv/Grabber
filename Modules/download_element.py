@@ -45,6 +45,7 @@ class Download(QProcess):
         self.potential_error_log = ''
         # Raw logs from program. TODO: Maybe add some info here when initializing, plus return code perhaps?
         self.debug_log = []
+        self.debug_log.append(' '.join(commands) + '\n')
         self.done = False
 
         self.program_log = deque(maxlen=3)
@@ -67,6 +68,7 @@ class Download(QProcess):
                 else:
                     self.status = 'Finished'
                     self.progress = '100%'
+
                 self.eta = ''
                 self.filesize = ''
                 self.speed = ''
