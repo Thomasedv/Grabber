@@ -298,7 +298,8 @@ class ProcessListItem(QWidget):
 
         self.info_label_in_layout = False
         self.info_label = QLabel('', parent=self)
-        self.info_label.setToolTip(f'URL: {url} (Right-click to copy)')
+        if url is not None:
+            self.info_label.setToolTip(f'URL: {url} (Right-click to copy)')
         self.info_label.setWordWrap(True)
         self.info_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.info_label.hide()
