@@ -109,18 +109,10 @@ class ParameterTab(QWidget):
 
     def enable_favorites(self, enable):
         if not enable:
-
-            self.frame.resize(0, 0)
-            self.favlabel.resize(0, 0)
-
             self.favorites.hide()
             self.frame.hide()
             self.favlabel.hide()
         else:
-            # Just half the size of the all settings parametertree
-            self.frame.resize(self.frame2.width() // 2, self.frame2.height() // 2)
-            self.favlabel.resize(self.optlabel.width() // 2, self.optlabel.height() // 2)
-
             self.favorites.show()
             self.frame.show()
             self.favlabel.show()
