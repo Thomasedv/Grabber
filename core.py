@@ -272,11 +272,15 @@ class GUI(MainWindow):
 
         self.show()
 
-        # Connect after show!!
-        self.resizedByUser.connect(self.resize_contents)
-        # To make sure the window is updated on first enter
-        # if resized before tab2 is shown, i'll be blank.
+        # Below NEEDS to connect after show!!
 
+        # Ensures size of parameter tab is right
+        self.resizedByUser.connect(self.resize_contents)
+
+        # Called after show, to ensure base size is consistent.
+        self.tab2.enable_favorites(bool(favorites))
+
+        # State changed
         self.downloader.stateChanged.connect(self.allow_start)
         self.tab_widget.currentChanged.connect(self.resize_contents)
 
@@ -511,6 +515,7 @@ class GUI(MainWindow):
             tree = self.tab2.favorites
             self.settings.user_options['favorites'].append(item.data(0, 0))
 
+        self.tab2.enable_favorites(bool(self.settings.user_options['favorites']))
         tree.blockSignals(True)
         tree.addTopLevelItem(item)
 
@@ -530,9 +535,11 @@ class GUI(MainWindow):
         """ Resized parameterTree widgets in tab2 to the window."""
         if self.tab_widget.currentIndex() == 0:
             self.tab1.process_list.setMinimumWidth(self.window().width() - 18)
+
         elif self.tab_widget.currentIndex() == 1:
-            size = self.height() - (self.tab2.frame.height() + self.tab2.download_lineedit.height()
-                                    + self.tab2.favlabel.height() + self.tab_widget.tabBar().height() + 40)
+            size = self.height() - (self.tab2.frame2.height() + self.tab2.download_lineedit.height()
+                                    + self.tab2.optlabel.height() + self.tab_widget.tabBar().height() + 40)
+
             ParameterTree.max_size = size
             self.tab2.options.setFixedHeight(size)
             self.tab2.favorites.setFixedHeight(size)
@@ -546,7 +553,10 @@ class GUI(MainWindow):
 
     def copy_to_cliboard(self):
         """ Adds text to clipboard. """
-        text = self.tab2.download_lineedit.text()
+        if self.settings.is_activate('Download location'):
+            text = self.settings.get_active_setting('Download location')
+        else:
+            text = self.local_dl_path
         to_clipboard(text)
 
     def open_folder(self):

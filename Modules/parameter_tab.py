@@ -1,9 +1,9 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, \
-    QGridLayout, QAction, QFrame
+    QAction, QFrame
 
+from Modules.parameter_tree import ParameterTree
 from utils.utilities import SettingsError
-from .parameter_tree import ParameterTree
 
 
 class ParameterTab(QWidget):
@@ -68,7 +68,6 @@ class ParameterTab(QWidget):
         self.QV = QVBoxLayout()
         self.QV.addLayout(self.QH, stretch=0)
 
-        self.grid = QGridLayout()
 
         self.frame = QFrame()
         self.frame2 = QFrame()
@@ -81,21 +80,65 @@ class ParameterTab(QWidget):
 
         self.frame.setObjectName('line')
         self.frame2.setObjectName('line')
+        # self.grid = QGridLayout()
+        # self.grid.addWidget(self.favlabel, 1, 0, Qt.AlignTop)
+        # self.grid.addWidget(self.optlabel, 1, 1, Qt.AlignTop)
 
-        self.grid.addWidget(self.favlabel, 1, 0)
-        self.grid.addWidget(self.optlabel, 1, 1)
-        self.grid.addWidget(self.frame, 2, 0)
-        self.grid.addWidget(self.frame2, 2, 1)
-        self.grid.addWidget(self.favorites, 3, 0, Qt.AlignTop)
-        self.grid.addWidget(self.options, 3, 1, Qt.AlignTop)
-        self.grid.setRowStretch(0, 0)
-        self.grid.setRowStretch(1, 0)
-        self.grid.setRowStretch(2, 0)
-        self.grid.setRowStretch(3, 1)
-        self.QV.addLayout(self.grid)
+        self.fav_layout = QVBoxLayout()
+        self.all_layout = QVBoxLayout()
+        # no_size = QSizePolicy()
+        # no_size.setRetainSizeWhenHidden(False)
+        # self.favorites.setSizePolicy(no_size)
+        # self.favlabel.setSizePolicy(no_size)
+        # self.frame.setSizePolicy(no_size)
+        self.fav_layout.setSizeConstraint(QVBoxLayout.SetMinimumSize)
+        self.fav_layout.addWidget(self.favlabel, stretch=0)
+        self.fav_layout.addWidget(self.frame, stretch=0)
+        self.fav_layout.addWidget(self.favorites, stretch=1, alignment=Qt.AlignTop)
 
+        self.all_layout.addWidget(self.optlabel, stretch=0)
+        self.all_layout.addWidget(self.frame2, stretch=0)
+        self.all_layout.addWidget(self.options, stretch=1, alignment=Qt.AlignTop)
+
+        self.parameter_layout = QHBoxLayout()
+        self.parameter_layout.addLayout(self.fav_layout)
+        self.parameter_layout.addLayout(self.all_layout)
+
+        self.QV.addLayout(self.parameter_layout)
+
+        # self.grid.addWidget(self.frame, 2, 0, Qt.AlignTop)
+        # self.grid.addWidget(self.frame2, 2, 1, Qt.AlignTop)
+        # self.grid.addWidget(self.favorites, 3, 0, Qt.AlignTop)
+        # self.grid.addWidget(self.options, 3, 1, Qt.AlignTop)
+        #
+        #
+        # self.grid.setRowStretch(0, 0)
+        # self.grid.setRowStretch(1, 0)
+        # self.grid.setRowStretch(2, 0)
+        # self.grid.setRowStretch(3, 1)
+        #
+        # self.QV.addLayout(self.grid)
         self.setLayout(self.QV)
+
         self.download_option = self.find_download_widget()
+
+    def enable_favorites(self, enable):
+        if not enable:
+            # self.favorites.resize(0,0)
+            self.frame.resize(0, 0)
+            self.favlabel.resize(0, 0)
+
+            self.favorites.hide()
+            self.frame.hide()
+            self.favlabel.hide()
+        else:
+            # Just half the size of the all settings parametertree
+            self.frame.resize(self.frame2.width() // 2, self.frame2.height() // 2)
+            self.favlabel.resize(self.optlabel.width() // 2, self.optlabel.height() // 2)
+
+            self.favorites.show()
+            self.frame.show()
+            self.favlabel.show()
 
     def find_download_widget(self):
         """ Finds the download widget. """
