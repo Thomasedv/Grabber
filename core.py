@@ -537,7 +537,7 @@ class GUI(MainWindow):
             self.tab1.process_list.setMinimumWidth(self.window().width() - 18)
 
         elif self.tab_widget.currentIndex() == 1:
-            size = self.height() - (self.tab2.frame2.height() + self.tab2.download_lineedit.height()
+            size = self.height() - (self.tab2.opt_frame2.height() + self.tab2.download_lineedit.height()
                                     + self.tab2.optlabel.height() + self.tab_widget.tabBar().height() + 40)
 
             ParameterTree.max_size = size

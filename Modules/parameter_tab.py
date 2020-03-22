@@ -69,37 +69,33 @@ class ParameterTab(QWidget):
         self.QV = QVBoxLayout()
         self.QV.addLayout(self.QH, stretch=0)
 
+        self.fav_frame = QFrame()
+        self.opt_frame2 = QFrame()
 
-        self.frame = QFrame()
-        self.frame2 = QFrame()
+        self.opt_frame2.setFrameShape(QFrame.HLine)
+        self.fav_frame.setFrameShape(QFrame.HLine)
 
-        self.frame2.setFrameShape(QFrame.HLine)
-        self.frame.setFrameShape(QFrame.HLine)
+        self.fav_frame.setLineWidth(2)
+        self.opt_frame2.setLineWidth(2)
 
-        self.frame.setLineWidth(2)
-        self.frame2.setLineWidth(2)
-
-        self.frame.setObjectName('line')
-        self.frame2.setObjectName('line')
-        # self.grid = QGridLayout()
-        # self.grid.addWidget(self.favlabel, 1, 0, Qt.AlignTop)
-        # self.grid.addWidget(self.optlabel, 1, 1, Qt.AlignTop)
+        self.fav_frame.setObjectName('line')
+        self.opt_frame2.setObjectName('line')
 
         self.fav_layout = QVBoxLayout()
-        self.all_layout = QVBoxLayout()
+        self.opt_layout = QVBoxLayout()
 
         self.fav_layout.setSizeConstraint(QVBoxLayout.SetMinimumSize)
         self.fav_layout.addWidget(self.favlabel, stretch=0)
-        self.fav_layout.addWidget(self.frame, stretch=0)
+        self.fav_layout.addWidget(self.fav_frame, stretch=0)
         self.fav_layout.addWidget(self.favorites, stretch=1, alignment=Qt.AlignTop)
 
-        self.all_layout.addWidget(self.optlabel, stretch=0)
-        self.all_layout.addWidget(self.frame2, stretch=0)
-        self.all_layout.addWidget(self.options, stretch=1, alignment=Qt.AlignTop)
+        self.opt_layout.addWidget(self.optlabel, stretch=0)
+        self.opt_layout.addWidget(self.opt_frame2, stretch=0)
+        self.opt_layout.addWidget(self.options, stretch=1, alignment=Qt.AlignTop)
 
         self.parameter_layout = QHBoxLayout()
         self.parameter_layout.addLayout(self.fav_layout)
-        self.parameter_layout.addLayout(self.all_layout)
+        self.parameter_layout.addLayout(self.opt_layout)
 
         self.QV.addLayout(self.parameter_layout)
 
@@ -110,11 +106,11 @@ class ParameterTab(QWidget):
     def enable_favorites(self, enable):
         if not enable:
             self.favorites.hide()
-            self.frame.hide()
+            self.fav_frame.hide()
             self.favlabel.hide()
         else:
             self.favorites.show()
-            self.frame.show()
+            self.fav_frame.show()
             self.favlabel.show()
 
     def find_download_widget(self):
