@@ -393,10 +393,10 @@ class GUI(MainWindow):
                 return data[parameter_name]['options'].index(option_name)
             except KeyError:
                 # TODO: Logging
-                print(f'Profile {profile} has no parameter {parameter_name}, skipping')
+                # print(f'Profile {profile} has no parameter {parameter_name}, skipping')
                 return None
             except ValueError:
-                print(f'Profile {profile} does not have the option {option_name}, skipping')
+                # print(f'Profile {profile} does not have the option {option_name}, skipping')
                 return None
 
         parameter_name = item.data(0, 0)

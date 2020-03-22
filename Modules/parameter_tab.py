@@ -27,6 +27,7 @@ class ParameterTab(QWidget):
         # LineEdit for download location.
         self.download_lineedit = QLineEdit()
         self.download_lineedit.setReadOnly(True)
+        self.download_lineedit.setFocusPolicy(Qt.NoFocus)
 
         if settings.is_activate('Download location'):
             self.download_lineedit.setText('')
@@ -86,11 +87,7 @@ class ParameterTab(QWidget):
 
         self.fav_layout = QVBoxLayout()
         self.all_layout = QVBoxLayout()
-        # no_size = QSizePolicy()
-        # no_size.setRetainSizeWhenHidden(False)
-        # self.favorites.setSizePolicy(no_size)
-        # self.favlabel.setSizePolicy(no_size)
-        # self.frame.setSizePolicy(no_size)
+
         self.fav_layout.setSizeConstraint(QVBoxLayout.SetMinimumSize)
         self.fav_layout.addWidget(self.favlabel, stretch=0)
         self.fav_layout.addWidget(self.frame, stretch=0)
@@ -106,25 +103,13 @@ class ParameterTab(QWidget):
 
         self.QV.addLayout(self.parameter_layout)
 
-        # self.grid.addWidget(self.frame, 2, 0, Qt.AlignTop)
-        # self.grid.addWidget(self.frame2, 2, 1, Qt.AlignTop)
-        # self.grid.addWidget(self.favorites, 3, 0, Qt.AlignTop)
-        # self.grid.addWidget(self.options, 3, 1, Qt.AlignTop)
-        #
-        #
-        # self.grid.setRowStretch(0, 0)
-        # self.grid.setRowStretch(1, 0)
-        # self.grid.setRowStretch(2, 0)
-        # self.grid.setRowStretch(3, 1)
-        #
-        # self.QV.addLayout(self.grid)
         self.setLayout(self.QV)
 
         self.download_option = self.find_download_widget()
 
     def enable_favorites(self, enable):
         if not enable:
-            # self.favorites.resize(0,0)
+
             self.frame.resize(0, 0)
             self.favlabel.resize(0, 0)
 
