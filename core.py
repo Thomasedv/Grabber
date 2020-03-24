@@ -63,7 +63,7 @@ class GUI(MainWindow):
         self.unchecked_icon = self.file_handler.find_file('GUI\\Icon_unchecked.ico')
         self.checked_icon = self.file_handler.find_file('GUI\\Icon_checked.ico')
         self.alert_icon = self.file_handler.find_file('GUI\\Alert.ico')
-        self.window_icon = self.file_handler.find_file('GUI\\YTDLGUI.ico')
+        self.window_icon = self.file_handler.find_file('GUI\\Grabber.ico')
         self.down_arrow_icon = self.file_handler.find_file('GUI\\down-arrow2.ico')
         self.down_arrow_icon_clicked = self.file_handler.find_file('GUI\\down-arrow2-clicked.ico')
 
