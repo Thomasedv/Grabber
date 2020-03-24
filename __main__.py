@@ -20,17 +20,21 @@ from utils.utilities import SettingsError, ProfileLoadError
 
 
 def main():
+    # Main loop
+
     while True:
+        EXIT_CODE = 1
         try:
             app = QApplication(sys.argv)
             program = GUI()
 
             EXIT_CODE = app.exec_()
-            app = None
+            app = None  # Required! Crashes on restart without.
 
             if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
                 continue
 
+        # For when startup fails
         except (SettingsError, ProfileLoadError, json.decoder.JSONDecodeError) as e:
             if isinstance(e, ProfileLoadError):
                 file = 'profiles file'
@@ -42,18 +46,19 @@ def main():
                                           ''.join([str(e), '\nRestore to defaults?']),
                                           buttons=QMessageBox.Yes | QMessageBox.No)
 
+            # If yes, do settings or profile reset.
             if warning == QMessageBox.Yes:
                 filehandler = FileHandler()
                 if isinstance(e, ProfileLoadError):
                     filehandler.save_profiles({})
                 else:
                     setting = filehandler.load_settings(reset=True)
-                    filehandler.save_settings(setting.get_settings_data)
+                    filehandler.save_settings(setting.settings_data)
 
                 app = None  # Ensures the app instance is properly removed!
                 continue
 
-        break
+        sys.exit(EXIT_CODE)
 
 
 if __name__ == '__main__':

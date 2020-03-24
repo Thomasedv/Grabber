@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QWidget
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QTextEdit, QLabel, QWidget, QShortcut
 
 from utils.utilities import FONT_CONSOLAS
 
@@ -9,12 +10,15 @@ class TextTab(QWidget):
         """Handles text files for batch downloads from a list of links."""
 
         super().__init__(parent=parent)
+
         # Denotes if the textfile is saved.
         self.SAVED = True
 
         self.textedit = QTextEdit()
         self.textedit.setObjectName('TextFileEdit')
         self.textedit.setFont(FONT_CONSOLAS)
+        self.textedit.setAcceptRichText(False)
+        self.textedit.verticalScrollBar().setObjectName('main')
 
         # Create load button and label.
         self.label = QLabel('Add videos to textfile:')
@@ -23,6 +27,10 @@ class TextTab(QWidget):
         self.saveButton.setDisabled(True)
 
         self.textedit.textChanged.connect(self.enable_saving)
+
+        # Other functionality.
+        self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.textedit)
+        self.shortcut.activated.connect(self.saveButton.click)
 
         # Layout
         # Create horizontal layout.
@@ -41,5 +49,9 @@ class TextTab(QWidget):
         self.setLayout(self.VB)
 
     def enable_saving(self):
-        self.saveButton.setDisabled(False)
-        self.SAVED = False
+        if not self.textedit.toPlainText():
+            self.SAVED = True
+
+        else:
+            self.saveButton.setDisabled(False)
+            self.SAVED = False

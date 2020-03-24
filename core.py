@@ -2,15 +2,16 @@ import json
 import os
 import sys
 
-from PyQt5.QtCore import QProcess, pyqtSignal, Qt, QMimeData, pyqtSlot
-from PyQt5.QtGui import QKeySequence, QIcon, QTextCursor, QClipboard, QGuiApplication
-from PyQt5.QtWidgets import QShortcut, QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
-    QTabWidget
+from PyQt5.QtCore import QProcess, pyqtSignal, Qt
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplication, QMessageBox, \
+    QTabWidget, QListWidgetItem
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow, AboutTab, Downloader, ParameterTab, TextTab
+from Modules.download_element import ProcessListItem, MockDownload
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_stylesheet, \
-    get_win_accent_color, ProfileLoadError
+    get_win_accent_color, ProfileLoadError, LessNiceDict, to_clipboard
 
 
 class GUI(MainWindow):
@@ -24,25 +25,25 @@ class GUI(MainWindow):
         """
         GUI that wraps a youtube-dl.exe to download videos and more.
         """
-        # TODO: Add some animations! Most notably when adding download.
         super().__init__()
 
         # starts checks
         self.initial_checks()
 
         # Holds temp passwords
-        self._temp = {}
+        # TODO: Better password solution
+        self._temp = LessNiceDict()
 
         # Builds GUI and everything related to that.
         self.build_gui()
 
     def initial_checks(self):
         """Loads settings and finds necessary files. Checks the setting file for errors."""
-        QApplication.setEffectEnabled(Qt.UI_AnimateCombo, False)
 
+        self._debug = None
         self.file_handler = FileHandler()
         self.settings = self.file_handler.load_settings()
-        self.downloader = Downloader(self.file_handler)
+        self.downloader = Downloader(self.file_handler, self.settings.user_options['parallel'])
         # Find resources.
         # Find youtube-dl
 
@@ -62,7 +63,7 @@ class GUI(MainWindow):
         self.unchecked_icon = self.file_handler.find_file('GUI\\Icon_unchecked.ico')
         self.checked_icon = self.file_handler.find_file('GUI\\Icon_checked.ico')
         self.alert_icon = self.file_handler.find_file('GUI\\Alert.ico')
-        self.window_icon = self.file_handler.find_file('GUI\\YTDLGUI.ico')
+        self.window_icon = self.file_handler.find_file('GUI\\Grabber.ico')
         self.down_arrow_icon = self.file_handler.find_file('GUI\\down-arrow2.ico')
         self.down_arrow_icon_clicked = self.file_handler.find_file('GUI\\down-arrow2-clicked.ico')
 
@@ -85,38 +86,38 @@ class GUI(MainWindow):
     def build_gui(self):
         """Generates the GUI elements, and hooks everything up."""
 
-        # Indicates if license is shown. (For license tab)
-        # TODO: Move to license tab?
-        self.license_shown = False
+        # Removes anim from combobox opening
+        QApplication.setEffectEnabled(Qt.UI_AnimateCombo, False)
 
         # Sorts the parameters, so that favorite ones are added to the favorite widget.
         favorites = {i: self.settings[i] for i in self.settings.get_favorites()}
         options = {k: v for k, v in self.settings.parameters.items() if k not in favorites}
 
-        # Main widget. This will be the ones that holds everything.
-        # Create top level tab widget system for the UI.
+        # Create top level tab widget system for the UI
         self.tab_widget = QTabWidget(self)
 
+        # Close signal
         self.onclose.connect(self.confirm)
+        # Confirmation to close signal
         self.sendClose.connect(self.closeE)
 
         # Connecting stuff for tab 1.
         # Start buttons starts download
 
-        self.tab1 = MainTab(self.settings, self)
+        # First Tab
+        self.tab1 = MainTab(self.settings, self.tab_widget)
 
-        self.tab1.start_btn.clicked.connect(self.queue_dl)
-        # Stop button kills the process, aka youtube-dl.
+        self.tab1.start_btn.clicked.connect(self.queue_download)
+        # Stop button stops downloads, and may clear queue.
         self.tab1.stop_btn.clicked.connect(self.stop_download)
-        # Close button closes the window/process.
         self.tab1.close_btn.clicked.connect(self.close)
-        # When the check button is checked or unchecked, calls function checked.
+
+        # Perform check if enough is present to start a download after user actions
         self.tab1.checkbox.stateChanged.connect(self.allow_start)
-        # Connects actions to text changes and adds action to when you press Enter.
-        self.tab1.lineedit.textChanged.connect(self.allow_start)
+        self.tab1.url_input.textChanged.connect(self.allow_start)
 
         # Queue downloading
-        self.tab1.lineedit.returnPressed.connect(self.tab1.start_btn.click)
+        self.tab1.url_input.returnPressed.connect(self.tab1.start_btn.click)
 
         # Change profile
         self.tab1.profile_dropdown.currentTextChanged.connect(self.load_profile)
@@ -125,7 +126,6 @@ class GUI(MainWindow):
 
         # Tab 2
         self.tab2 = ParameterTab(options, favorites, self.settings, self)
-        # Adds the tab2 layout to the widget.
 
         # Connection stuff tab 2.
         self.tab2.open_folder_action.triggered.connect(self.open_folder)
@@ -144,32 +144,30 @@ class GUI(MainWindow):
         self.tab2.browse_btn.clicked.connect(self.savefile_dialog)
         self.tab2.save_profile_btn.clicked.connect(self.save_profile)
 
-        # Tab 3.
-        # Tab creation.
+        # Tab 3
         self.tab3 = TextTab(parent=self)
-
-        # Connecting stuff tab 3.
 
         # When loadbutton is clicked, launch load textfile.
         self.tab3.loadButton.clicked.connect(self.load_text_from_file)
-        # When savebutton clicked, save text to document.
+        # When savebutton clicked, save text to file.
         self.tab3.saveButton.clicked.connect(self.save_text_to_file)
 
         # Tab 4
         # Button to browse for .txt file to download files.
         self.tab4 = AboutTab(self.settings, parent=self)
 
-        ## Connecting stuff tab 4.
-
-        # Starts self.update_youtube_dl, locate_program_path checks for updates.
+        # Connect buttons to functions
         self.tab4.update_btn.clicked.connect(self.update_youtube_dl)
         self.tab4.dirinfo_btn.clicked.connect(self.dir_info)
         self.tab4.reset_btn.clicked.connect(self.reset_settings)
-        self.tab4.license_btn.clicked.connect(self.read_license)
         self.tab4.location_btn.clicked.connect(self.textfile_dialog)
+        self.tab4.debug_info.clicked.connect(self.toggle_debug)
+        self.tab4.dl_mode_btn.clicked.connect(self.toggle_modes)
 
         # Future tab creation here! Currently 4 tabs
         # TODO: Move stylesheet applying to method, make color picking dialog to customize in realtime
+
+        # Windows specific, only triggered in settings manually
         if self.settings.user_options['use_win_accent']:
             try:
                 color = get_win_accent_color()
@@ -236,41 +234,34 @@ class GUI(MainWindow):
                                 
                                 """
 
-        # Configuration main widget.
-        # Adds tabs to the tab widget, and names the tabs.
+        # Adds tabs to the tab widget
         self.tab_widget.addTab(self.tab1, 'Main')
         self.tab_widget.addTab(self.tab2, 'Param')
         self.tab_widget.addTab(self.tab3, 'List')
         self.tab_widget.addTab(self.tab4, 'About')
-        # Sets the styling for the GUI, everything from buttons to anything. ##
+
+        # Sets the styling for GUI
         self.setStyleSheet(get_stylesheet() + self.style_with_options)
 
-        # Set window title.
         self.setWindowTitle('Grabber')
         self.setWindowIcon(self.windowIcon)
+
         # Set base size.
         self.setMinimumWidth(340)
-        self.setMinimumHeight(200)
+        self.setMinimumHeight(400)
 
+        # Selects the text in the URL box when focus is gained
         if self.settings.user_options['select_on_focus']:
             self.gotfocus.connect(self.window_focus_event)
         else:
-            self.tab1.lineedit.setFocus()
-
-        # Other functionality.
-        self.shortcut = QShortcut(QKeySequence("Ctrl+S"), self.tab3.textedit)
-        self.shortcut.activated.connect(self.tab3.saveButton.click)
-
-        # TODO: Hook up to button, or change output to somewhere the user can get it.
-        # self.trigger_queue_print = QShortcut(QKeySequence('Ctrl+P'), self)
-        # self.trigger_queue_print.activated.connect(self.print_queue)
+            self.tab1.url_input.setFocus()
 
         # Check for youtube
         if self.youtube_dl_path is None:
             self.tab4.update_btn.setDisabled(True)
-            self.tab1.textbrowser.append(color_text('\nNo youtube-dl.exe found! Add to path, '
-                                                    'or make sure it\'s in the same folder as this program. '
-                                                    'Then close and reopen this program.', 'darkorange', 'bold'))
+            self.alert_message('Warning!', '\nNo youtube-dl.exe found! Add to path, '
+                                           'or make sure it\'s in the same folder as this program. '
+                                           'Then close and reopen this program.', '')
         # Sets the download items tooltips to the full file path.
         self.download_name_handler()
 
@@ -281,20 +272,37 @@ class GUI(MainWindow):
 
         self.show()
 
-        # self.main_tab.show() # Old method.
+        # Below NEEDS to connect after show!!
 
-        # Connect after show!!
+        # Ensures size of parameter tab is right
         self.resizedByUser.connect(self.resize_contents)
-        # To make sure the window is updated on first enter
-        # if resized before tab2 is shown, i'll be blank.
 
-        self.downloader.output.connect(self.print_process_output)
+        # Called after show, to ensure base size is consistent.
+        self.tab2.enable_favorites(bool(favorites))
+
+        # State changed
         self.downloader.stateChanged.connect(self.allow_start)
-        self.downloader.clearOutput.connect(self.tab1.textbrowser.clear)
-        self.downloader.updateQueue.connect(lambda text: self.tab1.queue_label.setText(text))
         self.tab_widget.currentChanged.connect(self.resize_contents)
 
-        # Sets the lineEdit for youtube links and paramters as focus. For easier writing.
+    def toggle_debug(self):
+        self._debug = not self._debug
+
+        self.tab4.debug_info.setText(f'Debug:\n{self._debug}')
+        for i in self.tab1.process_list.iter_items():
+            i.toggle_debug(self._debug)
+
+    def toggle_modes(self):
+        if self.downloader.RUNNING or self.downloader.has_pending():
+            self.alert_message('Action failed',
+                               'Mode was not changed',
+                               "Unable to toggle between download mode with active downloads!")
+            return
+
+        else:
+            parallel = not self.settings.user_options['parallel']
+            self.settings.user_options['parallel'] = parallel
+            self.tab4.dl_mode_btn.setText(("Singular" if not parallel else "Parallel") + '\nDownloads')
+            self.downloader.set_mode(parallel=parallel)
 
     def save_profile(self):
         dialog = Dialog(self.tab_widget, 'Name profile', 'Give a name to the profile!')
@@ -325,8 +333,8 @@ class GUI(MainWindow):
 
         self.settings.create_profile(profile_name)
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
-        self.file_handler.save_profiles(self.settings.get_profiles_data)
+        self.file_handler.save_settings(self.settings.settings_data)
+        self.file_handler.save_profiles(self.settings.profiles_data)
 
     def load_profile(self):
         try:
@@ -356,7 +364,7 @@ class GUI(MainWindow):
             self.tab1.profile_dropdown.removeItem(self.tab1.profile_dropdown.findText('Custom'))
             self.tab1.profile_dropdown.blockSignals(False)
 
-            self.file_handler.save_settings(self.settings.get_settings_data)
+            self.file_handler.save_settings(self.settings.settings_data)
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -375,19 +383,59 @@ class GUI(MainWindow):
         self.tab1.profile_dropdown.setCurrentText('Custom')
         self.tab1.profile_dropdown.blockSignals(False)
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+        self.file_handler.save_settings(self.settings.settings_data)
 
     def item_removed(self, item: QTreeWidgetItem, index):
-        """Parent who had child removed. Updates settings and numbering of get_settings_data 35"""
-        self.settings.remove_parameter_option(item.data(0, 0), index)
-        if not item.childCount():
-            item.setCheckState(0, Qt.Unchecked)
+        """Parent who had child removed. Updates settings and numbering of settings_data 35"""
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+        def get_index(data, option_name):
+            try:
+                return data[parameter_name]['options'].index(option_name)
+            except KeyError:
+                # TODO: Logging
+                # print(f'Profile {profile} has no parameter {parameter_name}, skipping')
+                return None
+            except ValueError:
+                # print(f'Profile {profile} does not have the option {option_name}, skipping')
+                return None
+
+        parameter_name = item.data(0, 0)
+        option_name = self.settings.parameters[parameter_name]['options'][index]
+
+        has_option = []
+        for profile, data in self.settings.profiles_data.items():
+            new_index = get_index(data, option_name)
+
+            if new_index is not None and data[parameter_name]['active option'] == new_index:
+                has_option.append(profile)
+
+        if has_option:
+            self.alert_message('Error',
+                               f'One or more profiles has this as the selected option:',
+                               f'\t{", ".join(has_option)}')
+            return
+
+        item.treeWidget()._del_option(item, item.child(index))
+
+        self.settings.remove_parameter_option(item.data(0, 0), index)
+
+        # Deletes from profiles
+        for profile, data in self.settings.profiles_data.items():
+            new_index = get_index(data, option_name)
+            if new_index is None:
+                continue
+            del data[parameter_name]['options'][new_index]
+            new_index = data[parameter_name]['active option']
+            new_index -= 1 if new_index > 0 else 0
+            data[parameter_name]['active option'] = new_index
+
+        self.file_handler.save_profiles(self.settings.profiles_data)
+        self.file_handler.save_settings(self.settings.settings_data)
 
     def design_option_dialog(self, name, description):
         """
         Creates dialog for user input
+        # TODO: Use this method where possible
         """
         dialog = Dialog(self.tab_widget, name, description)
         if dialog.exec_() == QDialog.Accepted:
@@ -400,9 +448,11 @@ class GUI(MainWindow):
         """
         if item.data(0, 32) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
+            return
 
         if item.data(0, 33) == 2:
             self.alert_message('Error!', 'Custom option does not take a command!', None)
+            return
 
         # TODO: Standardise setting an parameter to checked, and updating to expanded state.
         elif '{}' in self.settings[item.data(0, 32)]['command']:
@@ -447,7 +497,7 @@ class GUI(MainWindow):
                 except ValueError:
                     pass
 
-                self.file_handler.save_settings(self.settings.get_settings_data)
+                self.file_handler.save_settings(self.settings.settings_data)
 
             item.treeWidget().blockSignals(False)
 
@@ -465,13 +515,14 @@ class GUI(MainWindow):
             tree = self.tab2.favorites
             self.settings.user_options['favorites'].append(item.data(0, 0))
 
+        self.tab2.enable_favorites(bool(self.settings.user_options['favorites']))
         tree.blockSignals(True)
         tree.addTopLevelItem(item)
 
         self.tab2.options.update_size()
         self.tab2.favorites.update_size()
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+        self.file_handler.save_settings(self.settings.settings_data)
 
         if item.checkState(0) == Qt.Checked:
             item.setExpanded(True)
@@ -482,9 +533,13 @@ class GUI(MainWindow):
 
     def resize_contents(self):
         """ Resized parameterTree widgets in tab2 to the window."""
-        if self.tab_widget.currentIndex() == 1:
-            size = self.height() - (self.tab2.frame.height() + self.tab2.download_lineedit.height()
-                                    + self.tab2.favlabel.height() + self.tab_widget.tabBar().height() + 40)
+        if self.tab_widget.currentIndex() == 0:
+            self.tab1.process_list.setMinimumWidth(self.window().width() - 18)
+
+        elif self.tab_widget.currentIndex() == 1:
+            size = self.height() - (self.tab2.opt_frame2.height() + self.tab2.download_lineedit.height()
+                                    + self.tab2.optlabel.height() + self.tab_widget.tabBar().height() + 40)
+
             ParameterTree.max_size = size
             self.tab2.options.setFixedHeight(size)
             self.tab2.favorites.setFixedHeight(size)
@@ -492,16 +547,17 @@ class GUI(MainWindow):
     def window_focus_event(self):
         """ Selects text in tab1 line edit on window focus. """
         # self.tab2.options.max_size =
-        if self.tab1.lineedit.isEnabled():
-            self.tab1.lineedit.setFocus()
-            self.tab1.lineedit.selectAll()
+        if self.tab1.url_input.isEnabled():
+            self.tab1.url_input.setFocus()
+            self.tab1.url_input.selectAll()
 
     def copy_to_cliboard(self):
         """ Adds text to clipboard. """
-        mime = QMimeData()
-        mime.setText(self.tab2.download_lineedit.text())
-        board = QGuiApplication.clipboard()
-        board.setMimeData(mime, mode=QClipboard.Clipboard)
+        if self.settings.is_activate('Download location'):
+            text = self.settings.get_active_setting('Download location')
+        else:
+            text = self.local_dl_path
+        to_clipboard(text)
 
     def open_folder(self):
         """ Opens a folder at specified location. """
@@ -590,7 +646,7 @@ class GUI(MainWindow):
         item.setCheckState(0, Qt.Checked)
         sub.setCheckState(0, Qt.Checked)
 
-        self.file_handler.save_settings(self.settings.get_settings_data)
+        self.file_handler.save_settings(self.settings.settings_data)
 
     # TODO: Show queue option
 
@@ -646,41 +702,47 @@ class GUI(MainWindow):
                     self.tab2.download_lineedit.setToolTip(item.data(0, 32))
 
         if save:
-            self.file_handler.save_settings(self.settings.get_settings_data)
+            self.file_handler.save_settings(self.settings.settings_data)
 
     def dir_info(self):
-
+        # TODO: Print this info to GUI.
         file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
+        debug = [color_text('Youtube-dl.exe path: ') + self.youtube_dl_path,
+                 color_text('ffmpeg.exe path: ') + self.ffmpeg_path,
+                 color_text('Filedir: ') + file_dir,
+                 color_text('Workdir: ') + self.file_handler.work_dir,
+                 color_text('Youtube-dl working directory: ') + self.program_workdir]
 
-        debug = [color_text('\nYoutube-dl.exe path:'), self.youtube_dl_path,
-                 color_text('\nffmpeg.exe path:'), self.ffmpeg_path,
-                 color_text('Filedir:'), file_dir,
-                 color_text('Workdir:'), self.file_handler.work_dir,
-                 color_text('Youtube-dl working directory:'), self.program_workdir,
-                 color_text('\nIcon paths:'), *self.icon_list]
+        debug += [color_text('\nIcon paths:'), *self.icon_list]
 
-        for i in debug:
-            self.tab1.textbrowser.append(str(i))
-
-        self.tab1.textbrowser.append(color_text('\nChecking if icons are in place:', 'darkorange', 'bold'))
+        debug += [color_text('\nChecking if icons are in place:', 'darkorange', 'bold')]
 
         for i in self.icon_list:
             if i is not None:
-
                 if self.file_handler.is_file(str(i)):
                     try:
-                        self.tab1.textbrowser.append(''.join(['Found: ', os.path.split(i)[1]]))
+                        debug.append(f'Found: {os.path.split(i)[1]}')
                     except IndexError:
-                        self.tab1.textbrowser.append(''.join(['Found: ', i]))
-                else:
-                    self.tab1.textbrowser.append(''.join(['Missing in:', i]))
+                        debug.append(f'Found: {i}')
+
+        if self.icon_list.count(None):
+            debug.append(color_text(f'Missing {self.icon_list.count(None)} icon file(s)!'))
+
+        debug_info = '<br>'.join([text.replace('\n', '<br>') for text in debug if text is not None])
+        mock_download = MockDownload(info=debug_info)
+        self.add_download_to_gui(mock_download)
 
         self.tab_widget.setCurrentIndex(0)
 
     def update_youtube_dl(self):
-        update = Download(self.program_workdir, self.youtube_dl_path, ['-U', '--encoding', 'utf-8'], self)
+        update = Download(self.program_workdir,
+                          self.youtube_dl_path,
+                          ['-U', '--encoding', 'utf-8'],
+                          info='Youtube-dl update',
+                          parent=self)
         self.tab_widget.setCurrentIndex(0)  # Go to main
-        self.downloader.update_youtube_dl(update)
+        self.add_download_to_gui(update)
+        self.downloader.queue_dl(update)
 
     def savefile_dialog(self):
         location = QFileDialog.getExistingDirectory(parent=self.tab_widget)
@@ -709,40 +771,42 @@ class GUI(MainWindow):
 
                 if result == QMessageBox.Yes:
                     self.settings.user_options['multidl_txt'] = location
-                    self.tab4.textbrowser.setText(location)
+                    self.tab4.textfile_url.setText(location)
                     self.tab3.SAVED = True
                     self.load_text_from_file()
 
-                    self.file_handler.save_settings(self.settings.get_settings_data)
+                    self.file_handler.save_settings(self.settings.settings_data)
             else:
                 self.settings.user_options['multidl_txt'] = location
-                self.tab4.textbrowser.setText(location)
+                self.tab4.textfile_url.setText(location)
                 self.tab3.SAVED = True
                 self.load_text_from_file()
 
-                self.file_handler.save_settings(self.settings.get_settings_data)
+                self.file_handler.save_settings(self.settings.settings_data)
         else:
             self.alert_message('Error!', 'Could not find file!', '')
             # Check if the checkbox is toggled, and disables the line edit if it is.
             #  Also disables start button if lineEdit is empty and checkbox is not checked
 
-    def queue_dl(self):
+    def queue_download(self):
         command = []
 
         if self.tab1.checkbox.isChecked():
-            if self.tab4.txt_lineedit.text() == '':
+            txt = self.settings.user_options['multidl_txt']
+            url = None
+            if not txt:
                 self.alert_message('Error!', 'No textfile selected!', '')
-                self.tab1.textbrowser.append('No textfile selected...\n\nNo download queued!')
                 return
 
-            txt = self.settings.user_options['multidl_txt']
             command += ['-a', f'{txt}']
         else:
-            txt = self.tab1.lineedit.text()
+            txt = self.tab1.url_input.text()
+            url = txt
             command.append(f'{txt}')
 
         # for i in range(len(command)):
         #    command[i] = command[i].format(txt=txt)'
+        # TODO: Let user pick naming format
         file_name_format = '%(title)s.%(ext)s'
 
         for parameter, options in self.settings.parameters.items():
@@ -762,8 +826,8 @@ class GUI(MainWindow):
             elif parameter == 'Username':
                 if options['state']:
                     option = self.settings.get_active_setting(parameter)
-                    if option in self._temp:
-                        _password = self._temp[option]
+                    if hash(option) in self._temp:
+                        _password = self._temp[hash(option)]
                     else:
                         dialog = Dialog(self,
                                         'Password',
@@ -772,9 +836,10 @@ class GUI(MainWindow):
                                         password=True)
 
                         if dialog.exec_() == QDialog.Accepted:
-                            self._temp[option] = _password = dialog.option.text()
+                            self._temp[hash(option)] = _password = dialog.option.text()
                         else:
-                            self.tab1.textbrowser.append(color_text('ERROR: No password was entered.', sections=(0, 6)))
+                            self.alert_message('Error', color_text('ERROR: No password was entered.', sections=(0, 6)),
+                                               '')
                             return
 
                     add = format_in_list(options['command'], option)
@@ -784,10 +849,7 @@ class GUI(MainWindow):
 
             else:
                 if options['state']:
-                    if self.settings.get_active_setting(parameter):
-                        option = self.settings.get_active_setting(parameter)
-                    else:
-                        option = ''
+                    option = self.settings.get_active_setting(parameter)
                     add = format_in_list(options['command'], option)
                     command += add
 
@@ -797,12 +859,42 @@ class GUI(MainWindow):
         if self.ffmpeg_path is not None:
             command += ['--ffmpeg-location', self.ffmpeg_path]
 
-        download = Download(self.program_workdir, self.youtube_dl_path, command, self)
-        self.tab1.start_btn.setDisabled(True)
+        download = Download(self.program_workdir, self.youtube_dl_path, command, parent=self)
+
+        self.add_download_to_gui(download, url=url)
         self.downloader.queue_dl(download)
 
+    def add_download_to_gui(self, download, url=None):
+        scrollbar = self.tab1.process_list.verticalScrollBar()
+        place = scrollbar.sliderPosition()
+        go_bottom = (place == scrollbar.maximum())
+
+        slot = QListWidgetItem(parent=self.tab1.process_list)
+        gui_progress = ProcessListItem(download, slot, debug=self._debug, url=url)
+
+        self.tab1.process_list.addItem(slot)
+        self.tab1.process_list.setItemWidget(slot, gui_progress)
+
+        gui_progress.adjust()
+        self.tab1.process_list.resize(self.tab1.process_list.size())
+
+        if go_bottom:
+            self.tab1.process_list.scrollToBottom()
+
+        gui_progress.stat_update()
+
     def stop_download(self):
-        if self.downloader.has_pending():
+        parallel = self.settings.user_options['parallel']
+        if parallel and self.downloader.many_active():
+            result = self.alert_message('Stop all?',
+                                        'Parallel mode stops all pending and active donwloads!',
+                                        'Do you want to continue?', True, True)
+            if result == QMessageBox.Yes:
+                self.downloader.stop_download(True)
+        elif parallel:
+            self.downloader.stop_download()
+
+        elif self.downloader.has_pending():
             result = self.alert_message('Stop all?', 'Stop all pending downloads too?', '', True, True)
             if result == QMessageBox.Cancel:
                 return
@@ -811,68 +903,21 @@ class GUI(MainWindow):
         else:
             self.downloader.stop_download()
 
-    @pyqtSlot(str)
-    def print_process_output(self, text):
-        scrollbar = self.tab1.textbrowser.verticalScrollBar()
-        place = scrollbar.sliderPosition()
+        for item in self.tab1.process_list.iter_items():
+            item.is_running()
 
-        if place == scrollbar.maximum():
-            keep_position = False
-        else:
-            keep_position = True
-
-        # get the last line of QTextEdit
-        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
-        self.tab1.textbrowser.moveCursor(QTextCursor.StartOfLine, QTextCursor.MoveAnchor)
-        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.KeepAnchor)
-        last_line = self.tab1.textbrowser.textCursor().selectedText()
-
-        # Check if a percentage has already been placed.
-        if "%" in last_line and 'ETA' in last_line and "%" in text:
-            self.tab1.textbrowser.textCursor().removeSelectedText()
-            self.tab1.textbrowser.textCursor().deletePreviousChar()
-            # Last line of text
-            self.tab1.textbrowser.append(color_text(text.split("[download]")[-1][1:],
-                                                    color='lawngreen',
-                                                    weight='bold',
-                                                    sections=(0, 5)))
-            if '100%' in text:
-                self.tab1.textbrowser.append('')
-
-        else:
-            if ("%" in text and 'ETA' in text) or '100% of ' in text:
-                # Last line of text
-                self.tab1.textbrowser.append(color_text(text.split("[download]")[-1][1:],
-                                                        color='lawngreen',
-                                                        weight='bold',
-                                                        sections=(0, 5)))
-            elif '[download]' in text:
-                self.tab1.textbrowser.append(''.join([text.replace('[download] ', ''), '\n']))
-
-            else:
-                self.tab1.textbrowser.append(''.join([text, '\n']))
-
-        # Prevents some leftover highlighted text on errors and such.
-        self.tab1.textbrowser.moveCursor(QTextCursor.End, QTextCursor.MoveAnchor)
-
-        # Ensures slider position is kept when not at bottom, and stays at bottom with new text when there.
-        if keep_position:
-            scrollbar.setSliderPosition(place)
-        else:
-            scrollbar.setSliderPosition(scrollbar.maximum())
-
-    # Startup function, sets the startbutton to disabled, if lineEdit is empty,
-    # And disables the lineEdit if the textbox is checked.
-    # Stop button is set to disabled, since no process is running.
     def allow_start(self):
+        """ Adjusts buttons depending on users input and program state """
         self.tab1.stop_btn.setDisabled(not self.downloader.RUNNING)
-        self.tab1.lineedit.setDisabled(self.tab1.checkbox.isChecked())
-        self.tab1.start_btn.setDisabled(self.tab1.lineedit.text() == '' and not self.tab1.checkbox.isChecked())
+        self.tab1.url_input.setDisabled(self.tab1.checkbox.isChecked())
+        if not self.tab1.timer.isActive():
+            self.tab1.start_btn.setDisabled(self.tab1.url_input.text() == '' and not self.tab1.checkbox.isChecked())
 
     # TODO: Move to tab 3?
     def load_text_from_file(self):
-        if self.tab3.textedit.toPlainText() or (not self.tab3.saveButton.isEnabled()) or self.tab3.SAVED:
+        if self.tab3.SAVED:
             content = self.file_handler.read_textfile(self.settings.user_options['multidl_txt'])
+
             if content is not None:
                 self.tab3.textedit.clear()
                 for line in content.split():
@@ -885,22 +930,18 @@ class GUI(MainWindow):
 
             else:
                 if self.settings.user_options['multidl_txt']:
-                    warning = 'No textfile selected!'
+                    warning = 'No textfile selected!\nBrowse for one in the About tab.'
                 else:
-                    warning = 'Could not find file!'
+                    warning = 'Could not find/load file!'
                 self.alert_message('Error!', warning, '')
         else:
-            if self.tab4.txt_lineedit.text() == '':
+            result = self.alert_message('Warning',
+                                        'Overwrite?',
+                                        'Do you want to load over the unsaved changes?',
+                                        question=True)
+            if result == QMessageBox.Yes:
                 self.tab3.SAVED = True
                 self.load_text_from_file()
-            else:
-                result = self.alert_message('Warning',
-                                            'Overwrite?',
-                                            'Do you want to load over the unsaved changes?',
-                                            question=True)
-                if result == QMessageBox.Yes:
-                    self.tab3.SAVED = True
-                    self.load_text_from_file()
 
     def save_text_to_file(self):
         # TODO: Implement Ctrl+L for loading of files.
@@ -919,18 +960,18 @@ class GUI(MainWindow):
 
             if result == QMessageBox.Yes:
                 save_path = QFileDialog.getSaveFileName(parent=self.tab_widget, caption='Save as', filter='*.txt')
-                if not save_path[0]:
+                if save_path[0]:
                     self.file_handler.write_textfile(save_path[0],
                                                      self.tab3.textedit.toPlainText())
                     self.settings.user_options['multidl_txt'] = save_path[0]
-                    self.file_handler.save_settings(self.settings.get_settings_data)
+                    self.file_handler.save_settings(self.settings.settings_data)
 
-                    self.tab4.txt_lineedit.setText(self.settings.user_options['multidl_txt'])
+                    self.tab4.textfile_url.setText(self.settings.user_options['multidl_txt'])
                     self.tab3.saveButton.setDisabled(True)
                     self.tab3.SAVED = True
 
     def alert_message(self, title, text, info_text, question=False, allow_cancel=False):
-
+        """ A quick dialog for providing warnings or asking for user questions."""
         warning_window = QMessageBox(parent=self)
         warning_window.setText(text)
         warning_window.setIcon(QMessageBox.Warning)
@@ -951,13 +992,18 @@ class GUI(MainWindow):
             """Ensures that the settings are saved properly before exiting!"""
 
             nonlocal self
+            for item in self.tab1.process_list.iter_items():
+                if item._open_window is not None:
+                    item._open_window.close()
+            
             self.hide()
             self.file_handler.force_save = True
-            self.file_handler.save_settings(self.settings.get_settings_data)
-            self.file_handler.save_profiles(self.settings.get_profiles_data)
+            self.file_handler.save_settings(self.settings.settings_data)
+            self.file_handler.save_profiles(self.settings.profiles_data)
             
             self.sendClose.emit()
 
+        # If something is still running
         if self.downloader.RUNNING:
             result = self.alert_message('Want to quit?',
                                         'Still downloading!',
@@ -967,6 +1013,7 @@ class GUI(MainWindow):
             if result != QMessageBox.Yes:
                 return None
 
+        # Nothing is unsaved in textbox
         if ((self.tab3.textedit.toPlainText() == '') or (not self.tab3.saveButton.isEnabled())) or self.tab3.SAVED:
             do_proper_shutdown()
 
@@ -983,20 +1030,6 @@ class GUI(MainWindow):
                 return
 
             do_proper_shutdown()
-
-    def read_license(self):
-        # TODO: Refactor code, keep string for UI out of code.
-        if not self.license_shown:
-            content = self.file_handler.read_textfile(self.license_path)
-            if content is None:
-                self.alert_message('Error!', 'Failed to read textfile!')
-                return
-            self.tab4.abouttext_textedit.clear()
-            self.tab4.abouttext_textedit.append(content)
-            self.license_shown = True
-        else:
-            self.tab4.set_standard_text()
-            self.license_shown = False
 
 
 if __name__ == '__main__':
@@ -1019,7 +1052,7 @@ if __name__ == '__main__':
 
             warning = QMessageBox.warning(None,
                                           f'Corruption of {file}!',
-                                          ''.join([str(e), '\nRestore to defaults?']),
+                                          f'{e}\nRestore to defaults?',
                                           buttons=QMessageBox.Yes | QMessageBox.No)
 
             if warning == QMessageBox.Yes:
@@ -1028,7 +1061,7 @@ if __name__ == '__main__':
                     filehandler.save_profiles({})
                 else:
                     setting = filehandler.load_settings(reset=True)
-                    filehandler.save_settings(setting.get_settings_data)
+                    filehandler.save_settings(setting.settings_data)
 
                 app = None  # Ensures the app instance is properly removed!
                 continue

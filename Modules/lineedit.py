@@ -8,6 +8,8 @@ class LineEdit(QLineEdit):
     def __init__(self, parent=None):
         super(LineEdit, self).__init__(parent)
         self.text_focus = False
+        # Clicking automatically selects all text, this allows clicks and drag
+        # to highlight part of a url better
         self.clicklength = QTimer()
         self.clicklength.setSingleShot(True)
         self.clicklength.setTimerType(Qt.PreciseTimer)

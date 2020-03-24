@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QAction, QMenu, QComboBox
 
 
 class DropDown(QComboBox):
+    """Dropdown for selecting profiles"""
     deleteItem = pyqtSignal()
 
     def __init__(self, parent=None):

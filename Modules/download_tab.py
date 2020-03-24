@@ -1,39 +1,76 @@
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QTextBrowser, QCheckBox, \
-    QHBoxLayout, QVBoxLayout
+import typing
 
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QCheckBox, \
+    QHBoxLayout, QVBoxLayout, QListWidget
+
+from Modules.download_element import ProcessListItem
 from Modules.dropdown_widget import DropDown
 from Modules.lineedit import LineEdit
 from utils.utilities import SettingsClass
 
 
-class MainTab(QWidget):
+class ProcessList(QListWidget):
+    """ Subclass to tweak resizing of widget. Holds ProcessListItems. """
 
+    def __init__(self, *args, **kwargs):
+        super(ProcessList, self).__init__(*args, **kwargs)
+        self.verticalScrollBar().setObjectName('main')
+
+    def resizeEvent(self, a0):
+        super(ProcessList, self).resizeEvent(a0)
+
+        # Ensure the length of long labels are not too long at small window sizes
+        for item in self.iter_items():
+            if self.verticalScrollBar().isVisible():
+                padding = self.verticalScrollBar().width()
+            else:
+                padding = 0
+            item.info_label.setFixedWidth(self.width() - 18 - padding)
+
+    def iter_items(self) -> typing.Iterator[ProcessListItem]:
+        yield from [self.itemWidget(self.item(i)) for i in range(self.count())]
+
+    def clear(self) -> None:
+        """ Only removed finished downloads from display"""
+        for item in self.iter_items():
+            if not item.is_running():
+                if item._open_window is not None:
+                    item._open_window.close()
+                self.takeItem(self.indexFromItem(item.slot).row())
+
+
+class MainTab(QWidget):
+    """ QWidget for starting downloads, swapping profiles, and showing progress"""
     def __init__(self, settings: SettingsClass, parent=None):
         super().__init__(parent=parent)
 
-        # Starts the program (Youtube-dl)
+        # Queue download
         self.start_btn = QPushButton('Download')
+        # Enables start btn after some time
         self.start_btn.clicked.connect(self.start_button_timer)
-        # stops the program
+        # Stops one or all downloads
         self.stop_btn = QPushButton('Abort')
-        # Closes window (also stops the program)
+        # Closes the program
         self.close_btn = QPushButton('Close')
 
-        # Label and lineedit creation. Line edit for acception youtube links as well as paramters.
+        self.clear_btn = QPushButton('Clear')
         self.label = QLabel("Url: ")
-        self.lineedit = LineEdit()
+
+        self.url_input = LineEdit()
 
         self.profile_label = QLabel('Current profile:')
 
         self.profile_dropdown = DropDown(self)
         self.profile_dropdown.setFixedWidth(100)
 
+        # Setup for startbutton timer
         self.timer = QTimer(self)
         self.timer.setInterval(100)
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(lambda: self.start_btn.setDisabled(False))
 
+        # Populate profile selector
         if settings.profiles:
             for profile in settings.profiles:
                 self.profile_dropdown.addItem(profile)
@@ -47,62 +84,56 @@ class MainTab(QWidget):
             self.profile_dropdown.setDisabled(True)
             self.profile_dropdown.addItem('None')
 
-        self.queue_label = QLabel('Items in queue:   0')
+        # Holds entries for with queue downloads
+        self.process_list = ProcessList(self)
 
-        # TextEdit creation, for showing status messages, and the youtube-dl output.
-        self.textbrowser = QTextBrowser()
-
-        self.textbrowser.setAcceptRichText(True)
-        self.textbrowser.setOpenExternalLinks(True)
-        self.textbrowser.setContextMenuPolicy(Qt.NoContextMenu)
-
-        # Adds welcome message on startup.
-        self.textbrowser.append('Welcome!\n\nAdd video url, or load from text file.')
-        # self.edit.append('<a href="URL">Showtext</a>') Learning purposes.
+        self.process_list.setSelectionMode(QListWidget.NoSelection)
+        self.process_list.setFocusPolicy(Qt.NoFocus)
+        self.process_list.setVerticalScrollMode(self.process_list.ScrollPerPixel)
+        self.process_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # Start making checkbutton for selecting downloading from text file mode.
         self.checkbox = QCheckBox('Download from text file.')
 
         # Contains, start, abort, close buttons, and a stretch to make buttons stay on the correct side on rezise.
-        self.QH = QHBoxLayout()
+        self.button_bar = QHBoxLayout()
 
-        self.QH.addStretch(1)
-        self.QH.addWidget(self.start_btn)
-        self.QH.addWidget(self.stop_btn)
-        self.QH.addWidget(self.close_btn)
+        self.button_bar.addWidget(self.clear_btn)
+        self.button_bar.addStretch(1)
+        self.button_bar.addWidget(self.start_btn)
+        self.button_bar.addWidget(self.stop_btn)
+        self.button_bar.addWidget(self.close_btn)
 
-        # Horizontal layout 2, contains label and LineEdit. LineEdit stretches horizontally by default.
-        self.QH2 = QHBoxLayout()
+        self.url_bar = QHBoxLayout()
+        self.url_bar.addWidget(self.label)
+        self.url_bar.addWidget(self.url_input)
 
-        self.QH2.addWidget(self.label)
-        self.QH2.addWidget(self.lineedit)
+        self.profile_bar = QHBoxLayout()
+        self.profile_bar.addWidget(self.checkbox)
+        self.profile_bar.addStretch(1)
+        self.profile_bar.addWidget(self.profile_label)
+        self.profile_bar.addWidget(self.profile_dropdown)
 
-        # Line where Checkbox and queue label is.
-        self.QH3 = QHBoxLayout()
-        self.QH3.addWidget(self.checkbox)
-        self.QH3.addStretch(1)
-        self.QH3.addWidget(self.profile_label)
-        self.QH3.addWidget(self.profile_dropdown)
-        self.QH3.addWidget(self.queue_label)
+        self.vertical_layout = QVBoxLayout()
+        self.vertical_layout.addLayout(self.url_bar)
+        self.vertical_layout.addLayout(self.profile_bar)
+        self.vertical_layout.addWidget(self.process_list)
+        self.vertical_layout.addLayout(self.button_bar)
 
-        # Creates vertical box for tab1.
-        self.QV = QVBoxLayout()
+        self.setLayout(self.vertical_layout)
 
-        # Adds horizontal layouts, textbrowser and checkbox to create tab1.
-        self.QV.addLayout(self.QH2)
-        self.QV.addLayout(self.QH3)
-        self.QV.addWidget(self.textbrowser, 1)
-        self.QV.addLayout(self.QH)
-
-        self.setLayout(self.QV)
+        self.clear_btn.clicked.connect(self.process_list.clear)
 
     def start_button_timer(self, state):
+        """ Disables start button for a second. Prevents double queueing. """
+        self.start_btn.setDisabled(True)
+
         if not state:
             self.timer.start(1000)
 
 
 if __name__ == '__main__':
-    # Only visual aspects work here!!
+    # Only visuals work
     import sys
     from PyQt5.QtWidgets import QApplication
     from utils.filehandler import FileHandler

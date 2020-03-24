@@ -5,8 +5,8 @@ from functools import wraps, partial
 
 from PyQt5.QtCore import QThreadPool, QTimer, Qt
 
-from .task import Task
-from .utilities import get_base_settings, SettingsClass, ProfileLoadError
+from utils.task import Task
+from utils.utilities import get_base_settings, SettingsClass, ProfileLoadError
 
 
 def threaded_cooldown(func):
@@ -25,7 +25,7 @@ def threaded_cooldown(func):
      """
 
     timer = QTimer()
-    timer.setInterval(5000)
+    timer.setInterval(10000)
     timer.setSingleShot(True)
     timer.setTimerType(Qt.VeryCoarseTimer)
 
@@ -87,16 +87,19 @@ class FileHandler:
     # TODO: Implement logging, since returned values from threaded functions are discarded.
     # Need to know if errors hanppen!
 
-    def __init__(self, settings='settings.json', profiles='profiles.json'):
+    def __init__(self, settings_path='settings.json', profiles_path='profiles.json'):
 
-        self.profile_path = profiles
-        self.settings_path = settings
+        self.profile_path = profiles_path
+        self.settings_path = settings_path
         self.work_dir = os.getcwd().replace('\\', '/')
 
         self.force_save = False
 
         self.threadpool = QThreadPool()
         self.threadpool.setMaxThreadCount(1)
+
+    def __repr__(self):
+        return f'{__name__}(settings_path={self.settings_path}, profile_path={self.profile_path})'
 
     @staticmethod
     def find_file(relative_path, exist=True):
@@ -109,17 +112,10 @@ class FileHandler:
 
         path = os.path.join(base_path, relative_path).replace('\\', '/')
 
-        if exist:
-            if FileHandler.is_file(path):
-                # print(f'Returning existing path: {path}')
-                return path
-            else:
-                # print(f'No found: {relative_path}')
-                return None
-
-        else:
-            # print(f'Returning path: {path}')
+        if FileHandler.is_file(path) or not exist:
             return path
+        else:
+            return None
 
     @threaded_cooldown
     def save_settings(self, settings):
@@ -172,6 +168,7 @@ class FileHandler:
 
     def find_exe(self, program):
         """Used to find executables."""
+        # Possible Windows specific implementation
         local_path = os.path.join(self.work_dir, program)
         if FileHandler.is_file(local_path):
             # print(f'Returning existing isfile exe: {os.path.join(self.work_dir, program)}')
@@ -182,9 +179,6 @@ class FileHandler:
             if FileHandler.is_file(exe_file):
                 # print(f'Returning existing exe: {os.path.abspath(exe_file)}')
                 return os.path.abspath(exe_file)
-        # TODO: Check if not covered by path above!
-
-        # print(f'No found: {program}')
         return None
 
     @staticmethod
@@ -208,8 +202,8 @@ class FileHandler:
                     f.write(content)
                 return True
             except (OSError, IOError) as e:
-                print('Error! ', e)
+                # TODO: Logging error
                 return False
         else:
-            print('Error!')
+            # TODO: Logging error
             return False

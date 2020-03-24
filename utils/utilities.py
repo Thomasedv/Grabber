@@ -2,13 +2,75 @@
 Utilities for Grabber.
 """
 import copy
+import logging
+import re
+import sys
+
+from traceback import format_exception
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
-from PyQt5.QtGui import QFont, QColor
+
+LOG_FILE = 'Grabber_error.log'
+
+log = logging.getLogger('Grabber')
+log.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('{name:<15}:{levelname:<7}:{lineno:4d}: {message}', style="{")
+filehandler = logging.FileHandler(LOG_FILE, encoding='utf-8')
+filehandler.setFormatter(formatter)
+filehandler.setLevel(logging.CRITICAL)
+log.addHandler(filehandler)
+
+
+def get_logger(string):
+    """ Ensure logger is configured before use. """
+    return logging.getLogger(string)
+
+
+def except_hook(cls, exception, traceback):
+    """ If frozen, catch error and exit. Dev, prints error but may continue if possible. """
+    critical_log = get_logger('Grabber')
+    error = "".join(format_exception(cls, exception, traceback))
+    critical_log.critical(f'Encountered fatal error:\n\n{error}')
+
+    # If imports fail below, the error, the error is still printed!
+    try:
+        if getattr(sys, 'frozen', False):
+            warn_user(error)
+        else:
+            sys.__excepthook__(cls, exception, traceback)
+    except:
+        pass
+
+
+# Override PyQt exception handling
+sys.excepthook = except_hook
+
+from PyQt5.QtCore import QMimeData
+from PyQt5.QtGui import QFont, QColor, QGuiApplication, QClipboard
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 FONT_CONSOLAS = QFont()
 FONT_CONSOLAS.setFamily('Consolas')
 FONT_CONSOLAS.setPixelSize(13)
+
+
+def warn_user(error):
+    app = QApplication.instance()
+    if not app:
+        app = QApplication(sys.argv)
+    QMessageBox.warning(None,
+                        'ERROR!',
+                        'An critical error happened running the program. Please forward this error to developer:\n\n'
+                        f'{error}', QMessageBox.Ok)
+    QApplication.exit(1)
+
+
+def to_clipboard(text):
+    mime = QMimeData()
+    mime.setText(text)
+    board = QGuiApplication.clipboard()
+    board.setMimeData(mime, mode=QClipboard.Clipboard)
 
 
 def path_shortener(full_path: str):
@@ -28,7 +90,7 @@ def path_shortener(full_path: str):
                 times += 1
                 if times == 3 and full_path.count('/') >= 4:
                     short_path = ''.join([full_path[:full_path.find('/')+1], '...', full_path[split:]])
-                    # print(short_path)
+
                     break
                 elif times == 3:
                     split = full_path.find('/', split)
@@ -68,9 +130,10 @@ def color_text(text: str, color: str = 'darkorange', weight: str = 'bold', secti
 
 
 def format_in_list(command, option):
+    com = re.compile(r'{.+\}')
     split_command = command.split()
     for index, item in enumerate(split_command):
-        if '{}' in item:
+        if '{}' in item and com.search(item) is None:
             split_command[index] = item.format(option)
             return split_command
     return split_command
@@ -79,6 +142,7 @@ def format_in_list(command, option):
 def get_win_accent_color():
     """
     Return the Windows 10 accent color used by the user in a HEX format
+    Windows specific
     """
     # Open the registry
     registry = ConnectRegistry(None, HKEY_CURRENT_USER)
@@ -86,11 +150,25 @@ def get_win_accent_color():
     key_value = QueryValueEx(key, 'AccentColor')
     accent_int = key_value[0]
     accent_hex = hex(accent_int)  # Remove FF offset and convert to HEX again
-    accent_hex = str(accent_hex)[4:]  # Remove prefix and suffix
+    accent_hex = str(accent_hex)[4:]  # Remove prefix
 
     accent = accent_hex[4:6] + accent_hex[2:4] + accent_hex[0:2]
 
     return '#' + accent
+
+
+class LessNiceDict(dict):
+    def values(self):
+        return
+
+    def items(self):
+        return
+
+    def __str__(self):
+        return 'No printing'
+
+    def __repr__(self):
+        return 'No printing'
 
 
 class SettingsError(Exception):
@@ -102,6 +180,8 @@ class ProfileLoadError(Exception):
 
 
 class SettingsClass:
+    """Holds settings and handles manipulation"""
+
     def __init__(self, settings, profiles, filehandler=None):
         if not settings:
             raise SettingsError('Empty settings file!')
@@ -127,15 +207,12 @@ class SettingsClass:
 
         self._validate_settings()
 
-        # print(self._profiles)
-        # print(self.get_settings_data)
-
     def __enter__(self):
         return self._parameters
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._filehandler is not None:
-            self._filehandler.save_settings(self.get_settings_data)
+            self._filehandler.save_settings(self.settings_data)
 
     def __getitem__(self, item):
         return self._parameters[item]
@@ -155,13 +232,15 @@ class SettingsClass:
         if '{}' in param['command']:
             active = param['active option']
             return param['options'][active]
+        else:
+            return ''
 
     @property
     def parameters(self) -> dict:
         return self._parameters
 
     @property
-    def get_settings_data(self):
+    def settings_data(self):
         return {'default': self._userdefined, 'parameters': self._parameters}
 
     @property
@@ -173,7 +252,7 @@ class SettingsClass:
         return list(self._profiles.keys())
 
     @property
-    def get_profiles_data(self):
+    def profiles_data(self):
         return self._profiles
 
     def create_profile(self, profile):
@@ -324,8 +403,8 @@ class SettingsClass:
         except TypeError as error:
             raise SettingsError(f'An unexpected type was encountered for setting:\n - {setting}\n -- {error}')
 
-        self._filehandler.save_profiles(self.get_profiles_data)
-        self._filehandler.save_settings(self.get_settings_data)
+        self._filehandler.save_profiles(self.profiles_data)
+        self._filehandler.save_settings(self.settings_data)
 
 
 stylesheet = """
@@ -337,12 +416,17 @@ stylesheet = """
                                     background-color: {background_dark};
                                     color: red;
                                 }}
-                                
                                 QMenu::separator {{
                                     height: 2px;
                                 }}
                                 QFrame#line {{
                                     color: {background_dark};
+                                }}
+                                QLabel {{
+                                    background: #484848;
+                                    padding: 2px;
+                                    border-radius: 2px;
+                                    outline: 0;    
                                 }}
 
                                 QTabWidget::pane {{
@@ -422,24 +506,39 @@ stylesheet = """
                                     border: red solid 1px;
                                     border-radius: 2px;
                                 }}
+                                    
+                                QListWidget {{
+                                    outline: none;
+                                    outline-width: 0px;
+                                    background: {background_dark};
+                                    border: 1px solid {background_dark};
+                                    border-radius: 2px;
+                                }}
                                 
                                 QScrollBar::vertical {{
                                     border: none;
-                                    background-color: rgba(255,255,255,0);
+                                    background-color: transparent;
                                     width: 10px;
-                                    margin: 0px 0px 1px 0px;
+                                    margin: 0px 0px 0px 0px;
                                 }}
-
+                                QScrollBar::vertical#main {{
+                                    background-color: {background_dark};
+                                }}
                                 QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
                                     border: none;
                                     background: none;
+                                    width: 0px;
+                                    height: 0px;
                                 }}
 
                                 QScrollBar::handle:vertical {{
                                     background: {background_dark};
-                                    color: red;
                                     min-height: 20px;
                                     border-radius: 5px;
+                                }}
+                                
+                                QScrollBar::handle:vertical#main {{
+                                    background: {background_darkest};
                                 }}
 
                                 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
@@ -513,6 +612,7 @@ base_settings['profiles'] = {}
 base_settings['parameters'] = {}
 base_settings['default'] = {
     'multidl_txt': '',
+    "parallel": False,
     'current_profile': '',
     'select_on_focus': True,
     'favorites': [],
@@ -927,6 +1027,7 @@ text = QColor('white')
 
 default_style = {'background_light': surface,
                  'background_dark': darken(surface),
+                 'background_darkest': darken(darken(surface)),
                  'background_lightest': lighten(surface),
                  'text_shaded': darken(text),
                  'text_normal': text}
