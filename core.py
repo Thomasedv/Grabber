@@ -210,8 +210,10 @@ class GUI(MainWindow):
                                 
                                 QTreeWidget::indicator:unchecked {{
                                     image: url({self.unchecked_icon});
-                                }}
-                                
+                                }}"""
+
+        if not self.settings.user_options['show_collapse_arrows']:
+            self.style_with_options += """
                                 QTreeWidget::branch {{
                                     image: none;
                                     border-image: none;    
