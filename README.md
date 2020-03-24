@@ -32,7 +32,7 @@ If you don't put anything in path, this is what your folder should have:
 - ffplay.exe (is included in ffmpeg bin folder, but not actually needed)
 - youtube-dl.exe
 
-Remember, if nothing happens when you try a download, to install "Microsoft Visual C++ 2010 Redistributable Package (x86)" from the microsoft link above! 
+**Remember, if nothing happens when you try a download, to install "Microsoft Visual C++ 2010 Redistributable Package (x86)" from the microsoft link above!** This is required by youtube-dl to run.
 
 ______
 
