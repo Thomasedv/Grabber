@@ -464,9 +464,9 @@ class GUI(MainWindow):
 
             if option:
                 if option in self.settings[item.data(0, 32)]['options']:
-                    self.alert_message('Error', 'That option already exsists!', '')
+                    self.alert_message('Error', 'That option already exists!', '')
                     item.treeWidget().blockSignals(False)
-                    return
+                    return True
 
                 new_option = ParameterTree.make_option(option.strip(),
                                                        item,
@@ -501,10 +501,14 @@ class GUI(MainWindow):
 
                 self.file_handler.save_settings(self.settings.settings_data)
 
-            item.treeWidget().blockSignals(False)
-
+                item.treeWidget().blockSignals(False)
+                return True
+            else:
+                item.treeWidget().blockSignals(False)
+                return False
         else:
             self.alert_message('Error!', 'The specified option does not take arguments!', None)
+            return False
             # print('Doesn\'t have an option')
 
     def move_item(self, item: QTreeWidgetItem, favorite: bool):
@@ -676,7 +680,13 @@ class GUI(MainWindow):
                 result = self.alert_message('Warning!', 'This parameter needs an option!', 'There are no options!\n'
                                                                                            'Would you make one?', True)
                 if result == QMessageBox.Yes:
-                    self.add_option(item)
+                    success = self.add_option(item)
+
+                    if not success:
+                        item.treeWidget().blockSignals(True)
+                        item.setCheckState(0, Qt.Unchecked)
+                        item.treeWidget().blockSignals(False)
+                        item.treeWidget().check_dependency(item)
                 else:
                     item.treeWidget().blockSignals(True)
                     item.setCheckState(0, Qt.Unchecked)
