@@ -646,7 +646,7 @@ base_settings['parameters']['Audio quality'] = {
     "command": "--audio-quality {}",
     "dependency": 'Convert to audio',
     "options": ['0', '5', '9'],
-    "state": True,
+    "state": False,
     "tooltip": "Specify ffmpeg/avconv audio quality.\ninsert"
                "a value between\n0 (better) and 9 (worse)"
                "for VBR\nor a specific bitrate like 128K"
