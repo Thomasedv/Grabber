@@ -9,7 +9,6 @@ import sys
 from traceback import format_exception
 from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
-
 LOG_FILE = 'Grabber_error.log'
 
 log = logging.getLogger('Grabber')
@@ -89,12 +88,12 @@ def path_shortener(full_path: str):
                 split = -integer - 1
                 times += 1
                 if times == 3 and full_path.count('/') >= 4:
-                    short_path = ''.join([full_path[:full_path.find('/')+1], '...', full_path[split:]])
+                    short_path = ''.join([full_path[:full_path.find('/') + 1], '...', full_path[split:]])
 
                     break
                 elif times == 3:
                     split = full_path.find('/', split)
-                    short_path = ''.join([full_path[:full_path.find('/')+1], '...', full_path[split:]])
+                    short_path = ''.join([full_path[:full_path.find('/') + 1], '...', full_path[split:]])
                     break
         else:
             short_path = full_path
@@ -1002,6 +1001,16 @@ base_settings['parameters']['Username'] = {
     "options": [],
     "state": False,
     "tooltip": "Username of your account. Password will be asked for on run."
+}
+base_settings['parameters']['Best video quality'] = {
+    "active option": 0,
+    "command": "--format ((571/272/402/337/315/313/401/336/308/400/271/335/303/299/399/137/248/334/302/298/398/247/136/333/244/135/397/332/243/134/396/331/242/133/395/330/160/394/278)[protocol!=http_dash_segments])+(bestaudio[acodec=opus]/bestaudio[protocol!=http_dash_segments])/best",
+    "dependency": None,
+    "options": None,
+    "state": False,
+    "tooltip": "This is a special command that uses --format"
+               "\nThis picks best possible video quality (at the time of addition)"
+               "\nDo not use when converting to audio!"
 }
 
 
