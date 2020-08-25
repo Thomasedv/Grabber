@@ -12,6 +12,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         return False
 
 
+# Constants to access data from TreeWidgetItems using the .data(0, DATA_SLOT) method
 DISPLAY_NAME_SLOT = 0  # Display name
 DATA_SLOT = 32  # Name of widget item
 LEVEL_SLOT = 33  # 0 for top level, 1 for child of top levels
@@ -70,7 +71,11 @@ class ParameterTree(QTreeWidget):
         self.itemChanged.connect(self.check_dependency)
 
     def contextMenu(self, event):
+        """
+        Create context menu for parameters.
 
+        Reminder: LEVEL_SLOT points to items in
+        """
         item = self.itemAt(event)
 
         if item is None:

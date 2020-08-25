@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QFileDialog, QTreeWidgetItem, qApp, QDialog, QApplic
 
 from Modules import Dialog, Download, MainTab, ParameterTree, MainWindow, AboutTab, Downloader, ParameterTab, TextTab
 from Modules.download_element import ProcessListItem, MockDownload
+from Modules.parameter_tree import DATA_SLOT, LEVEL_SLOT, INDEX_SLOT, DISPLAY_NAME_SLOT
 from utils.filehandler import FileHandler
 from utils.utilities import path_shortener, color_text, format_in_list, SettingsError, get_stylesheet, \
     get_win_accent_color, ProfileLoadError, LessNiceDict, to_clipboard
@@ -401,7 +402,7 @@ class GUI(MainWindow):
                 # print(f'Profile {profile} does not have the option {option_name}, skipping')
                 return None
 
-        parameter_name = item.data(0, 0)
+        parameter_name = item.data(0, DISPLAY_NAME_SLOT)
         option_name = self.settings.parameters[parameter_name]['options'][index]
 
         has_option = []
@@ -419,7 +420,7 @@ class GUI(MainWindow):
 
         item.treeWidget()._del_option(item, item.child(index))
 
-        self.settings.remove_parameter_option(item.data(0, 0), index)
+        self.settings.remove_parameter_option(item.data(0, DISPLAY_NAME_SLOT), index)
 
         # Deletes from profiles
         for profile, data in self.settings.profiles_data.items():
@@ -448,22 +449,22 @@ class GUI(MainWindow):
         """
         Check if parameter has a possible option parameter, and lets the user add on if one exist.
         """
-        if item.data(0, 32) == 'Download location':
+        if item.data(0, DATA_SLOT) == 'Download location':
             self.alert_message('Error!', 'Please use the browse button\nto select download location!', None)
             return
 
-        if item.data(0, 33) == 2:
+        if item.data(0, LEVEL_SLOT) == 2:
             self.alert_message('Error!', 'Custom option does not take a command!', None)
             return
 
         # TODO: Standardise setting an parameter to checked, and updating to expanded state.
-        elif '{}' in self.settings[item.data(0, 32)]['command']:
+        elif '{}' in self.settings[item.data(0, DATA_SLOT)]['command']:
 
             item.treeWidget().blockSignals(True)
             option = self.design_option_dialog(item.text(0), item.toolTip(0))
 
             if option:
-                if option in self.settings[item.data(0, 32)]['options']:
+                if option in self.settings[item.data(0, DATA_SLOT)]['options']:
                     self.alert_message('Error', 'That option already exists!', '')
                     item.treeWidget().blockSignals(False)
                     return True
@@ -479,11 +480,11 @@ class GUI(MainWindow):
                 move = item.takeChild(item.indexOfChild(new_option))
                 item.insertChild(0, move)
 
-                self.settings.add_parameter_option(item.data(0, 32), option)
+                self.settings.add_parameter_option(item.data(0, DATA_SLOT), option)
 
-                for i in range(len(self.settings[item.data(0, 32)]['options'])):
+                for i in range(len(self.settings[item.data(0, DATA_SLOT)]['options'])):
                     child = item.child(i)
-                    child.setData(0, 35, i)
+                    child.setData(0, INDEX_SLOT, i)
                     if i == 0:
                         child.setCheckState(0, Qt.Checked)
                         child.setFlags(child.flags() ^ Qt.ItemIsUserCheckable)
@@ -495,7 +496,7 @@ class GUI(MainWindow):
                 item.setExpanded(True)
                 item.treeWidget().update_size()
                 try:
-                    self.settings.need_parameters.remove(item.data(0, 32))
+                    self.settings.need_parameters.remove(item.data(0, DATA_SLOT))
                 except ValueError:
                     pass
 
@@ -516,10 +517,10 @@ class GUI(MainWindow):
 
         if favorite:
             tree = self.tab2.options
-            self.settings.user_options['favorites'].remove(item.data(0, 0))
+            self.settings.user_options['favorites'].remove(item.data(0, DISPLAY_NAME_SLOT))
         else:
             tree = self.tab2.favorites
-            self.settings.user_options['favorites'].append(item.data(0, 0))
+            self.settings.user_options['favorites'].append(item.data(0, DISPLAY_NAME_SLOT))
 
         self.tab2.enable_favorites(bool(self.settings.user_options['favorites']))
         tree.blockSignals(True)
@@ -583,8 +584,8 @@ class GUI(MainWindow):
         if item.checkState(0) == Qt.Checked:
             for number in range(item.childCount()):
                 if item.child(number).checkState(0) == Qt.Checked:
-                    self.tab2.download_lineedit.setText(item.child(number).data(0, 0))
-                    self.tab2.download_lineedit.setToolTip(item.child(number).data(0, 32))
+                    self.tab2.download_lineedit.setText(item.child(number).data(0, DISPLAY_NAME_SLOT))
+                    self.tab2.download_lineedit.setToolTip(item.child(number).data(0, DATA_SLOT))
                     break
             else:
                 # TODO: Add error handling here
@@ -606,7 +607,7 @@ class GUI(MainWindow):
         if not full_path.endswith('/'):
             full_path += '/'
         short_path = path_shortener(full_path)
-        names = [item.child(i).data(0, 0) for i in range(item.childCount())]
+        names = [item.child(i).data(0, DISPLAY_NAME_SLOT) for i in range(item.childCount())]
 
         if short_path in names and full_path in self.settings['Download location']['options']:
             self.alert_message('Warning', 'Option already exists!', '', question=False)
@@ -621,7 +622,7 @@ class GUI(MainWindow):
                                         tooltip=full_path,
                                         dependency=None,
                                         subindex=None)
-        sub.setData(0, 0, short_path)
+        sub.setData(0, DISPLAY_NAME_SLOT, short_path)
         # print('sorting enabled?', item.treeWidget().isSortingEnabled())
 
         # Take item from one tree and insert in another.
@@ -630,7 +631,7 @@ class GUI(MainWindow):
 
         # Renumber the items, to give then the right index.
         for number in range(item.childCount()):
-            item.child(number).setData(0, 35, number)
+            item.child(number).setData(0, INDEX_SLOT, number)
 
         if self.settings['Download location']['options'] is None:
             self.settings['Download location']['options'] = [full_path]
@@ -645,7 +646,7 @@ class GUI(MainWindow):
         # self.tab2.download_lineedit.setText(location)
         # self.tab2.download_lineedit.setToolTip(tooltip)
         try:
-            self.settings.need_parameters.remove(item.data(0, 32))
+            self.settings.need_parameters.remove(item.data(0, DATA_SLOT))
         except ValueError:
             pass
 
@@ -675,8 +676,8 @@ class GUI(MainWindow):
             self.tab1.profile_dropdown.setCurrentText('Custom')
             self.settings.user_options['current_profile'] = ''
 
-        if item.data(0, 33) == 0:
-            if item.data(0, 32) in self.settings.need_parameters:
+        if item.data(0, LEVEL_SLOT) == 0:
+            if item.data(0, DATA_SLOT) in self.settings.need_parameters:
                 result = self.alert_message('Warning!', 'This parameter needs an option!', 'There are no options!\n'
                                                                                            'Would you make one?', True)
                 if result == QMessageBox.Yes:
@@ -694,24 +695,24 @@ class GUI(MainWindow):
                     item.treeWidget().check_dependency(item)
 
             if item.checkState(0) == Qt.Checked:
-                self.settings[item.data(0, 32)]['state'] = True
-                if item.data(0, 32) == 'Download location':
+                self.settings[item.data(0, DATA_SLOT)]['state'] = True
+                if item.data(0, DATA_SLOT) == 'Download location':
                     for i in range(item.childCount()):
                         self.parameter_updater(item.child(i), save=False)
 
             else:
-                self.settings[item.data(0, 32)]['state'] = False
-                if item.data(0, 32) == 'Download location':
+                self.settings[item.data(0, DATA_SLOT)]['state'] = False
+                if item.data(0, DATA_SLOT) == 'Download location':
                     self.tab2.download_lineedit.setText(path_shortener(self.local_dl_path))
                     self.tab2.download_lineedit.setToolTip(self.local_dl_path)
 
-        elif item.data(0, 33) == 1:
+        elif item.data(0, LEVEL_SLOT) == 1:
             # Settings['Settings'][Name of setting]['active option']] = index of child
-            self.settings[item.parent().data(0, 32)]['active option'] = item.data(0, 35)
-            if item.parent().data(0, 32) == 'Download location':
+            self.settings[item.parent().data(0, DATA_SLOT)]['active option'] = item.data(0, INDEX_SLOT)
+            if item.parent().data(0, DATA_SLOT) == 'Download location':
                 if item.checkState(0) == Qt.Checked:
-                    self.tab2.download_lineedit.setText(item.data(0, 0))
-                    self.tab2.download_lineedit.setToolTip(item.data(0, 32))
+                    self.tab2.download_lineedit.setText(item.data(0, DISPLAY_NAME_SLOT))
+                    self.tab2.download_lineedit.setToolTip(item.data(0, DATA_SLOT))
 
         if save:
             self.file_handler.save_settings(self.settings.settings_data)
