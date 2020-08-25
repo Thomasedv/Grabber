@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, \
     QAction, QFrame
 
-from Modules.parameter_tree import ParameterTree
+from Modules.parameter_tree import ParameterTree, DATA_SLOT
 from utils.utilities import SettingsError
 
 
@@ -117,11 +117,11 @@ class ParameterTab(QWidget):
         """ Finds the download widget. """
         # TODO: Refactor to check the settings file/object, not the parameterTrees.
         for item in self.favorites.topLevelItems():
-            if item.data(0, 32) == 'Download location':
+            if item.data(0, DATA_SLOT) == 'Download location':
                 self.download_option = item
                 return item
         for item in self.options.topLevelItems():
-            if item.data(0, 32) == 'Download location':
+            if item.data(0, DATA_SLOT) == 'Download location':
                 self.download_option = item
                 return item
         raise SettingsError('No download item found in settings.')

@@ -12,6 +12,14 @@ class TreeWidgetItem(QTreeWidgetItem):
         return False
 
 
+DISPLAY_NAME_SLOT = 0  # Display name
+DATA_SLOT = 32  # Name of widget item
+LEVEL_SLOT = 33  # 0 for top level, 1 for child of top levels
+CHECKLIST_SLOT = 34  # Items to check
+INDEX_SLOT = 35  # Index of child items under parent
+DEPENDENT_SLOT = 37  # Items this current item depends on
+
+
 class ParameterTree(QTreeWidget):
     """Holds parameters and their respective options"""
 
@@ -25,6 +33,7 @@ class ParameterTree(QTreeWidget):
         Data table:
         All data is in column 0.
         --
+        TODO: Make the following a enum or something class attributes.
         0  - Visual name.
         32 - main data entry, name of parents, full data for children
         33 - 0 for parent, 1 for children, 3 for custom option.
@@ -73,14 +82,14 @@ class ParameterTree(QTreeWidget):
         move_action = None
         take_item = None
 
-        if item.data(0, 33) == 0:
+        if item.data(0, LEVEL_SLOT) == 0:
             take_item = item
-        elif item.data(0, 33) == 1:
+        elif item.data(0, LEVEL_SLOT) == 1:
             take_item = item.parent()
 
             remove_option = QAction('Remove option')
             remove_option.triggered.connect(lambda: self.try_del_option(take_item, item))
-        elif item.data(0, 33) == 2:
+        elif item.data(0, LEVEL_SLOT) == 2:
             take_item = item
         else:
             # TODO: Log error, shouldn't be reached either way
@@ -89,7 +98,7 @@ class ParameterTree(QTreeWidget):
         add_option = QAction('Add option')
         add_option.triggered.connect(lambda: self.addOption.emit(take_item))
 
-        if take_item.data(0, 33) != 2:
+        if take_item.data(0, LEVEL_SLOT) != 2:
             move_action = QAction('Favorite' if not self.favorite else 'Remove favorite')
             move_action.triggered.connect(lambda: self.move_widget(take_item))
             move_action.setIconVisibleInMenu(False)
@@ -114,7 +123,7 @@ class ParameterTree(QTreeWidget):
         parent.removeChild(child)
         selected_option = False
         for i in range(parent.childCount()):
-            parent.child(i).setData(0, 35, i)
+            parent.child(i).setData(0, INDEX_SLOT, i)
             if parent.child(i).checkState(0) == Qt.Checked:
                 selected_option = True
 
@@ -163,8 +172,7 @@ class ParameterTree(QTreeWidget):
         for item in self.topLevelItems():
 
             # Create a list if top level items, their dependent and the QModelIndex of said item.
-
-            top_level_names.append([item.data(0, 32), item.data(0, 34), self.indexFromItem(item)])
+            top_level_names.append([item.data(0, DATA_SLOT), item.data(0, CHECKLIST_SLOT), self.indexFromItem(item)])
 
         # Locate matches, and store in dict
         # TODO: Make readable. THIS IS DARK MAGIC
@@ -178,10 +186,10 @@ class ParameterTree(QTreeWidget):
 
                 # Check if there is a reference to other dependents.
                 # If True, make add a new dependency, if not, make a list with a dependency.
-                if type(host.data(0, 37)) is list:
-                    host.setData(0, 37, host.data(0, 37) + [dependent])
+                if type(host.data(0, DEPENDENT_SLOT)) is list:
+                    host.setData(0, DEPENDENT_SLOT, host.data(0, DEPENDENT_SLOT) + [dependent])
                 else:
-                    host.setData(0, 37, [dependent])
+                    host.setData(0, DEPENDENT_SLOT, [dependent])
 
         # Ensure dependents are disabled on start!
         for item in self.topLevelItems():
@@ -195,8 +203,8 @@ class ParameterTree(QTreeWidget):
         :type item: QTreeWidget
         """
 
-        if item.data(0, 33) == 0 and item.data(0, 37):
-            for i in item.data(0, 37):
+        if item.data(0, LEVEL_SLOT) == 0 and item.data(0, DEPENDENT_SLOT):
+            for i in item.data(0, DEPENDENT_SLOT):
                 if item.checkState(0) == Qt.Unchecked:
                     self.blockSignals(True)
                     i.setDisabled(True)
@@ -242,19 +250,20 @@ class ParameterTree(QTreeWidget):
         else:
             widget_item.setCheckState(0, Qt.Unchecked)
 
-        widget_item.setData(0, 32, name)
-        widget_item.setData(0, 33, level)
+        widget_item.setData(0, DATA_SLOT, name)
+        widget_item.setData(0, LEVEL_SLOT, level)
 
         if level == 1:
-            widget_item.setData(0, 35, subindex)
+            widget_item.setData(0, INDEX_SLOT, subindex)
         elif level == 0:
             if dependency:
-                widget_item.setData(0, 34, dependency)
+                widget_item.setData(0, CHECKLIST_SLOT, dependency)
 
         return widget_item
 
     def update_size(self):
         """Sets widget size. Required to keep consistent."""
+        # 15 and 20 are arbitrary units for height if each treelevelitem.
         child_size = 15 * sum(
             [1 for i in range(self.topLevelItemCount()) for _ in range(self.topLevelItem(i).childCount())])
         parent_size = 20 * self.topLevelItemCount()
@@ -291,11 +300,11 @@ class ParameterTree(QTreeWidget):
         else:
             unblock = True
 
-        if item.data(0, 33) == 0:
+        if item.data(0, LEVEL_SLOT) == 0:
             self.expand_options(item)
             self.resizer(item)
 
-        elif item.data(0, 33) == 1:
+        elif item.data(0, LEVEL_SLOT) == 1:
             self.blockSignals(True)
             for i in range(item.parent().childCount()):
 
@@ -309,7 +318,8 @@ class ParameterTree(QTreeWidget):
                 except Exception as e:
                     # Log error
                     print(e)
-        elif item.data(0, 33) == 2:
+        elif item.data(0, LEVEL_SLOT) == 2:
+            # DEPRECATED
             pass  # Custom options should not have options, not now at least.
         else:
             pass  # TODO: Log error: state state not set.

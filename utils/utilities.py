@@ -407,204 +407,203 @@ class SettingsClass:
 
 
 stylesheet = """
-                                QWidget {{
-                                    background-color: {background_light};
-                                    color: {text_normal};
-                                }}
-                                QMainWindow {{
-                                    background-color: {background_dark};
-                                    color: red;
-                                }}
-                                QMenu::separator {{
-                                    height: 2px;
-                                }}
-                                QFrame#line {{
-                                    color: {background_dark};
-                                }}
-                                QLabel {{
-                                    background: #484848;
-                                    padding: 2px;
-                                    border-radius: 2px;
-                                    outline: 0;    
-                                }}
+    QWidget {{
+        background-color: {background_light};
+        color: {text_normal};
+    }}
+    QMainWindow {{
+        background-color: {background_dark};
+        color: red;
+    }}
+    QMenu::separator {{
+        height: 2px;
+    }}
+    QFrame#line {{
+        color: {background_dark};
+    }}
+    QLabel {{
+        background: #484848;
+        padding: 2px;
+        border-radius: 2px;
+        outline: 0;    
+    }}
 
-                                QTabWidget::pane {{
-                                    border: none;
-                                }}
+    QTabWidget::pane {{
+        border: none;
+    }}
 
-                                QMenu::item {{
-                                    border: none;
-                                    padding: 3px 20px 3px 5px
-                                }}
+    QMenu::item {{
+        border: none;
+        padding: 3px 20px 3px 5px
+    }}
 
-                                QMenu {{
-                                    border: 1px solid {background_dark};
-                                }}
+    QMenu {{
+        border: 1px solid {background_dark};
+    }}
 
-                                QMenu::item:selected {{
-                                    background-color: {background_dark};
-                                }}
+    QMenu::item:selected {{
+        background-color: {background_dark};
+    }}
 
-                                QMenu::item:disabled {{
-                                    color: #808080;
-                                }}
+    QMenu::item:disabled {{
+        color: #808080;
+    }}
 
-                                QTabWidget {{
-                                    background-color: {background_dark};
-                                }}
+    QTabWidget {{
+        background-color: {background_dark};
+    }}
 
-                                QTabBar {{
-                                    color: {background_dark};
-                                    background: {background_dark};
-                                }}
+    QTabBar {{
+        color: {background_dark};
+        background: {background_dark};
+    }}
 
-                                QTabBar::tab {{
-                                    color: {text_shaded};
-                                    background-color: {background_lightest};
-                                    border-bottom: none;
-                                    border-left: 1px solid #00000000;
-                                    min-width: 15ex;
-                                    min-height: 7ex;
-                                }}
+    QTabBar::tab {{
+        color: {text_shaded};
+        background-color: {background_lightest};
+        border-bottom: none;
+        border-left: 1px solid #00000000;
+        min-width: 15ex;
+        min-height: 7ex;
+    }}
 
-                                QTabBar::tab:selected {{
-                                    color: white;
-                                    background-color: {background_light};
-                                }}
-                                QTabBar::tab:!selected {{
-                                    margin-top: 6px;
-                                    background-color: {background_lightest}
-                                }}
+    QTabBar::tab:selected {{
+        color: white;
+        background-color: {background_light};
+    }}
+    QTabBar::tab:!selected {{
+        margin-top: 6px;
+        background-color: {background_lightest}
+    }}
 
-                                QTabWidget::tab-bar {{
-                                    border-top: 1px solid {background_dark};
-                                }}
+    QTabWidget::tab-bar {{
+        border-top: 1px solid {background_dark};
+    }}
 
-                                QLineEdit {{
-                                    background-color: {background_dark};
-                                    color: {text_shaded};
-                                    border-radius: 0px;
-                                    padding: 0 3px;
-                                }}
-                                
-                                QLineEdit:disabled {{
-                                    background-color: {background_dark};
-                                    color: #505050;
-                                    border-radius: none;
-                                }}
-                                
-                                QTextEdit {{
-                                    background-color: {background_light};
-                                    color: {text_shaded};
-                                    border: red solid 1px;
-                                }}
+    QLineEdit {{
+        background-color: {background_dark};
+        color: {text_shaded};
+        border-radius: 0px;
+        padding: 0 3px;
+    }}
+    
+    QLineEdit:disabled {{
+        background-color: {background_dark};
+        color: #505050;
+        border-radius: none;
+    }}
+    
+    QTextEdit {{
+        background-color: {background_light};
+        color: {text_shaded};
+        border: red solid 1px;
+    }}
 
-                                QTextEdit#TextFileEdit {{
-                                    background-color: {background_dark};
-                                    color: {text_shaded};
-                                    border: red solid 1px;
-                                    border-radius: 2px;
-                                }}
-                                    
-                                QListWidget {{
-                                    outline: none;
-                                    outline-width: 0px;
-                                    background: {background_dark};
-                                    border: 1px solid {background_dark};
-                                    border-radius: 2px;
-                                }}
-                                
-                                QScrollBar::vertical {{
-                                    border: none;
-                                    background-color: transparent;
-                                    width: 10px;
-                                    margin: 0px 0px 0px 0px;
-                                }}
-                                QScrollBar::vertical#main {{
-                                    background-color: {background_dark};
-                                }}
-                                QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
-                                    border: none;
-                                    background: none;
-                                    width: 0px;
-                                    height: 0px;
-                                }}
+    QTextEdit#TextFileEdit {{
+        background-color: {background_dark};
+        color: {text_shaded};
+        border: red solid 1px;
+        border-radius: 2px;
+    }}
+        
+    QListWidget {{
+        outline: none;
+        outline-width: 0px;
+        background: {background_dark};
+        border: 1px solid {background_dark};
+        border-radius: 2px;
+    }}
+    
+    QScrollBar::vertical {{
+        border: none;
+        background-color: transparent;
+        width: 10px;
+        margin: 0px 0px 0px 0px;
+    }}
+    QScrollBar::vertical#main {{
+        background-color: {background_dark};
+    }}
+    QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
+        border: none;
+        background: none;
+        width: 0px;
+        height: 0px;
+    }}
 
-                                QScrollBar::handle:vertical {{
-                                    background: {background_dark};
-                                    min-height: 20px;
-                                    border-radius: 5px;
-                                }}
-                                
-                                QScrollBar::handle:vertical#main {{
-                                    background: {background_darkest};
-                                }}
+    QScrollBar::handle:vertical {{
+        background: {background_dark};
+        min-height: 20px;
+        border-radius: 5px;
+    }}
+    
+    QScrollBar::handle:vertical#main {{
+        background: {background_darkest};
+    }}
 
-                                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
-                                    background: none;
-                                }}
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical  {{
+        background: none;
+    }}
 
-                                QPushButton {{
-                                    background-color: {background_dark};
-                                    color: white;
-                                    border: 1px solid transparent;
-                                    border-radius: none;
-                                    width: 60px;
-                                    height: 20px;
-                                }}
+    QPushButton {{
+        background-color: {background_dark};
+        color: white;
+        border: 1px solid transparent;
+        border-radius: none;
+        width: 60px;
+        height: 20px;
+    }}
 
-                                QPushButton:disabled {{
-                                    border: 1px solid {background_dark};
-                                    background-color: transparent;
-                                    color: #757575;
-                                }}
-                                
-                                QPushButton:pressed {{
-                                    background-color: #101010;
-                                    color: white;
-                                }}
-                                
-                                QTreeWidget {{
-                                    selection-color: red;
-                                    border: none;
-                                    outline: none;
-                                    outline-width: 0px;
-                                    selection-background-color: blue;
-                                }}      
-                                
-                                QTreeWidget::item {{
-                                    height: 16px;
-                                }}
+    QPushButton:disabled {{
+        border: 1px solid {background_dark};
+        background-color: transparent;
+        color: #757575;
+    }}
+    
+    QPushButton:pressed {{
+        background-color: #101010;
+        color: white;
+    }}
+    
+    QTreeWidget {{
+        selection-color: red;
+        border: none;
+        outline: none;
+        outline-width: 0px;
+        selection-background-color: blue;
+    }}      
+    
+    QTreeWidget::item {{
+        height: 16px;
+    }}
 
-                                QTreeWidget::item:disabled {{
-                                    color: grey;
-                                }}
+    QTreeWidget::item:disabled {{
+        color: grey;
+    }}
 
-                                QTreeWidget::item:hover, QTreeWidget::item:selected {{
-                                    background-color: transparent;
-                                    color: white;
-                                }}
+    QTreeWidget::item:hover, QTreeWidget::item:selected {{
+        background-color: transparent;
+        color: white;
+    }}
 
-                                QComboBox {{
-                                    border: 1px solid {background_dark};
-                                    border-radius: 0px;
-                                    background-color: {background_dark};
-                                    color: {text_shaded};
-                                    padding-right: 5px;
-                                    padding-left: 5px;
-                                }}
-                                
+    QComboBox {{
+        border: 1px solid {background_dark};
+        border-radius: 0px;
+        background-color: {background_dark};
+        color: {text_shaded};
+        padding-right: 5px;
+        padding-left: 5px;
+    }}
+    
 
-                                QComboBox::drop-down {{
-                                    border: 0px;
-                                    background: none;
-                                }}                        
-                                
-                                QComboBox::disabled {{
-                                    color: {background_light};
-                                }}
-                                
-                                """
+    QComboBox::drop-down {{
+        border: 0px;
+        background: none;
+    }}                        
+    
+    QComboBox::disabled {{
+        color: {background_light};
+    }}
+"""
 
 base_settings = dict()
 base_settings['profiles'] = {}
