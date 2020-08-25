@@ -32,16 +32,7 @@ class ParameterTree(QTreeWidget):
     def __init__(self, profile: dict, parent=None):
         """
         Data table:
-        All data is in column 0.
-        --
-        TODO: Make the following a enum or something class attributes.
-        0  - Visual name.
-        32 - main data entry, name of parents, full data for children
-        33 - 0 for parent, 1 for children, 3 for custom option.
-        34 - Name of item that needs to be checked
-        35 - index for children used for active option
-        37 - List of QModelIndex to items that this depends on.
-
+        All data is in column 0. Uses global slot variables to access data.
         """
         super().__init__(parent=parent)
 
@@ -72,10 +63,16 @@ class ParameterTree(QTreeWidget):
 
     def contextMenu(self, event):
         """
-        Create context menu for parameters.
+        Create context menu on parameters.
 
-        Reminder: LEVEL_SLOT points to items in
+        Usual notation:
+        parameter = parent
+        option = child
+
+        Reminder:
+        LEVEL_SLOT points to parent/child data, 0 for parent, 1 for child.
         """
+        # Right-clicked item
         item = self.itemAt(event)
 
         if item is None:
@@ -83,8 +80,13 @@ class ParameterTree(QTreeWidget):
 
         menu = QMenu(self)
 
+        # Temp variables for removing options.
         remove_option = None
+
+        # Placeholder
         move_action = None
+
+        # Temp variables for marking favorite.
         take_item = None
 
         if item.data(0, LEVEL_SLOT) == 0:
@@ -94,8 +96,6 @@ class ParameterTree(QTreeWidget):
 
             remove_option = QAction('Remove option')
             remove_option.triggered.connect(lambda: self.try_del_option(take_item, item))
-        elif item.data(0, LEVEL_SLOT) == 2:
-            take_item = item
         else:
             # TODO: Log error, shouldn't be reached either way
             return
@@ -119,10 +119,14 @@ class ParameterTree(QTreeWidget):
         menu.exec_(QCursor.pos())
 
     def try_del_option(self, parent: QTreeWidgetItem, child: QTreeWidgetItem):
+        """
+        Emits signal to remove an option from the parent parameter.
+        core.py handles settings, and calls del_option method if delete is accepted.
+        """
         self.itemRemoved.emit(parent, parent.indexOfChild(child))
 
-    def _del_option(self, parent: QTreeWidgetItem, child: QTreeWidgetItem):
-
+    def del_option(self, parent: QTreeWidgetItem, child: QTreeWidgetItem):
+        """ Called to remove option from parent. """
         self.blockSignals(True)
 
         parent.removeChild(child)
@@ -144,12 +148,14 @@ class ParameterTree(QTreeWidget):
         self.update_size()
 
     def move_widget(self, item: QTreeWidgetItem):
+        """ Takes item from one ParameterTree and emits it. """
         self.blockSignals(True)
         taken_item = self.takeTopLevelItem(self.indexOfTopLevelItem(item))
         self.blockSignals(False)
         self.move_request.emit(taken_item, self.favorite)
 
     def load_profile(self, profile: dict):
+        """Loads a parameter config from a dictionary. """
         self.blockSignals(True)
         self.setSortingEnabled(False)
         self.clear()
@@ -172,6 +178,12 @@ class ParameterTree(QTreeWidget):
         self.blockSignals(False)
 
     def hock_dependency(self):
+        """
+
+        Overly complicated code that essentially gives parameters a list of other parameters that depend on it
+        to be enabled.
+        I.e. thumbnail and audio quality rely on convert to audio conversion to be enabled.
+        """
         top_level_names = []
 
         for item in self.topLevelItems():
@@ -241,7 +253,7 @@ class ParameterTree(QTreeWidget):
                     subindex: Optional[int] = None) \
             -> QTreeWidgetItem:
         """
-        Makes a QWidgetItem and returns it.
+        Makes a QTreeWidgetItem and returns it.
         """
         if level != 1:
             widget_item = QTreeWidgetItem(parent, [name])
@@ -287,6 +299,7 @@ class ParameterTree(QTreeWidget):
             item.setExpanded(False)
 
     def resizer(self, item: QTreeWidgetItem):
+        """Handles resize changes when an parameters options are expanded/collapsed."""
         # print('Child count', item.childCount())
         if item.checkState(0):
             if self.height() + 15 * item.childCount() < ParameterTree.max_size:
@@ -336,6 +349,7 @@ class ParameterTree(QTreeWidget):
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
 
+    # TODO: Clean up example code here, uses old style settings.
     SampleDict = {
         "Other stuff": {
             "multidl_txt": "C:/User/Mike Hunt/links.txt"

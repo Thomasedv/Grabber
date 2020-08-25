@@ -418,7 +418,7 @@ class GUI(MainWindow):
                                f'\t{", ".join(has_option)}')
             return
 
-        item.treeWidget()._del_option(item, item.child(index))
+        item.treeWidget().del_option(item, item.child(index))
 
         self.settings.remove_parameter_option(item.data(0, DISPLAY_NAME_SLOT), index)
 
