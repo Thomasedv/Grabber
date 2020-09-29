@@ -31,7 +31,6 @@ class ParameterTree(QTreeWidget):
 
     def __init__(self, profile: dict, parent=None):
         """
-        Data table:
         All data is in column 0. Uses global slot variables to access data.
         """
         super().__init__(parent=parent)

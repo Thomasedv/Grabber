@@ -200,7 +200,7 @@ class Download(QProcess):
                         self.file_path = os.path.join(path, fullname)
 
                         # Get final extension after recoding process
-                    if stdout[1] == 'Converting':
+                    if stdout[1] == 'Converting' and stdout[2] != 'thumbnail':
                         path, fullname = os.path.split(' '.join(stdout_with_spaces[8:]).strip("\""))
                         self.name = fullname
                         self.file_path = os.path.join(path, fullname)
