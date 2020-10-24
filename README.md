@@ -1,7 +1,7 @@
 # Grabber
 A wrapper for Youtube-dl for Windows. 
 
-![Main](https://i.imgur.com/L3JMaqY.gif)
+![Main](https://i.imgur.com/Tdd2oHt.png)
 
 **Requires you to have youtube-dl.exe in the same folder as this program(Grabber), or in PATH. 
 If you want to convert the videos, or otherwise use features of youtube-dl that require ffmpeg,
