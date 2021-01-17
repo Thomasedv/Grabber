@@ -1,7 +1,7 @@
 # Grabber
 A wrapper for Youtube-dl for Windows. 
 
-![Main](https://i.imgur.com/L3JMaqY.gif)
+![Main](https://i.imgur.com/Tdd2oHt.png)
 
 **Requires you to have youtube-dl.exe in the same folder as this program(Grabber), or in PATH. 
 If you want to convert the videos, or otherwise use features of youtube-dl that require ffmpeg,
@@ -67,10 +67,7 @@ Made with PyQt5 https://www.riverbankcomputing.com/software/pyqt/intro
 ![Option](https://i.imgur.com/ceYwgyS.png) ![List](https://i.imgur.com/L0PL5OH.png)
 
 
-Images from version 0.3.1.
-
 Currently updates i am interested in doing:
-* Parallel downloads
 * Custom UI colors
 
 
