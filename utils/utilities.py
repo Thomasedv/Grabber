@@ -1003,11 +1003,11 @@ base_settings['parameters']['Username'] = {
 }
 base_settings['parameters']['Best video quality'] = {
     "active option": 0,
-    "command": "--format ((571/272/402/337/315/313/401/336/308/400/271/335/303/299/399/137/248/334/302/298/398/247/136/333/244/135/397/332/243/134/396/331/242/133/395/330/160/394/278)[protocol!=http_dash_segments])+(bestaudio[acodec=opus]/bestaudio[protocol!=http_dash_segments])/best",
+    "command": "--format (bestvideo[height>2160][vcodec^=av01]/bestvideo[height>2160][vcodec=vp9]/bestvideo[height>1440][vcodec^=av01]/bestvideo[height>1440][vcodec^=vp9][fps>30]/bestvideo[height>1440][vcodec^=vp9]/bestvideo[height>1080][vcodec^=av01]/bestvideo[height>1080][vcodec^=vp9][fps>30]/bestvideo[height>1080][vcodec^=vp9]/bestvideo[height>720][vcodec^=av01]/bestvideo[height>720][vcodec^=vp9][fps>30]/bestvideo[height>720][vcodec^=vp9]/bestvideo[height>240][vcodec^=av01]/bestvideo[vcodec^=vp9][fps>30]/bestvideo[height>240][vcodec^=vp9]/best[height>240]/bestvideo[vcodec^=av01]/bestvideo[vcodec^=vp9])+bestaudio[asr=48000]/bestvideo+bestaudio/bestaudio[ext=opus]/best",
     "dependency": None,
     "options": None,
     "state": False,
-    "tooltip": "This is a special command that uses --format"
+    "tooltip": "This is a special Youtube only command that uses --format"
                "\nThis picks best possible video quality (at the time of addition)"
                "\nDo not use when converting to audio!"
 }
