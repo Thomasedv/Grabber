@@ -2,8 +2,9 @@ import json
 import os
 import sys
 
-# If Grabber is run from start menu, working directory is set to system32, this changes to file location.
-if os.getcwd().lower() == r'c:\windows\system32'.lower():  # Bit of a hack, but if you have this, your fault
+# If Grabber is run from start menu, working directory is set to system32, this changes to correct working directory.
+if os.getcwd().lower() == r'c:\windows\system32'.lower():
+
     # Check if running as script, or executable.
     if getattr(sys, 'frozen', False):
         application_path = os.path.dirname(sys.executable)
@@ -21,20 +22,20 @@ from utils.utilities import SettingsError, ProfileLoadError
 
 def main():
     # Main loop
+    EXIT_CODE = 1
 
     while True:
-        EXIT_CODE = 1
         try:
             app = QApplication(sys.argv)
             program = GUI()
 
             EXIT_CODE = app.exec_()
-            app = None  # Required! Crashes on restart without.
+            app = None  # Required! Clears memory. Crashes on restart without it.
 
             if EXIT_CODE == GUI.EXIT_CODE_REBOOT:
                 continue
 
-        # For when startup fails
+        # If corrupt or wrong settings or profile files
         except (SettingsError, ProfileLoadError, json.decoder.JSONDecodeError) as e:
             if isinstance(e, ProfileLoadError):
                 file = 'profiles file'
@@ -46,7 +47,7 @@ def main():
                                           ''.join([str(e), '\nRestore to defaults?']),
                                           buttons=QMessageBox.Yes | QMessageBox.No)
 
-            # If yes, do settings or profile reset.
+            # If yes (to reset), do settings or profile reset.
             if warning == QMessageBox.Yes:
                 filehandler = FileHandler()
                 if isinstance(e, ProfileLoadError):
@@ -55,7 +56,7 @@ def main():
                     setting = filehandler.load_settings(reset=True)
                     filehandler.save_settings(setting.settings_data)
 
-                app = None  # Ensures the app instance is properly removed!
+                app = None  # Ensures the app instance is properly cleared!
                 continue
 
         sys.exit(EXIT_CODE)

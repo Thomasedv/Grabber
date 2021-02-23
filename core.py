@@ -28,10 +28,10 @@ class GUI(MainWindow):
         """
         super().__init__()
 
-        # starts checks
+        # startup checks
         self.initial_checks()
 
-        # Holds temp passwords
+        # Holds temporary passwords
         # TODO: Better password solution
         self._temp = LessNiceDict()
 
@@ -45,21 +45,21 @@ class GUI(MainWindow):
         self.file_handler = FileHandler()
         self.settings = self.file_handler.load_settings()
         self.downloader = Downloader(self.file_handler, self.settings.user_options['parallel'])
-        # Find resources.
-        # Find youtube-dl
 
+        # Find important executables and files
         self.youtube_dl_path = self.file_handler.find_exe('youtube-dl.exe')
         self.ffmpeg_path = self.file_handler.find_exe('ffmpeg.exe')
         self.program_workdir = self.file_handler.work_dir
         self.license_path = self.file_handler.find_file('LICENSE')
 
+        # Download destination if not set by user
         self.local_dl_path = self.file_handler.work_dir + '/DL/'
 
         # NB! For stylesheet stuff, the slashes '\' in the path, must be replaced with '/'.
-        # Using replace('\\', '/') on path. Done by file handler!
+        # Using replace('\\', '/') on path. Done by file handler.
         self.icon_list = []
 
-        # TODO: Turn into dict comprehension??
+        # TODO: Turn into something more practical??
         # Find icon paths
         self.unchecked_icon = self.file_handler.find_file('GUI\\Icon_unchecked.ico')
         self.checked_icon = self.file_handler.find_file('GUI\\Icon_checked.ico')
@@ -102,10 +102,7 @@ class GUI(MainWindow):
         # Confirmation to close signal
         self.sendClose.connect(self.closeE)
 
-        # Connecting stuff for tab 1.
-        # Start buttons starts download
-
-        # First Tab
+        # First Tab | Main tab
         self.tab1 = MainTab(self.settings, self.tab_widget)
 
         self.tab1.start_btn.clicked.connect(self.queue_download)
@@ -125,10 +122,10 @@ class GUI(MainWindow):
         # Delete profile
         self.tab1.profile_dropdown.deleteItem.connect(self.delete_profile)
 
-        # Tab 2
+        # Tab 2 | Parameter Tab
         self.tab2 = ParameterTab(options, favorites, self.settings, self)
 
-        # Connection stuff tab 2.
+        # Connecting tab 2.
         self.tab2.open_folder_action.triggered.connect(self.open_folder)
         self.tab2.copy_action.triggered.connect(self.copy_to_cliboard)
 
@@ -145,7 +142,7 @@ class GUI(MainWindow):
         self.tab2.browse_btn.clicked.connect(self.savefile_dialog)
         self.tab2.save_profile_btn.clicked.connect(self.save_profile)
 
-        # Tab 3
+        # Tab 3 | Basic text editor
         self.tab3 = TextTab(parent=self)
 
         # When loadbutton is clicked, launch load textfile.
@@ -288,6 +285,7 @@ class GUI(MainWindow):
         self.tab_widget.currentChanged.connect(self.resize_contents)
 
     def toggle_debug(self):
+        """ Can be triggered to enable/disable debugging information """
         self._debug = not self._debug
 
         self.tab4.debug_info.setText(f'Debug:\n{self._debug}')
@@ -295,6 +293,7 @@ class GUI(MainWindow):
             i.toggle_debug(self._debug)
 
     def toggle_modes(self):
+        """ Swap between parallel and sequential download mode. """
         if self.downloader.RUNNING or self.downloader.has_pending():
             self.alert_message('Action failed',
                                'Mode was not changed',
@@ -308,6 +307,7 @@ class GUI(MainWindow):
             self.downloader.set_mode(parallel=parallel)
 
     def save_profile(self):
+        """ Save parameter config to a profile. """
         dialog = Dialog(self.tab_widget, 'Name profile', 'Give a name to the profile!')
         if dialog.exec() != QDialog.Accepted:
             return
@@ -340,6 +340,7 @@ class GUI(MainWindow):
         self.file_handler.save_profiles(self.settings.profiles_data)
 
     def load_profile(self):
+        """ Loads a profile and sets the GUI to that configuration """
         try:
             profile_name = self.tab1.profile_dropdown.currentText()
 
@@ -369,10 +370,12 @@ class GUI(MainWindow):
 
             self.file_handler.save_settings(self.settings.settings_data)
         except Exception as e:
+            # TODO: Replace this with logging
             import traceback
             traceback.print_exc()
 
     def delete_profile(self):
+        """ Removes a profile """
         index = self.tab1.profile_dropdown.currentIndex()
         text = self.tab1.profile_dropdown.currentText()
         if text in ('Custom', 'None'):
@@ -389,7 +392,11 @@ class GUI(MainWindow):
         self.file_handler.save_settings(self.settings.settings_data)
 
     def item_removed(self, item: QTreeWidgetItem, index):
-        """Parent who had child removed. Updates settings and numbering of settings_data 35"""
+        """
+        Parent who had child removed. Updates settings and numbering of settings_data 35
+        TODO: Apply named constant variables to data entries instead of numbers.
+              Constants defined in parameter_tree.py
+        """
 
         def get_index(data, option_name):
             try:
@@ -741,6 +748,7 @@ class GUI(MainWindow):
         if self.icon_list.count(None):
             debug.append(color_text(f'Missing {self.icon_list.count(None)} icon file(s)!'))
 
+        # RichText does not support both the use of \n and <br> at the same time. Use <br>
         debug_info = '<br>'.join([text.replace('\n', '<br>') for text in debug if text is not None])
         mock_download = MockDownload(info=debug_info)
         self.add_download_to_gui(mock_download)
@@ -748,6 +756,7 @@ class GUI(MainWindow):
         self.tab_widget.setCurrentIndex(0)
 
     def update_youtube_dl(self):
+        # TODO: Require no other downloads active
         update = Download(self.program_workdir,
                           self.youtube_dl_path,
                           ['-U', '--encoding', 'utf-8'],
