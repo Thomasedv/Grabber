@@ -67,7 +67,7 @@ Made with PyQt5 https://www.riverbankcomputing.com/software/pyqt/intro
 ![Option](https://i.imgur.com/ceYwgyS.png) ![List](https://i.imgur.com/L0PL5OH.png)
 
 
-Currently updates i am interested in doing:
+Current updates, if desired, that I could implement:
 * Custom UI colors
 
 
