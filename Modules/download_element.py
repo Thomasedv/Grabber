@@ -185,7 +185,8 @@ class Download(QProcess):
                         percent = '{0:.1f}%'.format(current_segment / segment_no * 100)
                         self.progress = percent
 
-                elif stdout[0] == '[ffmpeg]':
+                elif stdout[0] in ('[ffmpeg]', '[EmbedThumbnail]', '[ThumbnailsConvertor]',
+                                   '[ExtractAudio]', '[Metadata]', '[Merger]'):
                     self.status = 'Post Processing'
 
                     if stdout[1] == 'Merging':

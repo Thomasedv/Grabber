@@ -727,11 +727,11 @@ class GUI(MainWindow):
     def dir_info(self):
         # TODO: Print this info to GUI.
         file_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
-        debug = [color_text('Youtube-dl.exe path: ') + self.youtube_dl_path,
-                 color_text('ffmpeg.exe path: ') + self.ffmpeg_path,
-                 color_text('Filedir: ') + file_dir,
-                 color_text('Workdir: ') + self.file_handler.work_dir,
-                 color_text('Youtube-dl working directory: ') + self.program_workdir]
+        debug = [color_text('Youtube-dl.exe path: ') + str(self.youtube_dl_path),
+                 color_text('ffmpeg.exe path: ') + str(self.ffmpeg_path),
+                 color_text('Filedir: ') + str(file_dir),
+                 color_text('Workdir: ') + str(self.file_handler.work_dir),
+                 color_text('Youtube-dl working directory: ') + str(self.program_workdir)]
 
         debug += [color_text('\nIcon paths:'), *self.icon_list]
 
