@@ -109,21 +109,18 @@ class Download(QProcess):
             return
 
         try:
-            for line in output.split('\n'):
+            for line in output.splitlines():
                 self.debug_log.append(line)
                 if not line:
                     continue
 
                 stdout_with_spaces = line.split(' ')
-
                 stdout = line.split()
 
                 if not stdout:
                     continue
 
-                self.program_log.append(line.split('\r')[-1].strip())
-
-                stdout[0] = stdout[0].lstrip('\r')
+                self.program_log.append(line.strip())
 
                 if stdout[0] == '[download]':
                     self.status = 'Downloading'
@@ -138,13 +135,13 @@ class Download(QProcess):
                         if stdout[1] == '100%':
                             self.progress = '100%'
                             self.eta = ''
-                            self.filesize = stdout[3]
+                            self.filesize = stdout[3] if stdout[3] != '~' else stdout[4]
                             self.speed = ''
                         else:
                             self.progress = stdout[1]
-                            self.eta = stdout[7]
-                            self.filesize = stdout[3]
-                            self.speed = stdout[5]
+                            self.filesize = stdout[3] if stdout[3] != '~' else stdout[4]
+                            self.speed = stdout[5] if stdout[3] != '~' else stdout[6]
+                            self.eta = stdout[7] if stdout[3] != '~' else stdout[8]
 
                     # Get playlist info
 
