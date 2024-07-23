@@ -18,19 +18,13 @@ that also has to be in the same folder (or path) as Grabber.**
 Youtube-dl download: 
 https://ytdl-org.github.io/youtube-dl/download.html
 
-FFmpeg download (**STATIC build version**, for example 4.2 Windows 64/32, static) : 
-https://ffmpeg.zeranoe.com/builds/
-
-Open the ffmpeg zip, copy 3 executables in the **bin** folder to the locations mentioned above.
-
-**Again use the 4.X.X static ffmpeg version!** Extract the 3 executables from the bin folder to the Grabber folder or PATH
 
 If you don't put anything in path, this is what your folder should have:
 - Grabber.exe
 - ffmpeg.exe
 - ffprobe.exe
 - ffplay.exe (is included in ffmpeg bin folder, but not actually needed)
-- youtube-dl.exe
+- youtube-dl.exe (if you use youtube-dlp, just renamed it to youtube-dl and it will work)
 
 **Remember, if nothing happens when you try a download, to install "Microsoft Visual C++ 2010 Redistributable Package (x86)" from the microsoft link above!** This is required by youtube-dl to run.
 
