@@ -145,7 +145,7 @@ class Download(QProcess):
 
                     # Get playlist info
 
-                    if stdout[1] == 'Downloading' and stdout[2] == 'video':
+                    if stdout[1] == 'Downloading' and stdout[2] == 'item' and stdout[4] == 'of':
                         self.playlist = stdout[3] + '/' + stdout[5]
 
                     # Remove the 'and merged' part from stdout when using ffmpeg to merge the formats
