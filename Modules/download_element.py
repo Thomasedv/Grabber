@@ -143,9 +143,9 @@ class Download(QProcess):
                             self.speed = stdout[5] if stdout[3] != '~' else stdout[6]
                             self.eta = stdout[7] if stdout[3] != '~' else stdout[8]
 
-                    # Get playlist info
-
-                    if stdout[1] == 'Downloading' and stdout[2] == 'item' and stdout[4] == 'of':
+                    # Get playlist info (yt-dlp first condition, yt-dl other condition)
+                    if ((stdout[1] == 'Downloading' and stdout[2] == 'item' and stdout[4] == 'of')
+                            or (stdout[1] == 'Downloading' and stdout[2] == 'video')):
                         self.playlist = stdout[3] + '/' + stdout[5]
 
                     # Remove the 'and merged' part from stdout when using ffmpeg to merge the formats
@@ -236,6 +236,7 @@ class Download(QProcess):
 
 class MockDownload(Download):
     """Used for showing debug info"""
+
     def __init__(self, info, parent=None):
         super(MockDownload, self).__init__('', '', [], info=info, parent=parent)
         self.status = 'Debug Info'
